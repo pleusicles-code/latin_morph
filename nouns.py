@@ -83,11 +83,11 @@ with col_declension:
 # based on radio button 'declension' (which may still need its own key in session_state), filter noun_vocab.
 active_vocab = {}
 for noun_key, noun_val in noun_vocab.items():
-    noun_decl = noun_val["decl"]
+    n_decl = noun_val["decl"]
     for decl_sel in declension:
-        if isinstance(declension_dict[decl_sel], list) and noun_decl in declension_dict[decl_sel]:
+        if isinstance(declension_dict[decl_sel], list) and n_decl in declension_dict[decl_sel]:
             active_vocab = active_vocab | {noun_key: noun_val}
-        elif noun_decl == declension_dict[decl_sel]:
+        elif n_decl == declension_dict[decl_sel]:
             active_vocab = active_vocab | {noun_key: noun_val}
         else:
             continue
@@ -590,6 +590,7 @@ else:
         st.session_state["correct_answer"] = correct_answer = build_noun(st.session_state.current_question)
 
         question = f'For *{noun}*, give the **{noun_options["case"][case]} {noun_options["number"][number]}**.'
+        noun_decl = noun_vocab.get(noun)["decl"]
 
         if show_declension:
             for key, val in declension_dict.items():
