@@ -107,9 +107,11 @@ irregs_only = "No"
 
 with col_declension:
     if len(irreg_nouns) > 0:
+        # default_irreg_nouns = [noun for noun in irreg_nouns if noun in active_vocab]
+        # if defaults.get("irre")
         irregs_include = st.multiselect("Choose which irregular nouns to include:", 
                                         options=irreg_nouns, 
-                                        default=defaults.get("irregs_include") if defaults.get("irregs_include") is not None else irreg_nouns, 
+                                        default=[noun for noun in defaults.get("irregs_include") if noun in irreg_nouns] if defaults.get("irregs_include") is not None else irreg_nouns, 
                                         help="Only irregular nouns for the selected declension(s) are shown.")
         if len(irregs_include) > 0:
             irregs_only = st.radio("Include *only* the selected irregular nouns?", 
