@@ -147,15 +147,13 @@ def submit_and_check_answer():
             else:
                 st.session_state.result_message = "**Incorrect. Better luck next time!**"
 
-            # On the noun exercise, highlight the detailed answer feedback itself.
-            # Streamlit's background-color Markdown syntax gives the same rounded
-            # treatment as other native UI elements without custom CSS.
-            if st.session_state.curr_page_id == "nouns":
-                feedback_color = "green" if correct_flag else "red"
-                st.session_state.answer_display_message = (
-                    f":{feedback_color}-background[Your answer is: {user_answer}]  \n"
-                    f":{feedback_color}-background[{st.session_state['answer_phrase']}]"
-                )
+            # Highlight detailed answer feedback consistently across all exercises
+            # using Streamlit's rounded background-color Markdown treatment.
+            feedback_color = "green" if correct_flag else "red"
+            st.session_state.answer_display_message = (
+                f":{feedback_color}-background[Your answer is: {user_answer}]  \n"
+                f":{feedback_color}-background[{st.session_state['answer_phrase']}]"
+            )
 
 #            st.write(st.session_state.append_answer)
             if st.session_state.append_answer is False:
