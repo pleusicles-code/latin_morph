@@ -7,6 +7,8 @@ import streamlit as st
 import streamlit.components.v1 as components
 
 from utils import clear_page, new_question, remove_macrons, reset, save_defaults, clear_defaults
+from exercise_presets import (list_setting, resolve_exercise_settings, initialize_widget_state,
+                              widget_key, url_preset_active, exercise_link_popover)
 from vocab import import_nouns, import_adjectives, import_verbs
 
 
@@ -22,6 +24,13 @@ adjective_vocab = import_adjectives()
 verb_vocab = import_verbs()
 
 PARTS_OF_SPEECH = ["noun", "adjective", "verb"]
+
+exercise_schema = {
+    "selected_pos": list_setting(PARTS_OF_SPEECH, PARTS_OF_SPEECH),
+}
+exercise_settings = resolve_exercise_settings(page_id, exercise_schema, defaults)
+initialize_widget_state(page_id, exercise_settings)
+preset_active = url_preset_active(page_id)
 
 st.markdown("# Identify Stems")
 
@@ -153,12 +162,13 @@ with option_expander:
     selected_pos = st.multiselect(
         "Choose which parts of speech to practice (they are all selected by default):",
         options=PARTS_OF_SPEECH,
-        default=defaults.get("selected_pos") if defaults.get("selected_pos") is not None else PARTS_OF_SPEECH,
-        key="identify_stems_selected_pos",
+        key=widget_key(page_id, "selected_pos"),
     )
 
+    current_settings = {"selected_pos": selected_pos}
+
     if st.user.is_logged_in:
-        set_defaults_col, clear_defaults_col = st.columns(2)
+        set_defaults_col, clear_defaults_col, link_col = st.columns(3)
         with set_defaults_col:
             st.button(
                 "Save settings",
@@ -167,12 +177,12 @@ with option_expander:
                 help="Save your current part-of-speech selection as your default.",
                 on_click=save_defaults,
                 args=(page_id, defaults),
-                kwargs={"selected_pos": selected_pos},
+                kwargs=current_settings,
+                disabled=preset_active,
             )
 
         with clear_defaults_col:
             generic_settings = {"selected_pos": PARTS_OF_SPEECH}
-            current_settings = {"selected_pos": selected_pos}
             settings_changed = current_settings != generic_settings
 
             def reset_stem_defaults():
@@ -185,8 +195,13 @@ with option_expander:
                 width="stretch",
                 help="Restore the generic Latin Morph! default settings for this exercise.",
                 on_click=reset_stem_defaults,
-                disabled=not defaults and not settings_changed,
+                disabled=preset_active or (not defaults and not settings_changed),
             )
+
+        with link_col:
+            exercise_link_popover(page_id, exercise_schema, current_settings)
+    else:
+        exercise_link_popover(page_id, exercise_schema, current_settings)
 
 
 # --- Answer normalization -------------------------------------------------------
