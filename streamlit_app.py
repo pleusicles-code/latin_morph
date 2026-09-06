@@ -1,9 +1,10 @@
 """Streamlit deployment entry point for the fork.
 
 The upstream app expects Supabase URL/key entries in ``st.secrets`` even for
-anonymous sessions.  For deployments that do not yet have Supabase configured,
-provide inert placeholders so the app can boot in session-only guest mode.
-Once real Streamlit secrets are configured, this wrapper leaves them untouched.
+anonymous sessions, and it assumes Streamlit authentication is configured.
+For deployments that do not yet have Supabase/OAuth configured, provide inert
+fallbacks so the app can boot in session-only guest mode. Once real Streamlit
+secrets/authentication are configured, this wrapper leaves them untouched.
 """
 
 import streamlit as st
@@ -22,5 +23,12 @@ except (FileNotFoundError, KeyError):
             }
         }
     }
+
+# Without Streamlit authentication configured, st.user exists but does not expose
+# ``is_logged_in``. Add a fallback property so the upstream app's existing checks
+# consistently treat this deployment as an anonymous session. When authentication
+# is configured later, Streamlit's own property is already present and untouched.
+if not hasattr(st.user, "is_logged_in"):
+    type(st.user).is_logged_in = property(lambda self: False)
 
 import latin_morph  # noqa: E402,F401
