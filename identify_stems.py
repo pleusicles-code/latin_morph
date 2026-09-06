@@ -4,6 +4,7 @@ import unicodedata
 from datetime import datetime as dt, timezone
 
 import streamlit as st
+import streamlit.components.v1 as components
 
 from utils import clear_page, new_question, remove_macrons, reset, save_defaults, clear_defaults
 from vocab import import_nouns, import_adjectives, import_verbs
@@ -423,6 +424,20 @@ if st.session_state.current_question:
             args=(answer_key,),
             disabled=st.session_state.answer_checked,
             width="stretch",
+        )
+
+    if not st.session_state.answer_checked:
+        components.html(
+            f"""
+            <span style="display:none">{question['qid']}</span>
+            <script>
+                setTimeout(() => {{
+                    const input = window.parent.document.querySelector('input[aria-label="Your answer:"]');
+                    if (input) input.focus();
+                }}, 50);
+            </script>
+            """,
+            height=0,
         )
 
     if st.session_state.answer_display_message.startswith("<div"):
