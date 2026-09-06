@@ -175,10 +175,24 @@ ENTRY_BUILDERS = {
     "adjective": adjective_dictionary_entry,
     "verb": verb_dictionary_entry,
 }
+
+
+def noun_has_beginner_dictionary_entry(data):
+    # Exclude nouns whose singular genitive is explicitly unavailable
+    # (e.g. vīs), since this exercise teaches the standard dictionary-entry pattern.
+    return data.get("irreg", {}).get("sg", {}).get("gen", "__regular__") is not None
+
+
+def verb_has_beginner_dictionary_entry(data):
+    # Exclude genuinely irregular verbs such as sum, possum, ferō, etc.
+    # Verbs with only isolated irregular forms (e.g. dīcō, dūcō) remain eligible.
+    return data.get("irreg", {}).get("irreg") is not True
+
+
 VOCABULARIES = {
-    "noun": noun_vocab,
+    "noun": {word: data for word, data in noun_vocab.items() if noun_has_beginner_dictionary_entry(data)},
     "adjective": adjective_vocab,
-    "verb": verb_vocab,
+    "verb": {word: data for word, data in verb_vocab.items() if verb_has_beginner_dictionary_entry(data)},
 }
 
 
