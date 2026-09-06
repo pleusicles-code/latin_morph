@@ -23,64 +23,20 @@ jobs:
           p = Path('recognize_pos.py')
           text = p.read_text()
 
-          old = '''def check_recognition_answer(answer_key):
-    answer = st.session_state.get(answer_key)
-    if not answer or st.session_state.answer_checked:
-        return
-'''
-          new = '''def check_recognition_answer(answer_key):
-    answer = st.session_state.get(answer_key)
-    if not answer or st.session_state.answer_checked:
-        return
-
-    st.session_state.pop("recognize_pos_pending_answer_key", None)
-    st.session_state.pop("recognize_pos_check_after", None)
-'''
+          old = 'def check_recognition_answer(answer_key):\n    answer = st.session_state.get(answer_key)\n    if not answer or st.session_state.answer_checked:\n        return\n'
+          new = 'def check_recognition_answer(answer_key):\n    answer = st.session_state.get(answer_key)\n    if not answer or st.session_state.answer_checked:\n        return\n\n    st.session_state.pop("recognize_pos_pending_answer_key", None)\n    st.session_state.pop("recognize_pos_check_after", None)\n'
           if text.count(old) != 1:
               raise SystemExit(f'check block count: {text.count(old)}')
           text = text.replace(old, new, 1)
 
-          old = '''def choose_recognition_answer(answer_key):
-    # Keep the explicit button available, but automatically run the same check
-    # one second after the learner selects a radio option.
-    time.sleep(1)
-    check_recognition_answer(answer_key)
-'''
-          new = '''def choose_recognition_answer(answer_key):
-    # Schedule the same check used by the explicit button without blocking
-    # Streamlit for the one-second delay.
-    if not st.session_state.answer_checked:
-        st.session_state.recognize_pos_pending_answer_key = answer_key
-        st.session_state.recognize_pos_check_after = time.monotonic() + 1.0
-'''
+          old = 'def choose_recognition_answer(answer_key):\n    # Keep the explicit button available, but automatically run the same check\n    # one second after the learner selects a radio option.\n    time.sleep(1)\n    check_recognition_answer(answer_key)\n'
+          new = 'def choose_recognition_answer(answer_key):\n    # Schedule the same check used by the explicit button without blocking\n    # Streamlit for the one-second delay.\n    if not st.session_state.answer_checked:\n        st.session_state.recognize_pos_pending_answer_key = answer_key\n        st.session_state.recognize_pos_check_after = time.monotonic() + 1.0\n'
           if text.count(old) != 1:
               raise SystemExit(f'choose block count: {text.count(old)}')
           text = text.replace(old, new, 1)
 
-          marker = '''    with feedback_col:
-        st.markdown(st.session_state.answer_display_message)
-
-new_question_col, results_col, score_col = st.columns(3)
-'''
-          replacement = '''    with feedback_col:
-        st.markdown(st.session_state.answer_display_message)
-
-pending_answer_key = st.session_state.get("recognize_pos_pending_answer_key")
-check_after = st.session_state.get("recognize_pos_check_after")
-recognition_timer_interval = 0.2 if pending_answer_key and not st.session_state.answer_checked else None
-
-@st.fragment(run_every=recognition_timer_interval)
-def recognition_check_timer():
-    pending_key = st.session_state.get("recognize_pos_pending_answer_key")
-    pending_time = st.session_state.get("recognize_pos_check_after")
-    if pending_key and pending_time and not st.session_state.answer_checked and time.monotonic() >= pending_time:
-        check_recognition_answer(pending_key)
-        st.rerun()
-
-recognition_check_timer()
-
-new_question_col, results_col, score_col = st.columns(3)
-'''
+          marker = '    with feedback_col:\n        st.markdown(st.session_state.answer_display_message)\n\nnew_question_col, results_col, score_col = st.columns(3)\n'
+          replacement = '    with feedback_col:\n        st.markdown(st.session_state.answer_display_message)\n\npending_answer_key = st.session_state.get("recognize_pos_pending_answer_key")\ncheck_after = st.session_state.get("recognize_pos_check_after")\nrecognition_timer_interval = 0.2 if pending_answer_key and not st.session_state.answer_checked else None\n\n@st.fragment(run_every=recognition_timer_interval)\ndef recognition_check_timer():\n    pending_key = st.session_state.get("recognize_pos_pending_answer_key")\n    pending_time = st.session_state.get("recognize_pos_check_after")\n    if pending_key and pending_time and not st.session_state.answer_checked and time.monotonic() >= pending_time:\n        check_recognition_answer(pending_key)\n        st.rerun()\n\nrecognition_check_timer()\n\nnew_question_col, results_col, score_col = st.columns(3)\n'
           if text.count(marker) != 1:
               raise SystemExit(f'timer insertion marker count: {text.count(marker)}')
           text = text.replace(marker, replacement, 1)
