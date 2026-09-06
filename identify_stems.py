@@ -273,11 +273,25 @@ def verb_feedback(user_parts, correct_parts, part_results, state):
 
 # --- Question generation and checking -----------------------------------------
 
+def learner_present_stem(data):
+    stem = data["pres"]
+    conj = data.get("conj")
+    if conj == 1:
+        stem += "ā"
+    elif conj == 2:
+        stem += "ē"
+    elif conj == "3io":
+        stem += "i"
+    elif conj == 4:
+        stem += "ī"
+    return canonical_stem(stem)
+
+
 def correct_stems_for(pos, word):
     data = VOCABULARIES[pos][word]
     if pos in ["noun", "adjective"]:
         return [canonical_stem(data["stem"])]
-    return [canonical_stem(data["pres"]), canonical_stem(data["perf"]), canonical_stem(data["ppp"])]
+    return [learner_present_stem(data), canonical_stem(data["perf"]), canonical_stem(data["ppp"])]
 
 
 def gen_question():
