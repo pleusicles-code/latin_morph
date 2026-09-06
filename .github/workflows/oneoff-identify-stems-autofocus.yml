@@ -1,0 +1,32 @@
+name: One-off Identify Stems autofocus
+
+on:
+  push:
+    branches:
+      - optional-supabase
+    paths:
+      - .identify-stems-autofocus-trigger
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: optional-supabase
+      - name: Patch and validate
+        run: |
+          echo 'ZnJvbSBwYXRobGliIGltcG9ydCBQYXRoCnA9UGF0aCgiaWRlbnRpZnlfc3RlbXMucHkiKQp0ZXh0PXAucmVhZF90ZXh0KCkKb2xkPSJpbXBvcnQgc3RyZWFtbGl0IGFzIHN0XG4iCm5ldz0iaW1wb3J0IHN0cmVhbWxpdCBhcyBzdFxuaW1wb3J0IHN0cmVhbWxpdC5jb21wb25lbnRzLnYxIGFzIGNvbXBvbmVudHNcbiIKYXNzZXJ0IHRleHQuY291bnQob2xkKT09MSwgdGV4dC5jb3VudChvbGQpCnRleHQ9dGV4dC5yZXBsYWNlKG9sZCxuZXcsMSkKb2xkPScgICAgICAgIHN0LmZvcm1fc3VibWl0X2J1dHRvbigKICAgICAgICAgICAgIkNoZWNrIEFuc3dlciIsCiAgICAgICAgICAgIG9uX2NsaWNrPWNoZWNrX3N0ZW1fYW5zd2VyLAogICAgICAgICAgICBhcmdzPShhbnN3ZXJfa2V5LCksCiAgICAgICAgICAgIGRpc2FibGVkPXN0LnNlc3Npb25fc3RhdGUuYW5zd2VyX2NoZWNrZWQsCiAgICAgICAgICAgIHdpZHRoPSJzdHJldGNoIiwKICAgICAgICApCgogICAgaWYgc3Quc2Vzc2lvbl9zdGF0ZS5hbnN3ZXJfZGlzcGxheV9tZXNzYWdlLnN0YXJ0c3dpdGgoIjxkaXYiKToKJwpuZXc9JyAgICAgICAgc3QuZm9ybV9zdWJtaXRfYnV0dG9uKAogICAgICAgICAgICAiQ2hlY2sgQW5zd2VyIiwKICAgICAgICAgICAgb25fY2xpY2s9Y2hlY2tfc3RlbV9hbnN3ZXIsCiAgICAgICAgICAgIGFyZ3M9KGFuc3dlcl9rZXksKSwKICAgICAgICAgICAgZGlzYWJsZWQ9c3Quc2Vzc2lvbl9zdGF0ZS5hbnN3ZXJfY2hlY2tlZCwKICAgICAgICAgICAgd2lkdGg9InN0cmV0Y2giLAogICAgICAgICkKCiAgICBpZiBub3Qgc3Quc2Vzc2lvbl9zdGF0ZS5hbnN3ZXJfY2hlY2tlZDoKICAgICAgICBjb21wb25lbnRzLmh0bWwoCiAgICAgICAgICAgIGYiIiIKICAgICAgICAgICAgPHNwYW4gc3R5bGU9ImRpc3BsYXk6bm9uZSI+e3F1ZXN0aW9uW1wncWlkXCddfTwvc3Bhbj4KICAgICAgICAgICAgPHNjcmlwdD4KICAgICAgICAgICAgICAgIHNldFRpbWVvdXQoKCkgPT4ge3sKICAgICAgICAgICAgICAgICAgICBjb25zdCBpbnB1dCA9IHdpbmRvdy5wYXJlbnQuZG9jdW1lbnQucXVlcnlTZWxlY3RvcihcJ2lucHV0W2FyaWEtbGFiZWw9IllvdXIgYW5zd2VyOiJdXCcpOwogICAgICAgICAgICAgICAgICAgIGlmIChpbnB1dCkgaW5wdXQuZm9jdXMoKTsKICAgICAgICAgICAgICAgIH19LCA1MCk7CiAgICAgICAgICAgIDwvc2NyaXB0PgogICAgICAgICAgICAiIiIsCiAgICAgICAgICAgIGhlaWdodD0wLAogICAgICAgICApCgogICAgaWYgc3Quc2Vzc2lvbl9zdGF0ZS5hbnN3ZXJfZGlzcGxheV9tZXNzYWdlLnN0YXJ0c3dpdGgoIjxkaXYiKToKJwphc3NlcnQgdGV4dC5jb3VudChvbGQpPT0xLCB0ZXh0LmNvdW50KG9sZCkKdGV4dD10ZXh0LnJlcGxhY2Uob2xkLG5ldywxKQpwLndyaXRlX3RleHQodGV4dCkK' | base64 -d > /tmp/patch.py
+          python /tmp/patch.py
+          python -m py_compile identify_stems.py
+          grep -n 'components.v1\|components.html' identify_stems.py
+      - name: Commit
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add identify_stems.py
+          git commit -m "Autofocus Identify Stems input"
+          git push origin optional-supabase
