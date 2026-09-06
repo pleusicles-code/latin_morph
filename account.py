@@ -149,6 +149,7 @@ if st.user.is_logged_in:
                 and you will no longer have access to them.""")
 
     pos_dict = {
+        "recognize_pos": "part-of-speech recognition answers",
         "noun": "nouns",
         "verb": "verbs",
         "adj": "adjectives",
