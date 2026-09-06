@@ -63,8 +63,13 @@ def adjective_dictionary_entry(adjective):
     decl = data.get("decl")
     noms = data.get("noms")
 
-    # -er adjectives need their full nominative set to reveal the stem:
-    # pulcher, pulchra, pulchrum; celer, celeris, celere.
+    # -er adjectives need their full nominative set to reveal the stem.
+    # 1st/2nd-declension entries store only lemma + stem in vocab.py.
+    if decl == (1, 2) and adjective.endswith("er") and adjective != "pauper":
+        stem = data["stem"]
+        return f"{adjective}, {stem}a, {stem}um"
+
+    # 3rd-declension -er adjectives already store all three nominatives.
     if noms and len(noms) == 3 and str(noms[0]).endswith("er"):
         return ", ".join(noms)
 
@@ -157,7 +162,7 @@ def verb_dictionary_entry(verb):
             parts.append(data["perf"] + "ī")
         if data.get("ppp"):
             parts.append(data["ppp"] + "um")
-        return " ".join(parts[:1]) + (" " + ", ".join(parts[1:]) if len(parts) > 1 else "")
+        return parts[0] + (" " + ", ".join(parts[1:]) if len(parts) > 1 else "")
 
     if data.get("ppp"):
         return f"{verb} {conj_label} {data['ppp']}us sum"
@@ -240,16 +245,16 @@ def gen_question():
         "pos": pos,
         "word": word,
         "entry": ENTRY_BUILDERS[pos](word),
+        "qid": random.getrandbits(64),
     }
 
 
 def start_new_question():
-    st.session_state.recognize_pos_answer = None
     new_question(gen_question)
 
 
-def check_recognition_answer():
-    answer = st.session_state.get("recognize_pos_answer")
+def check_recognition_answer(answer_key):
+    answer = st.session_state.get(answer_key)
     if not answer:
         st.session_state.answer_display_message = "Choose an answer before checking."
         st.session_state.button_disable = False
@@ -300,16 +305,17 @@ if not selected_pos and not st.session_state.current_question:
 
 if st.session_state.current_question:
     question = st.session_state.current_question
+    answer_key = f"recognize_pos_answer_{question['qid']}"
 
     st.markdown("### Current question")
     st.markdown(f"Which part of speech is *{question['entry']}*?")
 
-    with st.form(key="recognize_pos_form"):
+    with st.form(key=f"recognize_pos_form_{question['qid']}"):
         st.radio(
             "Choose one:",
             options=PARTS_OF_SPEECH,
             index=None,
-            key="recognize_pos_answer",
+            key=answer_key,
             horizontal=True,
         )
         submit_col, feedback_col = st.columns([1, 2])
@@ -317,6 +323,7 @@ if st.session_state.current_question:
             st.form_submit_button(
                 "Check Answer",
                 on_click=check_recognition_answer,
+                args=(answer_key,),
                 disabled=st.session_state.button_disable,
             )
         with feedback_col:
@@ -345,6 +352,5 @@ with score_col:
 
 if st.session_state.auto_advance_trigger and st.session_state.answer_checked:
     time.sleep(st.session_state.auto_advance)
-    st.session_state.recognize_pos_answer = None
     new_question(gen_question)
     st.rerun()
