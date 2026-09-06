@@ -290,6 +290,9 @@ def check_recognition_answer(answer_key):
     if not answer or st.session_state.answer_checked:
         return
 
+    st.session_state.pop("recognize_pos_pending_answer_key", None)
+    st.session_state.pop("recognize_pos_check_after", None)
+
     correct_answer = st.session_state.current_question["pos"]
     correct = answer == correct_answer
 
@@ -329,10 +332,11 @@ def check_recognition_answer(answer_key):
 
 
 def choose_recognition_answer(answer_key):
-    # Keep the explicit button available, but automatically run the same check
-    # one second after the learner selects a radio option.
-    time.sleep(1)
-    check_recognition_answer(answer_key)
+    # Schedule the same check used by the explicit button without blocking
+    # Streamlit for the one-second delay.
+    if not st.session_state.answer_checked:
+        st.session_state.recognize_pos_pending_answer_key = answer_key
+        st.session_state.recognize_pos_check_after = time.monotonic() + 1.0
 
 
 st.session_state.gen_func = gen_question
@@ -369,6 +373,20 @@ if st.session_state.current_question:
         )
     with feedback_col:
         st.markdown(st.session_state.answer_display_message)
+
+pending_answer_key = st.session_state.get("recognize_pos_pending_answer_key")
+check_after = st.session_state.get("recognize_pos_check_after")
+recognition_timer_interval = 0.2 if pending_answer_key and not st.session_state.answer_checked else None
+
+@st.fragment(run_every=recognition_timer_interval)
+def recognition_check_timer():
+    pending_key = st.session_state.get("recognize_pos_pending_answer_key")
+    pending_time = st.session_state.get("recognize_pos_check_after")
+    if pending_key and pending_time and not st.session_state.answer_checked and time.monotonic() >= pending_time:
+        check_recognition_answer(pending_key)
+        st.rerun()
+
+recognition_check_timer()
 
 new_question_col, results_col, score_col = st.columns(3)
 
