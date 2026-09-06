@@ -66,13 +66,16 @@ with col_options:
         "Show dictionary entry?",
         help="Select this box to show the whole dictionary entry of the noun, which allows one to reconstruct the stem/base from the genitive form.",
         value=defaults.get("show_dictionary_entry") if defaults.get("show_dictionary_entry") is not None else True,
+        key="nouns_show_dictionary_entry",
     )
     show_declension = st.checkbox("Show declension?", 
                                   help="Select this box to show the noun's declension.", 
-                                  value=defaults.get("show_declension") if defaults.get("show_declension") is not None else False)
+                                  value=defaults.get("show_declension") if defaults.get("show_declension") is not None else False,
+                                  key="nouns_show_declension")
     show_stem = st.checkbox("Show noun stem/base?", 
                             help="Select this box to show the noun base. (The base is the stem without any of the trailing vowels that sometimes combine with endings.)",
-                            value=defaults.get("show_stem") if defaults.get("show_stem") is not None else False)
+                            value=defaults.get("show_stem") if defaults.get("show_stem") is not None else False,
+                            key="nouns_show_stem")
 
 with col_declension:
     # radio_change() is defined in utils.py
@@ -80,7 +83,8 @@ with col_declension:
     declension = st.multiselect("Choose which declensions to practice (they are all selected by default):", 
                                 options=list(declension_dict.keys()), 
                                 default=defaults.get("declension") if defaults.get("declension") is not None else list(declension_dict.keys()), 
-                                help="If the selected declension(s) include irregular nouns, an option will be shown to include or exclude them.")
+                                help="If the selected declension(s) include irregular nouns, an option will be shown to include or exclude them.",
+                                key="nouns_declension")
 
 
 ## DEFINE AVAILABLE NOUNS AND NOUN ENDINGS ##
@@ -117,12 +121,14 @@ with col_declension:
         irregs_include = st.multiselect("Choose which irregular nouns to include:", 
                                         options=irreg_nouns, 
                                         default=[noun for noun in defaults.get("irregs_include") if noun in irreg_nouns] if defaults.get("irregs_include") is not None else (["deus"] if "deus" in irreg_nouns else []), 
-                                        help="Only irregular nouns for the selected declension(s) are shown.")
+                                        help="Only irregular nouns for the selected declension(s) are shown.",
+                                        key="nouns_irregs_include")
         if len(irregs_include) > 0:
             irregs_only = st.radio("Practice *only* the selected irregular nouns?", 
                                    options=["No", "Yes"], 
                                    index=["No", "Yes"].index(defaults.get("irregs_only")) if defaults.get("irregs_only") is not None else 0,                                   
-                                   horizontal=True)
+                                   horizontal=True,
+                                   key="nouns_irregs_only")
 
 with col_options:
     if st.user.is_logged_in:
@@ -144,13 +150,39 @@ with col_options:
                             }
                         )
         with clear_defaults_col:
+            generic_noun_settings = {
+                "show_dictionary_entry": True,
+                "show_declension": False,
+                "show_stem": False,
+                "declension": list(declension_dict.keys()),
+                "irregs_include": ["deus"],
+                "irregs_only": "No",
+            }
+            current_noun_settings = {
+                "show_dictionary_entry": show_dictionary_entry,
+                "show_declension": show_declension,
+                "show_stem": show_stem,
+                "declension": declension,
+                "irregs_include": irregs_include,
+                "irregs_only": irregs_only,
+            }
+            noun_settings_changed = current_noun_settings != generic_noun_settings
+
+            def reset_noun_defaults():
+                clear_defaults(page_id)
+                st.session_state.nouns_show_dictionary_entry = True
+                st.session_state.nouns_show_declension = False
+                st.session_state.nouns_show_stem = False
+                st.session_state.nouns_declension = list(declension_dict.keys())
+                st.session_state.nouns_irregs_include = ["deus"]
+                st.session_state.nouns_irregs_only = "No"
+
             st.button("Reset defaults", 
                         type="primary", 
                         width="stretch", 
                         help="Restore the generic Latin Morph! default settings for nouns.",
-                        on_click=clear_defaults,
-                        args=(page_id,),
-                        disabled=True if not defaults else False
+                        on_click=reset_noun_defaults,
+                        disabled=not defaults and not noun_settings_changed
                         )
 
 
