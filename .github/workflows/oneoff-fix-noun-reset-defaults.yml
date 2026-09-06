@@ -25,28 +25,28 @@ jobs:
 
           replacements = [
               (
-                  '    show_dictionary_entry = st.checkbox(\n        "Show dictionary entry?",\n        help="Select this box to show the whole dictionary entry of the noun, which allows one to reconstruct the stem/base from the genitive form.",\n        value=defaults.get("show_dictionary_entry") if defaults.get("show_dictionary_entry") is not None else True,\n    )',
-                  '    show_dictionary_entry = st.checkbox(\n        "Show dictionary entry?",\n        help="Select this box to show the whole dictionary entry of the noun, which allows one to reconstruct the stem/base from the genitive form.",\n        value=defaults.get("show_dictionary_entry") if defaults.get("show_dictionary_entry") is not None else True,\n        key="nouns_show_dictionary_entry",\n    )'
+                  '        value=defaults.get("show_dictionary_entry") if defaults.get("show_dictionary_entry") is not None else True,\n    )',
+                  '        value=defaults.get("show_dictionary_entry") if defaults.get("show_dictionary_entry") is not None else True,\n        key="nouns_show_dictionary_entry",\n    )'
               ),
               (
-                  '    show_declension = st.checkbox("Show declension?", \n                                  help="Select this box to show the noun\'s declension.", \n                                  value=defaults.get("show_declension") if defaults.get("show_declension") is not None else False)',
-                  '    show_declension = st.checkbox("Show declension?", \n                                  help="Select this box to show the noun\'s declension.", \n                                  value=defaults.get("show_declension") if defaults.get("show_declension") is not None else False,\n                                  key="nouns_show_declension")'
+                  '                                  value=defaults.get("show_declension") if defaults.get("show_declension") is not None else False)',
+                  '                                  value=defaults.get("show_declension") if defaults.get("show_declension") is not None else False,\n                                  key="nouns_show_declension")'
               ),
               (
-                  '    show_stem = st.checkbox("Show noun stem/base?", \n                            help="Select this box to show the noun base. (The base is the stem without any of the trailing vowels that sometimes combine with endings.)",\n                            value=defaults.get("show_stem") if defaults.get("show_stem") is not None else False)',
-                  '    show_stem = st.checkbox("Show noun stem/base?", \n                            help="Select this box to show the noun base. (The base is the stem without any of the trailing vowels that sometimes combine with endings.)",\n                            value=defaults.get("show_stem") if defaults.get("show_stem") is not None else False,\n                            key="nouns_show_stem")'
+                  '                            value=defaults.get("show_stem") if defaults.get("show_stem") is not None else False)',
+                  '                            value=defaults.get("show_stem") if defaults.get("show_stem") is not None else False,\n                            key="nouns_show_stem")'
               ),
               (
-                  '    declension = st.multiselect("Choose which declensions to practice (they are all selected by default):", \n                                options=list(declension_dict.keys()), \n                                default=defaults.get("declension") if defaults.get("declension") is not None else list(declension_dict.keys()), \n                                help="If the selected declension(s) include irregular nouns, an option will be shown to include or exclude them.")',
-                  '    declension = st.multiselect("Choose which declensions to practice (they are all selected by default):", \n                                options=list(declension_dict.keys()), \n                                default=defaults.get("declension") if defaults.get("declension") is not None else list(declension_dict.keys()), \n                                help="If the selected declension(s) include irregular nouns, an option will be shown to include or exclude them.",\n                                key="nouns_declension")'
+                  '                                help="If the selected declension(s) include irregular nouns, an option will be shown to include or exclude them.")',
+                  '                                help="If the selected declension(s) include irregular nouns, an option will be shown to include or exclude them.",\n                                key="nouns_declension")'
               ),
               (
-                  '        irregs_include = st.multiselect("Choose which irregular nouns to include:", \n                                        options=irreg_nouns, \n                                        default=[noun for noun in defaults.get("irregs_include") if noun in irreg_nouns] if defaults.get("irregs_include") is not None else (["deus"] if "deus" in irreg_nouns else []), \n                                        help="Only irregular nouns for the selected declension(s) are shown.")',
-                  '        irregs_include = st.multiselect("Choose which irregular nouns to include:", \n                                        options=irreg_nouns, \n                                        default=[noun for noun in defaults.get("irregs_include") if noun in irreg_nouns] if defaults.get("irregs_include") is not None else (["deus"] if "deus" in irreg_nouns else []), \n                                        help="Only irregular nouns for the selected declension(s) are shown.",\n                                        key="nouns_irregs_include")'
+                  '                                        help="Only irregular nouns for the selected declension(s) are shown.")',
+                  '                                        help="Only irregular nouns for the selected declension(s) are shown.",\n                                        key="nouns_irregs_include")'
               ),
               (
-                  '            irregs_only = st.radio("Practice *only* the selected irregular nouns?", \n                                   options=["No", "Yes"], \n                                   index=["No", "Yes"].index(defaults.get("irregs_only")) if defaults.get("irregs_only") is not None else 0,                                  \n                                   horizontal=True)',
-                  '            irregs_only = st.radio("Practice *only* the selected irregular nouns?", \n                                   options=["No", "Yes"], \n                                   index=["No", "Yes"].index(defaults.get("irregs_only")) if defaults.get("irregs_only") is not None else 0,                                  \n                                   horizontal=True,\n                                   key="nouns_irregs_only")'
+                  '                                   horizontal=True)\n\nwith col_options:',
+                  '                                   horizontal=True,\n                                   key="nouns_irregs_only")\n\nwith col_options:'
               ),
           ]
 
