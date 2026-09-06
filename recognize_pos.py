@@ -409,7 +409,10 @@ with score_col:
     st.button("Reset Score", "recognize_pos_reset", on_click=reset, width="stretch")
     st.markdown(f"Current score: **{st.session_state.current_score}** out of **{st.session_state.total_questions}**")
 
-if st.session_state.auto_advance_trigger and st.session_state.answer_checked:
+if not st.session_state.auto_advance:
+    st.session_state.auto_advance_trigger = False
+
+if st.session_state.auto_advance and st.session_state.auto_advance_trigger and st.session_state.answer_checked:
     time.sleep(st.session_state.auto_advance)
     new_question(gen_question)
     st.rerun()
