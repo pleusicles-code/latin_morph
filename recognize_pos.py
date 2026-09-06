@@ -184,6 +184,10 @@ def noun_has_beginner_dictionary_entry(data):
 
 
 def adjective_has_beginner_dictionary_entry(data):
+    # Cardinal numbers are not treated as ordinary adjectives in this beginner exercise.
+    if data.get("cardinal") is True:
+        return False
+
     # Exclude one-termination 3rd-declension adjectives (e.g. vetus, ingēns).
     # This beginner exercise uses only adjective entries that visibly distinguish
     # at least the neuter nominative from the masculine/feminine form.
@@ -196,7 +200,11 @@ def adjective_has_beginner_dictionary_entry(data):
 def verb_has_beginner_dictionary_entry(data):
     # Exclude genuinely irregular verbs such as sum, possum, ferō, etc.
     # Verbs with only isolated irregular forms (e.g. dīcō, dūcō) remain eligible.
-    return data.get("irreg", {}).get("irreg") is not True
+    if data.get("irreg", {}).get("irreg") is True:
+        return False
+
+    # Deponent and semi-deponent verbs are beyond the intended beginner level.
+    return data.get("voice") not in ["dep", "semidep"]
 
 
 VOCABULARIES = {
