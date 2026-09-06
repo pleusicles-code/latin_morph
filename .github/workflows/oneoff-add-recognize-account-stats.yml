@@ -1,0 +1,40 @@
+name: One-off add recognition account stats
+
+on:
+  push:
+    branches: [optional-supabase]
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    if: github.event.head_commit.message == 'Run recognition account stats patch'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: optional-supabase
+      - name: Patch account.py
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          p = Path('account.py')
+          text = p.read_text()
+          old = '    pos_dict = {\n        "noun": "nouns",\n        "verb": "verbs",\n'
+          new = '    pos_dict = {\n        "recognize_pos": "part-of-speech recognition answers",\n        "noun": "nouns",\n        "verb": "verbs",\n'
+          if text.count(old) != 1:
+              raise SystemExit(f'Expected one pos_dict target, found {text.count(old)}')
+          text = text.replace(old, new, 1)
+          p.write_text(text)
+          PY
+      - name: Syntax check
+        run: python -m py_compile account.py
+      - name: Commit patch
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add account.py
+          git commit -m "Add recognition exercise account statistics"
+          git push origin optional-supabase
