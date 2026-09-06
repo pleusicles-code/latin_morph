@@ -1,5 +1,12 @@
 import streamlit as st
-from urllib.parse import urlencode
+from urllib.parse import urlencode, urlsplit, urlunsplit
+
+
+EXERCISE_PARAM = "_exercise"
+
+
+def widget_key(page_id, setting_name):
+    return f"{page_id}_{setting_name}"
 
 
 def bool_setting(default):
@@ -10,8 +17,8 @@ def choice_setting(default, choices):
     """Define a scalar setting.
 
     ``choices`` may be an iterable of internal values or a mapping of stable URL
-    tokens to internal values. Using a mapping is useful where the internal value
-    is not itself a convenient URL token (for example ``(1, 2)``).
+    tokens to internal values. A mapping is useful where the internal value is not
+    itself a convenient URL token (for example ``(1, 2)``).
     """
     if isinstance(choices, dict):
         token_map = dict(choices)
@@ -55,7 +62,6 @@ def _decode_value(raw, spec):
         raw_tokens = raw.split(",")
         if any(token not in token_map for token in raw_tokens):
             raise ValueError("invalid list choice")
-        # Preserve URL order, while rejecting duplicate values as malformed.
         values = [token_map[token] for token in raw_tokens]
         if len({repr(value) for value in values}) != len(values):
             raise ValueError("duplicate list choice")
@@ -67,7 +73,7 @@ def _decode_value(raw, spec):
 def _encode_value(value, spec):
     kind = spec["kind"]
     if kind == "bool":
-        return "true" if value else "false"
+        return "true" if bool(value) else "false"
 
     token_map = spec["tokens"]
     reverse_map = {repr(internal): token for token, internal in token_map.items()}
@@ -90,18 +96,35 @@ def _encode_value(value, spec):
     raise ValueError("unknown setting kind")
 
 
+def _clear_widget_state(page_id, schema):
+    for name in schema:
+        st.session_state.pop(widget_key(page_id, name), None)
+
+
 def resolve_exercise_settings(page_id, schema, saved_defaults):
     """Resolve exercise settings with URL presets taking highest precedence.
 
     Precedence is URL -> saved per-user exercise defaults -> generic defaults.
     Unknown parameters are ignored. A recognized parameter with an invalid value
     is discarded and falls back exactly as though that parameter were absent.
-    The preset is considered active only when at least one recognized parameter
-    contains a valid value.
+
+    A generated link contains ``_exercise=<page_id>``. If such a link's query
+    parameters reach another exercise through navigation, they are cleared rather
+    than being allowed to affect the new exercise.
+
+    A new valid URL signature initializes widget state once. Subsequent Streamlit
+    reruns leave widget state alone so the student remains free to change settings.
     """
     query = st.query_params.to_dict()
+
+    scoped_page = query.get(EXERCISE_PARAM)
+    if scoped_page is not None and scoped_page != page_id:
+        st.query_params.clear()
+        query = {}
+
     resolved = {}
     valid_url_setting_seen = False
+    valid_raw_params = []
 
     for name, spec in schema.items():
         fallback = saved_defaults.get(name, spec["default"])
@@ -112,12 +135,37 @@ def resolve_exercise_settings(page_id, schema, saved_defaults):
         try:
             resolved[name] = _decode_value(query[name], spec)
             valid_url_setting_seen = True
+            valid_raw_params.append((name, query[name]))
         except (TypeError, ValueError):
             resolved[name] = fallback
 
-    st.session_state.url_preset_active = valid_url_setting_seen
-    st.session_state.url_preset_page = page_id if valid_url_setting_seen else None
+    previous_page = st.session_state.get("url_preset_page")
+    previous_active = bool(st.session_state.get("url_preset_active"))
+
+    if valid_url_setting_seen:
+        signature = (page_id, tuple(valid_raw_params))
+        if st.session_state.get("url_preset_signature") != signature:
+            for name, value in resolved.items():
+                st.session_state[widget_key(page_id, name)] = value
+            st.session_state.url_preset_signature = signature
+        st.session_state.url_preset_active = True
+        st.session_state.url_preset_page = page_id
+    else:
+        if previous_active and previous_page == page_id:
+            _clear_widget_state(page_id, schema)
+        st.session_state.url_preset_active = False
+        st.session_state.url_preset_page = None
+        st.session_state.url_preset_signature = None
+
     return resolved
+
+
+def widget_initial_value(page_id, setting_name, resolved_settings):
+    """Return an initial value only if widget state has not already been set."""
+    key = widget_key(page_id, setting_name)
+    if key in st.session_state:
+        return None
+    return resolved_settings[setting_name]
 
 
 def url_preset_active(page_id):
@@ -127,22 +175,29 @@ def url_preset_active(page_id):
     )
 
 
-def build_exercise_link(schema, current_settings):
-    """Serialize a complete snapshot of every setting in ``schema``."""
-    params = []
+def build_exercise_link(page_id, schema, current_settings):
+    """Serialize a complete snapshot of every setting currently in ``schema``."""
+    params = [(EXERCISE_PARAM, page_id)]
     for name, spec in schema.items():
         value = current_settings.get(name, spec["default"])
         params.append((name, _encode_value(value, spec)))
-    return f"{st.context.url}?{urlencode(params)}"
+
+    parts = urlsplit(st.context.url)
+    base_url = urlunsplit((parts.scheme, parts.netloc, parts.path, "", ""))
+    return f"{base_url}?{urlencode(params)}"
 
 
-def exercise_link_popover(schema, current_settings, *, label="Copy exercise link"):
-    """Render a compact link control whose code block has Streamlit's copy UI."""
-    link = build_exercise_link(schema, current_settings)
+def exercise_link_popover(page_id, schema, current_settings, *, label="Copy exercise link"):
+    """Render the exercise-link control using Streamlit's built-in code-copy UI."""
+    link = build_exercise_link(page_id, schema, current_settings)
     with st.popover(
         label,
         width="stretch",
-        help="Create a link that reproduces the current exercise settings. The link does not include personal preferences such as macron enforcement or auto-advance.",
+        help=(
+            "Create a link that reproduces the current exercise settings. "
+            "The link does not include personal preferences such as macron "
+            "enforcement, consonantal u, or auto-advance."
+        ),
     ):
         st.caption("Copy this link and send it to your students:")
         st.code(link, language=None, wrap_lines=True)
