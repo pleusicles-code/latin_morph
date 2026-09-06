@@ -87,9 +87,13 @@ def _encode_value(value, spec):
     raise ValueError("unknown setting kind")
 
 
+def _clear_keys(keys):
+    for key in keys:
+        st.session_state.pop(key, None)
+
+
 def _clear_widget_state(page_id, schema):
-    for name in schema:
-        st.session_state.pop(widget_key(page_id, name), None)
+    _clear_keys([widget_key(page_id, name) for name in schema])
 
 
 def resolve_exercise_settings(page_id, schema, saved_defaults):
@@ -97,13 +101,19 @@ def resolve_exercise_settings(page_id, schema, saved_defaults):
 
     Invalid/obsolete parameters are ignored. A newly loaded valid URL initializes
     widget state once; later reruns preserve user edits. Generated links are scoped
-    to one exercise so their parameters are cleared after navigation elsewhere.
+    to one exercise so their parameters and URL-controlled widget state are cleared
+    after navigation elsewhere. Global preferences are never included in that list.
     """
     query = st.query_params.to_dict()
     scoped_page = query.get(EXERCISE_PARAM)
     if scoped_page is not None and scoped_page != page_id:
+        _clear_keys(st.session_state.get("url_preset_widget_keys", []))
         st.query_params.clear()
         query = {}
+        st.session_state.url_preset_active = False
+        st.session_state.url_preset_page = None
+        st.session_state.url_preset_signature = None
+        st.session_state.url_preset_widget_keys = []
 
     resolved = {}
     valid_url_setting_seen = False
@@ -125,18 +135,22 @@ def resolve_exercise_settings(page_id, schema, saved_defaults):
 
     if valid_url_setting_seen:
         signature = (page_id, tuple(valid_raw_params))
+        preset_keys = [widget_key(page_id, name) for name in schema]
         if st.session_state.get("url_preset_signature") != signature:
+            _clear_keys(st.session_state.get("url_preset_widget_keys", []))
             for name, value in resolved.items():
                 st.session_state[widget_key(page_id, name)] = value
             st.session_state.url_preset_signature = signature
         st.session_state.url_preset_active = True
         st.session_state.url_preset_page = page_id
+        st.session_state.url_preset_widget_keys = preset_keys
     else:
         if previous_active and previous_page == page_id:
             _clear_widget_state(page_id, schema)
         st.session_state.url_preset_active = False
         st.session_state.url_preset_page = None
         st.session_state.url_preset_signature = None
+        st.session_state.url_preset_widget_keys = []
     return resolved
 
 
