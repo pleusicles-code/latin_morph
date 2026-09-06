@@ -321,8 +321,8 @@ def check_recognition_answer(answer_key):
 
 
 def choose_recognition_answer(answer_key):
-    # Give the learner one second to register the selected radio option visually,
-    # then evaluate it automatically.
+    # Keep the explicit button available, but automatically run the same check
+    # one second after the learner selects a radio option.
     time.sleep(1)
     check_recognition_answer(answer_key)
 
@@ -349,7 +349,18 @@ if st.session_state.current_question:
         on_change=choose_recognition_answer,
         args=(answer_key,),
     )
-    st.markdown(st.session_state.answer_display_message)
+
+    submit_col, feedback_col = st.columns([1, 2])
+    with submit_col:
+        st.button(
+            "Check Answer",
+            on_click=check_recognition_answer,
+            args=(answer_key,),
+            disabled=st.session_state.answer_checked,
+            width="stretch",
+        )
+    with feedback_col:
+        st.markdown(st.session_state.answer_display_message)
 
 new_question_col, results_col, score_col = st.columns(3)
 
