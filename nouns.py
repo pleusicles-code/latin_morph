@@ -62,17 +62,17 @@ with col_options:
 
     st.html('<hr style="border-top: 1px dotted; border-bottom: none;">')
 
+    show_dictionary_entry = st.checkbox(
+        "Show dictionary entry?",
+        help="Select this box to show the whole dictionary entry of the noun, which allows one to reconstruct the stem/base from the genitive form.",
+        value=defaults.get("show_dictionary_entry") if defaults.get("show_dictionary_entry") is not None else False,
+    )
     show_declension = st.checkbox("Show declension?", 
                                   help="Select this box to show the noun's declension.", 
                                   value=defaults.get("show_declension") if defaults.get("show_declension") is not None else False)
     show_stem = st.checkbox("Show noun stem/base?", 
                             help="Select this box to show the noun base. (The base is the stem without any of the trailing vowels that sometimes combine with endings.)",
                             value=defaults.get("show_stem") if defaults.get("show_stem") is not None else False)
-    show_dictionary_entry = st.checkbox(
-        "Show dictionary entry?",
-        help="Select this box to show the whole dictionary entry of the noun, which allows one to reconstruct the stem/base from the genitive form.",
-        value=defaults.get("show_dictionary_entry") if defaults.get("show_dictionary_entry") is not None else False,
-    )
 
 with col_declension:
     # radio_change() is defined in utils.py
