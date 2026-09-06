@@ -191,7 +191,7 @@ with option_expander:
 # --- Answer normalization -------------------------------------------------------
 
 def canonical_stem(stem):
-    return unicodedata.normalize("NFC", stem.strip().rstrip("-").strip())
+    return unicodedata.normalize("NFC", stem.strip().rstrip("-.,").strip())
 
 
 def parse_stem_answer(answer, expected_count):
@@ -218,29 +218,56 @@ def canonical_display(parts):
     return ", ".join(parts)
 
 
-def partial_feedback(user_parts, correct_parts, part_results):
+def verb_feedback(user_parts, correct_parts, part_results, state):
     display_parts = list(user_parts[:len(correct_parts)])
     while len(display_parts) < len(correct_parts):
         display_parts.append("—")
 
-    colored_parts = []
+    if state == "correct":
+        background = "#dff3e4"
+        border = "#9bc8a6"
+        label = "Your answers are:"
+    elif state == "partial":
+        background = "#fff4d6"
+        border = "#e2c66d"
+        label = "Your answers are partially correct:"
+    else:
+        background = "#f7dddd"
+        border = "#d9a0a0"
+        label = "Your answers are:"
+
+    user_cells = []
     for i, part in enumerate(display_parts):
-        color = "#137333" if part_results[i] else "#b3261e"
-        colored_parts.append(
-            f'<span style="color:{color};font-weight:600;">{html.escape(part)}</span>'
+        if state == "partial":
+            color = "#137333" if part_results[i] else "#b3261e"
+        elif state == "correct":
+            color = "#137333"
+        else:
+            color = "#b3261e"
+        user_cells.append(
+            '<td style="padding:0 0.35rem;color:{color};font-weight:600;">{part}</td>'.format(
+                color=color, part=html.escape(part)
+            )
         )
 
-    for extra in user_parts[len(correct_parts):]:
-        colored_parts.append(
-            f'<span style="color:#b3261e;font-weight:600;">{html.escape(extra)}</span>'
-        )
+    correct_cells = [
+        '<td style="padding:0 0.35rem;">{}</td>'.format(html.escape(part))
+        for part in correct_parts
+    ]
 
     return (
-        '<div style="background:#fff4d6;border:1px solid #e2c66d;border-radius:0.5rem;'
+        '<div style="background:{background};border:1px solid {border};border-radius:0.5rem;'
         'padding:0.55rem 0.75rem;line-height:1.6;">'
-        f'Your answers are partially correct: {", ".join(colored_parts)}<br>'
-        f'The correct answers are: {html.escape(canonical_display(correct_parts))}'
-        '</div>'
+        '<table style="border-collapse:collapse;border:none;">'
+        '<tr><td style="padding:0 0.6rem 0 0;white-space:nowrap;">{label}</td>{user}</tr>'
+        '<tr><td style="padding:0 0.6rem 0 0;white-space:nowrap;">The correct answers are:</td>{correct}</tr>'
+        '</table></div>'
+    ).format(
+        background=background,
+        border=border,
+        label=label,
+        user="".join(user_cells),
+        correct="".join(correct_cells),
     )
 
 
@@ -315,16 +342,16 @@ def check_stem_answer(answer_key):
     normalized_user_display = canonical_display(user_parts)
     correct_display = canonical_display(correct_parts)
 
-    if partially_correct:
-        st.session_state.answer_display_message = partial_feedback(user_parts, correct_parts, part_results)
+    if target_pos == "verb":
+        feedback_state = "correct" if fully_correct else ("partial" if partially_correct else "incorrect")
+        st.session_state.answer_display_message = verb_feedback(
+            user_parts, correct_parts, part_results, feedback_state
+        )
     else:
         feedback_color = "green" if fully_correct else "red"
-        singular = len(correct_parts) == 1
-        user_label = "Your answer is" if singular else "Your answers are"
-        correct_label = "The correct answer is" if singular else "The correct answers are"
         st.session_state.answer_display_message = (
-            f":{feedback_color}-background[{user_label}: {normalized_user_display}]  \n"
-            f":{feedback_color}-background[{correct_label}: {correct_display}]"
+            f":{feedback_color}-background[Your answer is: {normalized_user_display}]  \n"
+            f":{feedback_color}-background[The correct answer is: {correct_display}]"
         )
 
     answer_id = {"target_pos": target_pos}
@@ -366,30 +393,28 @@ if st.session_state.current_question:
 
     st.markdown("### Current question")
     if question["target_pos"] == "verb":
-        st.markdown(f"What are the stems (present, perfect, supine) of *{question['entry']}*?")
+        st.markdown(f"What are the stems of *{question['entry']}*?")
     else:
         st.markdown(f"What is the stem of *{question['entry']}*?")
 
-    st.text_input(
-        "Your answer:",
-        key=answer_key,
-        disabled=st.session_state.answer_checked,
-    )
-
-    submit_col, feedback_col = st.columns([1, 2])
-    with submit_col:
-        st.button(
+    with st.form(key=f"identify_stems_form_{question['qid']}"):
+        st.text_input(
+            "Your answer:",
+            key=answer_key,
+            disabled=st.session_state.answer_checked,
+        )
+        st.form_submit_button(
             "Check Answer",
             on_click=check_stem_answer,
             args=(answer_key,),
             disabled=st.session_state.answer_checked,
             width="stretch",
         )
-    with feedback_col:
-        if st.session_state.answer_display_message.startswith("<div"):
-            st.markdown(st.session_state.answer_display_message, unsafe_allow_html=True)
-        else:
-            st.markdown(st.session_state.answer_display_message)
+
+    if st.session_state.answer_display_message.startswith("<div"):
+        st.markdown(st.session_state.answer_display_message, unsafe_allow_html=True)
+    else:
+        st.markdown(st.session_state.answer_display_message)
 
 new_question_col, results_col, score_col = st.columns(3)
 
