@@ -1,0 +1,66 @@
+name: One-off fix Identify Stems present stems
+
+on:
+  push:
+    branches: [optional-supabase]
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    if: github.event.head_commit.message == 'Run present stem fix'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: optional-supabase
+      - name: Patch identify_stems.py
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          p = Path('identify_stems.py')
+          text = p.read_text()
+          old = '''def correct_stems_for(pos, word):
+    data = VOCABULARIES[pos][word]
+    if pos in ["noun", "adjective"]:
+        return [canonical_stem(data["stem"])]
+    return [canonical_stem(data["pres"]), canonical_stem(data["perf"]), canonical_stem(data["ppp"])]
+'''
+          new = '''def learner_present_stem(data):
+    stem = data["pres"]
+    conj = data.get("conj")
+    if conj == 1:
+        stem += "ā"
+    elif conj == 2:
+        stem += "ē"
+    elif conj == "3io":
+        stem += "i"
+    elif conj == 4:
+        stem += "ī"
+    return canonical_stem(stem)
+
+
+def correct_stems_for(pos, word):
+    data = VOCABULARIES[pos][word]
+    if pos in ["noun", "adjective"]:
+        return [canonical_stem(data["stem"])]
+    return [learner_present_stem(data), canonical_stem(data["perf"]), canonical_stem(data["ppp"])]
+'''
+          if text.count(old) != 1:
+              raise SystemExit(f'Expected one correct_stems_for target, found {text.count(old)}')
+          text = text.replace(old, new, 1)
+          p.write_text(text)
+          PY
+      - name: Syntax check
+        run: python -m py_compile identify_stems.py
+      - name: Verify examples
+        run: |
+          grep -n 'def learner_present_stem' -A15 identify_stems.py
+      - name: Commit patch
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add identify_stems.py
+          git commit -m "Fix learner-facing present stems"
+          git push origin optional-supabase
