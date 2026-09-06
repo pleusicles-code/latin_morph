@@ -4,6 +4,8 @@ import time
 import pandas as pd
 import ast
 from utils import reset, new_question, submit_and_check_answer, clear_page, remove_macrons, send_setting, save_defaults, clear_defaults
+from exercise_presets import (bool_setting, choice_setting, list_setting, resolve_exercise_settings,
+                              initialize_widget_state, widget_key, url_preset_active, exercise_link_popover)
 from vocab import import_adjectives
 
 st.set_page_config("Latin Morph! Adjectives and Adverbs", layout="centered")
@@ -64,6 +66,25 @@ adj_abbrevs = {
     }
 }
 
+master_decl_list = [(1,2), 3]
+master_degree_list = list(adj_abbrevs["degree"].keys())
+master_cardinal_list = list({k:v for k,v in adj_vocab.items() if v.get("cardinal")}.keys())
+exercise_schema = {
+    "declension": choice_setting("random", {"random": "random", "1-2": (1,2), "3": 3}),
+    "degree_list": list_setting(master_degree_list, master_degree_list),
+    "incl_cardinals": bool_setting(True),
+    "cardinal_radio": choice_setting("No", ["No", "Yes"]),
+    "cardinal_select": list_setting(master_cardinal_list, master_cardinal_list),
+    "incl_pronominals": bool_setting(True),
+    "incl_cons_stems": bool_setting(True),
+    "incl_adv": bool_setting(True),
+    "dictionary_entry": bool_setting(False),
+    "irreg_alert": bool_setting(False),
+}
+exercise_settings = resolve_exercise_settings(page_id, exercise_schema, defaults)
+initialize_widget_state(page_id, exercise_settings)
+preset_active = url_preset_active(page_id)
+
 option_expander = st.expander("Settings", expanded=True)
 
 with option_expander:
@@ -71,17 +92,15 @@ with option_expander:
 
 with adj_options_col:
     # declensions
-    master_decl_list = [(1,2), 3]
     declension = st.radio("Choose a declension to practice:",
-                        options=["random"]+[decl for decl in master_decl_list], 
-                        index=(["random"]+[decl for decl in master_decl_list]).index(defaults.get("declension")) if defaults.get("declension") is not None else 0,
+                        options=["random"]+[decl for decl in master_decl_list],
+                        key=widget_key(page_id, "declension"),
                         format_func=lambda x: ({"random": "Random"} | adj_abbrevs["decl"]).get(x))
     # degree
-    master_degree_list = list(adj_abbrevs["degree"].keys())
     degree_list = st.multiselect(
-        "Choose which degrees to include (they are all selected by default):", 
+        "Choose which degrees to include (they are all selected by default):",
         [deg for deg in master_degree_list],
-        default=defaults.get("degree_list") if defaults.get("degree_list") is not None else [deg for deg in master_degree_list],
+        key=widget_key(page_id, "degree_list"),
         format_func=lambda x: adj_abbrevs["degree"].get(x),
         help='Positive degree refers to "regular" adjectives and adverbs that are neither comparative nor superlative.'
         )
@@ -92,39 +111,39 @@ with adj_options_col:
     incl_pronominals = False
 
     if "pos" in degree_list:
-        incl_cardinals = st.checkbox("Include cardinal numbers?", 
-                                    value=defaults.get("incl_cardinals") if defaults.get("incl_cardinals") is not None else True, 
-                                    # key="incl_cardinals", 
+        incl_cardinals = st.checkbox("Include cardinal numbers?",
+                                    key=widget_key(page_id, "incl_cardinals"),
+                                    # key="incl_cardinals",
                                     help="Select this box to include declinable cardinal numbers (one, two, and three).")
         if incl_cardinals:
             cardinal_radio = st.radio("Include *only* cardinal numbers?",
                                     options = ["No","Yes"], horizontal=True,
-                                    index=["No","Yes"].index(defaults.get("cardinal_radio")) if defaults.get("cardinal_radio") is not None else 0,
+                                    key=widget_key(page_id, "cardinal_radio"),
                                     help="If 'Yes' is selected, then degree is ignored since numbers have no comparative or superlative forms.")
-            cardinal_select = st.multiselect("Choose which numbers to include:", 
+            cardinal_select = st.multiselect("Choose which numbers to include:",
                                             options={k:v for k,v in adj_vocab.items() if v.get("cardinal")}.keys(),
-                                            default=defaults.get("cardinal_select") if defaults.get("cardinal_select") is not None else {k:v for k,v in adj_vocab.items() if v.get("cardinal")}.keys(),
+                                            key=widget_key(page_id, "cardinal_select"),
                                             help="All cardinal numbers selected here will be included if the 'random declension' option is chosen above; otherwise only the numbers belonging to the specified declension will be included. (*ūnus* can be selected here *or* as part of pronominal adjectives to be included.)")
         # unus nauta adjectives - T/F flag
         if declension in ["random", (1,2)]:
-            incl_pronominals = st.checkbox("Include pronominal (UNUS NAUTA) adjectives?", 
-                        value=defaults.get("incl_pronominals") if defaults.get("incl_pronominals") is not None else True, 
-                        # key="incl_pronominals", 
+            incl_pronominals = st.checkbox("Include pronominal (UNUS NAUTA) adjectives?",
+                        key=widget_key(page_id, "incl_pronominals"),
+                        # key="incl_pronominals",
                         help="Select this box to include the nine pronominal (so-called UNUS NAUTA) adjectives: *ūnus*, *nūllus*, *ūllus*, *sōlus*, *neuter*, *alter*, *uter*, *tōtus*, *alius*. (*ūnus* can be selected here *or* under cardinal numbers to be included.)")
     # non-i-stem 3rd decl. adjectives - T/F flag
     incl_cons_stems = False
     if declension in ["random", 3]:
         incl_cons_stems = st.checkbox("Include non-i-stem 3rd declension adjectives?",
-                                    value=defaults.get("incl_cons_stems") if defaults.get("incl_cons_stems") is not None else True, 
+                                    key=widget_key(page_id, "incl_cons_stems"),
                                     # key="incl_cons_stems",
                                     help="Select this box to include 3rd declension adjectives such as *vetus* that do not follow the i-stem pattern for endings.")
-    
+
     # adverbs
     ## MAY NEED TO CHANGE THIS TO ACCOMMODATE ADVERB-ONLY OPTION
     pos_list = ["adj","adv"]
-    incl_adv = st.checkbox("Include adverbs?", 
-                        value=defaults.get("incl_adv") if defaults.get("incl_adv") is not None else True, 
-                        # key="incl_adv", 
+    incl_adv = st.checkbox("Include adverbs?",
+                        key=widget_key(page_id, "incl_adv"),
+                        # key="incl_adv",
                         help="Select this box to include adverbial forms of adjectives; if not selected, you will only be tested on adjectival forms.")
     if not incl_adv:
         pos_list = ["adj"]
@@ -133,8 +152,8 @@ with options_col:
         st.session_state.enforce_macrons["adjectives_enforce_macrons"] = st.session_state["adjectives_enforce_macrons"]
         return
     st.markdown("Options:", help="You can adjust these options at any point.")
-    st.checkbox("Enforce macrons?", 
-                help="If this box is selected, macron mistakes will be considered incorrect. If not selected, macrons can be used but will not be evaluated.", 
+    st.checkbox("Enforce macrons?",
+                help="If this box is selected, macron mistakes will be considered incorrect. If not selected, macrons can be used but will not be evaluated.",
                 key="adjectives_enforce_macrons",
                 on_change=send_setting,
                 args=(switch_adjective_macrons,),
@@ -148,46 +167,52 @@ with options_col:
 
     st.html('<hr style="border-top: 1px dotted; border-bottom: none;">')
 
-    dictionary_entry = st.checkbox("Show the dictionary entry?", 
-                                    value=defaults.get("dictionary_entry") if defaults.get("dictionary_entry") is not None else False,
-                                #    key="dictionary_entry", 
+    dictionary_entry = st.checkbox("Show the dictionary entry?",
+                                    key=widget_key(page_id, "dictionary_entry"),
+                                #    key="dictionary_entry",
                                     help="Select this box to see the adjective's nominative singular forms.")
-    irreg_alert = st.checkbox("Show a message if the form or stem is irregular?", 
-                                value=defaults.get("irreg_alert") if defaults.get("irreg_alert") is not None else False,
-                            #   key="irreg_alert", 
+    irreg_alert = st.checkbox("Show a message if the form or stem is irregular?",
+                                key=widget_key(page_id, "irreg_alert"),
+                            #   key="irreg_alert",
                                 help="Select this box to be alerted if a form is irregular or uses an irregular stem.")
 
+    current_exercise_settings = {
+        "declension": declension,
+        "degree_list": degree_list,
+        "incl_cardinals": incl_cardinals,
+        "cardinal_radio": cardinal_radio,
+        "cardinal_select": cardinal_select,
+        "incl_pronominals": incl_pronominals,
+        "incl_cons_stems": incl_cons_stems,
+        "incl_adv": incl_adv,
+        "dictionary_entry": dictionary_entry,
+        "irreg_alert": irreg_alert,
+    }
     if st.user.is_logged_in:
-        set_defaults_col, clear_defaults_col = st.container(vertical_alignment="bottom", height="stretch").columns(2, vertical_alignment="center")
+        set_defaults_col, clear_defaults_col, link_col = st.container(vertical_alignment="bottom", height="stretch").columns(3, vertical_alignment="center")
         with set_defaults_col:
-            st.button("Save settings", 
-                        type="primary", 
-                        width="stretch", 
+            st.button("Save settings",
+                        type="primary",
+                        width="stretch",
                         help="Save your current adjective settings (except macron enforcement) as your default.",
                         on_click=save_defaults,
                         args=(page_id, defaults,),
-                        kwargs={
-                            "declension": declension,
-                            "degree_list": degree_list,
-                            "incl_cardinals": incl_cardinals,
-                            "cardinal_radio": cardinal_radio,
-                            "cardinal_select": cardinal_select,
-                            "incl_pronominals": incl_pronominals,
-                            "incl_cons_stems": incl_cons_stems,
-                            "incl_adv": incl_adv,
-                            "dictionary_entry": dictionary_entry,
-                            "irreg_alert": irreg_alert,
-                            }
+                        kwargs=current_exercise_settings,
+                        disabled=preset_active
                         )
         with clear_defaults_col:
-            st.button("Reset defaults", 
-                        type="primary", 
-                        width="stretch", 
+            st.button("Reset defaults",
+                        type="primary",
+                        width="stretch",
                         help="Restore the generic Latin Morph! default settings for adjectives.",
                         on_click=clear_defaults,
                         args=(page_id,),
-                        disabled=True if not defaults else False
+                        disabled=preset_active or not defaults
                         )
+        with link_col:
+            exercise_link_popover(page_id, exercise_schema, current_exercise_settings)
+    else:
+        exercise_link_popover(page_id, exercise_schema, current_exercise_settings)
 
 
 ## DEFINE AVAILABLE ADJECTIVES AND ADJ/ADV ENDINGS ##
@@ -389,7 +414,7 @@ def gen_adj_adv_id():
         pos = random.choices(pos_list, [7, 1])[0] if len(pos_list) == 2 else pos_list[0]
         if pos == "adv": # if adverb, only include words that can have adverbs
             reduced_vocab = {k:v for k,v in reduced_vocab.items() if not (v.get("no_adv") or v.get("cardinal"))}
-    
+
     case = None
     number = None
     gender = None
@@ -466,12 +491,12 @@ def adap_gen_adj_adv_id():
                 .drop("answer", axis=1)
                 .assign(**{"id.decl": lambda df: df["id.decl"].astype(str)})
                 .replace({"id.decl": {
-                    "1st/2nd": "(1,2)", 
-                    "3rd (cons.)": "3", 
+                    "1st/2nd": "(1,2)",
+                    "3rd (cons.)": "3",
                     "3rd": "3"
                 }})
             )
-        
+
         dfs["adj_df"] = adj_df
 
         recent = min(len(avail_adj_vocab)-1,3)
@@ -511,9 +536,9 @@ def adap_gen_adj_adv_id():
             def agg_df(gb):
                 # `gb` is a pandas GroupBy object
                 df = (
-                    gb.agg(num_correct=("correct","sum"),total_q=("correct","count")) 
-                        .assign(pct_wrong = lambda df: (df["total_q"]-df["num_correct"])/df["total_q"]) 
-                        .assign(weight = lambda df: ((df["total_q"]-df["num_correct"])/(df["num_correct"]+1))**0.5) 
+                    gb.agg(num_correct=("correct","sum"),total_q=("correct","count"))
+                        .assign(pct_wrong = lambda df: (df["total_q"]-df["num_correct"])/df["total_q"])
+                        .assign(weight = lambda df: ((df["total_q"]-df["num_correct"])/(df["num_correct"]+1))**0.5)
                         .query("pct_wrong > 0")
                     )
                 return df
@@ -522,15 +547,15 @@ def adap_gen_adj_adv_id():
                 adj_df_wrong_indiv = (
                     adj_df_filtered.copy()
                         .drop(["word","id.decl"], axis=1)
-                        .groupby(["pos","id.degree","adj_info","adj_combo"] + 
+                        .groupby(["pos","id.degree","adj_info","adj_combo"] +
                                  [col for col in adj_df.columns if col.startswith("id.") and col not in ["id.degree","id.decl","id.irreg"]])
                 )
 
                 adj_df_wrong_indiv = agg_df(adj_df_wrong_indiv)
 
                 if not adj_df_wrong_indiv.empty:
-                    ## add a superset grouping that just looks at adj_info and degree, and then a finer breakdown that includes adj_combo, 
-                    ## before looking at individual questions -- if there's a classification in adj_combo that's weighted higher than 
+                    ## add a superset grouping that just looks at adj_info and degree, and then a finer breakdown that includes adj_combo,
+                    ## before looking at individual questions -- if there's a classification in adj_combo that's weighted higher than
                     ## the vanilla version of that group (labelled as -), then include that in the weighting scheme, otherwise just use the
                     ## vanilla version.
 
@@ -546,8 +571,8 @@ def adap_gen_adj_adv_id():
                     # st.write("Individual wrong answers with weights:",adj_df_wrong_indiv)
                     # st.write("More finely aggregated wrong answers:",adj_df_wrong_agg)
                     # st.write("More coarsely aggregated wrong answers:",adj_df_wrong_agg_superset)
-                    
-                    ## if they're having trouble with *stems*, that's likely to include irregular stems, 
+
+                    ## if they're having trouble with *stems*, that's likely to include irregular stems,
                     ## -er superlatives, maybe -er 1/2 adjectives, and -l- superlatives.
 
                     adj_df_wrong_agg_superlatives = adj_df_filtered.copy().query("`id.degree` == 'super'")
@@ -556,7 +581,7 @@ def adap_gen_adj_adv_id():
                                                                 .assign(adj_combo = lambda df: df
                                                                        .adj_combo.replace({"er":"er_nom"}))
                                                                 .groupby(["pos","adj_combo"]))
-                        # st.write("Superlatives aggregation:",adj_df_wrong_agg_superlatives)                        
+                        # st.write("Superlatives aggregation:",adj_df_wrong_agg_superlatives)
 
                         dfs["adj_df_wrong_agg_superlatives"] = adj_df_wrong_agg_superlatives
 
@@ -639,7 +664,7 @@ def adap_gen_adj_adv_id():
                     if not df_slice.empty: # There may be a specific word or special form that needs attention
                         adj_info_weights = df_slice.xs(adj_category,level=["pos","id.degree","adj_info"])["weight"]
                         adj = df_slice.reset_index(level=["pos","id.degree","adj_info"],drop=True).sample(n=1,weights=adj_info_weights).index[0]
-                        
+
                         if adj in adj_vocab:
                             pass
                         elif adj == "cons_stem":
@@ -662,7 +687,7 @@ def adap_gen_adj_adv_id():
                             adj_info_weights = df_slice.xs(adj_category,level=["pos","id.degree","adj_info"])["weight"]
                             adj_id = df_slice.reset_index(level=["pos","id.degree","adj_info"],drop=True).sample(n=1,weights=adj_info_weights).index[0][1:]
                             case, number, gender = adj_id
-                        
+
                 else: # superlatives
                     # pick either a vanilla superlative or one with a particular type of special/irregular stem
                     df_slice = adj_df_wrong_agg_superlatives.query("weight > 1 and pos == @pos")
@@ -819,7 +844,7 @@ def create_adj_adv(adj_id=None):
 
             else: # otherwise, get the regular stem
                 correct_stem = str(adj_info.get("stem"))
-            
+
             infix = ""
             # if correct_stem: # build correct form on correct stem
                 # assign infix for comparative and superlative
@@ -932,7 +957,7 @@ def create_adj_adv(adj_id=None):
                         - stem: {correct_stem}
                         - infix: {infix}
                         - ending: {correct_ending}
-                        {adj_id} 
+                        {adj_id}
                         """)
 
 
@@ -981,7 +1006,7 @@ def create_adj_adv(adj_id=None):
 
     curr_question = {
             "pos": pos,
-            "word": adj, 
+            "word": adj,
             "id": {"degree": degree,
                    "decl": "1st/2nd" if adj_info["decl"] == (1,2) else "3rd (cons.)" if adj in cons_stems else "3rd" if adj_info["decl"] is not None else None},
 #            "correct": False
@@ -1001,13 +1026,13 @@ def create_adj_adv(adj_id=None):
         curr_question["id"].update({"irreg": "form"})
     else:
         curr_question["id"].update({"irreg": None})
-    
+
 
     if st.session_state.append_answer is True:
         questions_asked.append(
             curr_question
         )
-        st.session_state.append_answer = False    
+        st.session_state.append_answer = False
 
     return [correct_form, adj_id, noms]
 
@@ -1027,7 +1052,7 @@ else:
     if st.session_state.current_question:
         correct_form, adj_id, dict_entry = st.session_state.current_question
         adj, case, number, gender, pos, degree = adj_id
-        
+
         st.session_state.correct_answer = correct_form
         # st.write(adj_id)
         # st.write(correct_form)
@@ -1046,13 +1071,13 @@ else:
         # st.write(st.session_state.correct_answer)
         with st.form(key="adj_adv_form", clear_on_submit=True):
             current_answer = st.text_input(question, key="answer_input")
-            
+
             submit_button_col, user_answer_col = st.columns([1,2])
             with submit_button_col:
                 def disable_button():
                         st.session_state.button_disable = True
                 st.form_submit_button(
-                    "Check Answer", 
+                    "Check Answer",
                     key="form_submission_button",
                     on_click=submit_and_check_answer,
                     disabled=st.session_state.button_disable,

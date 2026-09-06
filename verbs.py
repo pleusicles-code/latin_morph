@@ -4,6 +4,8 @@ import time
 import pandas as pd
 import ast
 from utils import radio_change, reset, new_question, remove_macrons, submit_and_check_answer, clear_page, send_setting, save_defaults, clear_defaults
+from exercise_presets import (bool_setting, list_setting, resolve_exercise_settings, initialize_widget_state,
+                              widget_key, url_preset_active, exercise_link_popover)
 from vocab import import_verbs
 
 st.set_page_config("Latin Morph! Verbs", layout="centered")
@@ -45,15 +47,33 @@ verb_abbrevs = {"ind": "indicative",
                "dep": "deponent",
                "semidep": "semi-deponent",
                "pass": "passive",
-                1: "1st", 
-                2: "2nd", 
+                1: "1st",
+                2: "2nd",
                 3: "3rd",}
 
-conjugation_dict = {1: "1st (-āre)", 
-                    2: "2nd (-ēre)", 
-                    3: "3rd (-ere)", 
-                    "3io": '3rd "io" (-ere)', 
+conjugation_dict = {1: "1st (-āre)",
+                    2: "2nd (-ēre)",
+                    3: "3rd (-ere)",
+                    "3io": '3rd "io" (-ere)',
                     4: "4th (-īre)"}
+
+master_tense_list = ["pres","impf","fut","perf","plupf","fut_pf"]
+master_voice_list = ["act", "pass", "dep", "semidep"]
+master_mood_list = ["ind", "subj", "inf", "impv"]
+master_irregular_verbs_list = [key for key in complete_verb_vocab.keys() if complete_verb_vocab[key].get("irreg",{}).get("irreg") is True]
+exercise_schema = {
+    "show_principal_parts": bool_setting(False),
+    "conjugation_selector": list_setting(list(conjugation_dict.keys()), list(conjugation_dict.keys())),
+    "tense_selector": list_setting(master_tense_list, master_tense_list),
+    "voice_selector": list_setting(master_voice_list, master_voice_list),
+    "mood_selector": list_setting(master_mood_list, master_mood_list),
+    "irreg_selector": list_setting(master_irregular_verbs_list, master_irregular_verbs_list),
+    "irreg_only": bool_setting(False),
+    "fut_impv": bool_setting(False),
+}
+exercise_settings = resolve_exercise_settings(page_id, exercise_schema, defaults)
+initialize_widget_state(page_id, exercise_settings)
+preset_active = url_preset_active(page_id)
 
 #col_options, col_verb_options = st.columns(2)
 
@@ -74,8 +94,8 @@ with options_col:
         st.session_state.enforce_macrons["verbs_enforce_macrons"] = st.session_state["verbs_enforce_macrons"]
         return
     st.markdown("Options:", help="You can adjust these options at any point.")
-    st.checkbox("Enforce macrons?", 
-                help="If this box is selected, macron mistakes will be considered incorrect. If not selected, macrons can be used but will not be evaluated.", 
+    st.checkbox("Enforce macrons?",
+                help="If this box is selected, macron mistakes will be considered incorrect. If not selected, macrons can be used but will not be evaluated.",
                 key="verbs_enforce_macrons",
                 on_change=send_setting,
                 args=(switch_verb_macrons,),
@@ -89,9 +109,9 @@ with options_col:
 
     st.html('<hr style="border-top: 1px dotted; border-bottom: none;">')
 
-    show_principal_parts = st.checkbox("Show principal parts?", 
+    show_principal_parts = st.checkbox("Show principal parts?",
                                         help="Select this box to show the verb's principal parts.",
-                                        value=defaults.get("show_principal_parts") if defaults.get("show_principal_parts") is not None else False)
+                                        key=widget_key(page_id, "show_principal_parts"))
 
 # with conjugation_col:
 with verb_options_col:
@@ -101,95 +121,98 @@ with verb_options_col:
         "Choose which conjugations to practice (they are all selected by default):",
         conjugation_dict.keys(),
         format_func = lambda x: conjugation_dict.get(x),
-        default = defaults.get("conjugation_selector") if defaults.get("conjugation_selector") is not None else conjugation_dict.keys(),
+        key=widget_key(page_id, "conjugation_selector"),
         help = "If no conjugations are chosen, only irregular verbs will be available."
         )
 
 # with tense_col:
-    master_tense_list = ["pres","impf","fut","perf","plupf","fut_pf"]
     tense_dict = {abbrev: name for abbrev, name in zip(master_tense_list,[verb_abbrevs[tns] for tns in master_tense_list])}
 
     tense_selector = st.multiselect(
         "Choose which tenses to practice:",
         master_tense_list,
         format_func = lambda x: tense_dict[x],
-        default=defaults.get("tense_selector") if defaults.get("tense_selector") is not None else master_tense_list
+        key=widget_key(page_id, "tense_selector")
     )
 
 # with voice_col:
-    master_voice_list = ["act", "pass", "dep", "semidep"]
     voice_dict = {abbrev: name for abbrev, name in zip(master_voice_list,[verb_abbrevs[vc] for vc in master_voice_list])}
 
     voice_selector = st.multiselect("Choose which voices and types of verb to practice:",
                                     master_voice_list,
                                     format_func=lambda x: voice_dict[x],
-                                    default = defaults.get("voice_selector") if defaults.get("voice_selector") is not None else master_voice_list,
+                                    key=widget_key(page_id, "voice_selector"),
                                     help = "If semi-deponent is selected, those verbs' active and deponent forms will be available, regardless of other voice selections.")
 
 # with mood_col:
-    master_mood_list = ["ind", "subj", "inf", "impv"]
     mood_dict = {abbrev: name for abbrev, name in zip(master_mood_list,[verb_abbrevs[md] for md in master_mood_list])}
 
     mood_selector = st.multiselect("Choose which moods to practice:",
                                 master_mood_list,
                                 format_func=lambda x: mood_dict[x],
-                                default=defaults.get("mood_selector") if defaults.get("mood_selector") is not None else master_mood_list)
+                                key=widget_key(page_id, "mood_selector"))
 
 
 # with irreg_col:
     #master_irregular_verbs_list = ["sum", "possum", "eō", "ferō", "fīō", "volō", "nōlō", "mālō"]
-    master_irregular_verbs_list = [key for key in complete_verb_vocab.keys() if complete_verb_vocab[key].get("irreg",{}).get("irreg") is True]
     # if "dō" in master_irregular_verbs_list:
     #     master_irregular_verbs_list.remove("dō")
     irreg_selector = st.multiselect("Choose which irregular verbs to practice:",
                                     master_irregular_verbs_list,
-                                    default=defaults.get("irreg_selector") if defaults.get("irreg_selector") is not None else master_irregular_verbs_list,
+                                    key=widget_key(page_id, "irreg_selector"),
                                     help="Selected irregular verbs will be available regardless of which conjugations are selected above. If you just want to practice irregular verbs, unselect all the conjugations.")
 
     irreg_only = False
     if irreg_selector:
-        irreg_only = st.checkbox("Practice *only* the selected irregular verbs?", 
-                                    value=defaults.get("irreg_only") if defaults.get("irreg_only") is not None else False,
+        irreg_only = st.checkbox("Practice *only* the selected irregular verbs?",
+                                    key=widget_key(page_id, "irreg_only"),
                                     help="Select this to practice *only* the selected irregular verbs; you can achieve the same effect by deselecting all of the conjugations above.")
 
     fut_impv = False
     if "fut" in tense_selector and "impv" in mood_selector:
-        fut_impv = st.checkbox("Include future imperatives?", 
-                                value=defaults.get("fut_impv") if defaults.get("fut_impv") is not None else False,
+        fut_impv = st.checkbox("Include future imperatives?",
+                                key=widget_key(page_id, "fut_impv"),
                                 help="Future imperatives are very rare and not usually taught in introductory or intermediate courses, but you can include them if you want to!")
     if st.session_state.question_generation_error_message:
         st.write(st.session_state.question_generation_error_message)
 
+current_exercise_settings = {
+    "show_principal_parts": show_principal_parts,
+    "conjugation_selector": conjugation_selector,
+    "tense_selector": tense_selector,
+    "voice_selector": voice_selector,
+    "mood_selector": mood_selector,
+    "irreg_selector": irreg_selector,
+    "irreg_only": irreg_only,
+    "fut_impv": fut_impv,
+}
+
 with options_col:
     if st.user.is_logged_in:
-        set_defaults_col, clear_defaults_col = st.container(vertical_alignment="bottom", height="stretch").columns(2, vertical_alignment="center")
+        set_defaults_col, clear_defaults_col, link_col = st.container(vertical_alignment="bottom", height="stretch").columns(3, vertical_alignment="center")
         with set_defaults_col:
-            st.button("Save settings", 
-                        type="primary", 
-                        width="stretch", 
+            st.button("Save settings",
+                        type="primary",
+                        width="stretch",
                         help="Save your current verb settings (except macron enforcement) as your default.",
                         on_click=save_defaults,
                         args=(page_id, defaults,),
-                        kwargs={
-                            "show_principal_parts": show_principal_parts,
-                            "conjugation_selector": conjugation_selector,
-                            "tense_selector": tense_selector,
-                            "voice_selector": voice_selector,
-                            "mood_selector": mood_selector,
-                            "irreg_selector": irreg_selector,
-                            "irreg_only": irreg_only,
-                            "fut_impv": fut_impv
-                        },
+                        kwargs=current_exercise_settings,
+                        disabled=preset_active,
                         )
         with clear_defaults_col:
-            st.button("Reset defaults", 
-                        type="primary", 
-                        width="stretch", 
+            st.button("Reset defaults",
+                        type="primary",
+                        width="stretch",
                         help="Restore the generic Latin Morph! default settings for verbs.",
                         on_click=clear_defaults,
                         args=(page_id,),
-                        disabled=True if not defaults else False
+                        disabled=preset_active or not defaults
                         )
+        with link_col:
+            exercise_link_popover(page_id, exercise_schema, current_exercise_settings)
+    else:
+        exercise_link_popover(page_id, exercise_schema, current_exercise_settings)
 
 
 ## DEFINE AVAILABLE VERBS AND VERB ENDINGS ##
@@ -310,7 +333,7 @@ verb_endings = {
                 "pl": {
                     3: "ntor"
                 }
-            }            
+            }
         },
     },
     "perf": {
@@ -343,7 +366,7 @@ verb_endings = {
     },
     "plupf": {
         "act": {
-            "ind": 
+            "ind":
                 complete_verb_vocab["sum"]["irreg"]["forms"]["impf"]["act"]["ind"]
         }
     },
@@ -501,7 +524,7 @@ else:
             while (mood := random.choices(list(avail_moods.keys()), list(avail_moods.values()))[0]) in inval_moods:
                 # st.write(mood)
                 pass
-            
+
             # SET TENSE
             # limit tense options depending on mood
             if mood == "subj":
@@ -573,7 +596,7 @@ else:
                 voice = "act"
 
             # may need to move impersonal passive logic elsewhere to accommodate semideponents:
-            
+
             elif verb_vocab[verb].get("impers_pass_only") or (mood == "inf" and tense == "fut"):
                 if len(act_pass_choice_dict) == 2:
                     voice = random.choices(list(act_pass_choice_dict.keys()), list(act_pass_choice_dict.values()))[0]
@@ -586,7 +609,7 @@ else:
                 voice = "act"
             else:
                 voice = random.choice(list(act_pass_choice_dict.keys()))
-                           
+
         elif verb_vocab[verb]["voice"] == "semidep" and tense in pres_sys:
             # extend this logic later to include 3rd person singular passive
             voice = "act"
@@ -617,19 +640,19 @@ else:
         verb_qs_answered = [item for item in questions_asked if item["pos"] == "verb" and "correct" in item]
 
         if questions_asked and len(verb_qs_answered) > 0:
-            
+
             verb_df = (
                 pd.json_normalize(verb_qs_answered)
                     .reindex(columns=["pos","word","answer","correct","id.pers","id.num","id.tense","id.voice","id.mood","id.conj","id.irreg"])
                     .replace({None: "-", pd.NA: "-", "nan": "-", "None": "-"})
                     .assign(**{"id.conj": lambda df: df["id.conj"]
-                            .where(~df["id.irreg"].isin(["irreg"]), df["word"])}) 
+                            .where(~df["id.irreg"].isin(["irreg"]), df["word"])})
                     .assign(conj_adap = lambda df: df["id.conj"]
-                            .where((~df["id.tense"].isin(["perf","plupf","fut_pf"])) | (df["id.irreg"] == "irreg"), "perf_sys")) 
+                            .where((~df["id.tense"].isin(["perf","plupf","fut_pf"])) | (df["id.irreg"] == "irreg"), "perf_sys"))
                     .assign(conj_adap = lambda df: df["conj_adap"]
-                            .where((~((df["id.tense"] == "fut") & (df["id.mood"] == "inf"))) | (df["id.irreg"] == "irreg"), "fut_inf")) 
+                            .where((~((df["id.tense"] == "fut") & (df["id.mood"] == "inf"))) | (df["id.irreg"] == "irreg"), "fut_inf"))
                     .assign(conj_adap = lambda df: df["conj_adap"]
-                            .where(~(df["conj_adap"] == "-"), df["word"])) 
+                            .where(~(df["conj_adap"] == "-"), df["word"]))
                     .assign(**{"id.conj": lambda df: df["id.conj"].where(~((df["word"] == "fīō") & (df["conj_adap"] == "perf_sys")), "3")}) # since fio is categorized as 3rd conj for word-construction purposes
                        )
             # st.write(verb_df)
@@ -652,11 +675,11 @@ else:
                 if not verb_df_filtered.empty:
                     verb_df_wrong_indiv = (
                         verb_df_filtered.copy()
-                            .drop(["word","pos"], axis=1) 
-                            .groupby([col for col in verb_df.columns if col not in ["pos", "answer", "correct", "word"]]) 
-                            .agg(num_correct=("correct","sum"),total_q=("correct","count")) 
-                            .assign(pct_wrong = lambda df: (df["total_q"]-df["num_correct"])/df["total_q"]) 
-                            .assign(weight = lambda df: ((df["total_q"]-df["num_correct"])/(df["num_correct"]+1))**0.5) 
+                            .drop(["word","pos"], axis=1)
+                            .groupby([col for col in verb_df.columns if col not in ["pos", "answer", "correct", "word"]])
+                            .agg(num_correct=("correct","sum"),total_q=("correct","count"))
+                            .assign(pct_wrong = lambda df: (df["total_q"]-df["num_correct"])/df["total_q"])
+                            .assign(weight = lambda df: ((df["total_q"]-df["num_correct"])/(df["num_correct"]+1))**0.5)
                             .query("pct_wrong > 0")
                         )
                     if not verb_df_wrong_indiv.empty:
@@ -668,19 +691,19 @@ else:
                                 .query(f"`id.voice` in {list(verb_df_wrong_indiv.index.get_level_values("id.voice"))}")
                                 .query(f"`id.tense` in {list(verb_df_wrong_indiv.index.get_level_values("id.tense"))}")
                                 .groupby(["conj_adap","id.irreg","id.tense","id.voice","id.mood"])
-                                .agg(num_correct=("correct","sum"),total_q=("correct","count")) 
-                                .assign(pct_wrong = lambda df: (df["total_q"]-df["num_correct"])/df["total_q"]) 
-                                .assign(weight = lambda df: ((df["total_q"]-df["num_correct"])/(df["num_correct"]+1))**0.5) 
+                                .agg(num_correct=("correct","sum"),total_q=("correct","count"))
+                                .assign(pct_wrong = lambda df: (df["total_q"]-df["num_correct"])/df["total_q"])
+                                .assign(weight = lambda df: ((df["total_q"]-df["num_correct"])/(df["num_correct"]+1))**0.5)
                                 .query("pct_wrong > 0")
                             )
 
                     if len(verb_df_wrong_indiv) > 0:
                         dfs["verb_df_wrong_indiv"] = verb_df_wrong_indiv
                         dfs["verb_df_wrong_agg"] = verb_df_wrong_agg
-                    
+
                         # st.write("incorrect answers:",verb_df_wrong_indiv)
                         # st.write("aggregated incorrect answers:",verb_df_wrong_agg)
-                
+
                 recent = min(len(avail_verbs)-1,3)
                 recent_words = list(verb_df.tail(recent)["word"].values) if recent > 0 else []
 
@@ -699,7 +722,7 @@ else:
                 # st.write(verb_conj_id)
 
                 conj, vb_irreg, tense, voice, mood = [item if item != "-" else None for item in verb_conj_id]
-                
+
 
                 if conj == "perf_sys":
                     # verb is in perfect system
@@ -726,7 +749,7 @@ else:
                 # st.write(verb_df_wrong_indiv.xs(verb_conj_id,level=("conj_adap","id.irreg","id.tense","id.voice","id.mood")))
 
                 # st.write(verb, conj, tense, voice, mood)
-                
+
                 if verb is None:
                     # since we need to pick a verb, reduce available vocab to fit the current restrictions of voice, tense, mood
                     verb_vocab_filtered = {k:v for k,v in verb_vocab.items()}
@@ -785,7 +808,7 @@ else:
                             # st.write(verb)
                         person = None if person == "-" else int(person)
                         number = None if number == "-" else number
-                        
+
                     # st.write(conj, person, number)
 
                 # Since we need to pick a conjugation and verb, pick a conjugation that exists in the current reduced verb set
@@ -795,7 +818,7 @@ else:
                     conj = random.choice(avail_conj)
                     if conj is None:
                         pick_sum_possum = True
-                
+
                 if (verb is None and conj is not None) or pick_sum_possum is True:
                     # since we need to pick a verb, reduce available vocab to the selected conjugation
                     verb_vocab_filtered = {k:v for k,v in verb_vocab_filtered.items() if v["conj"] == conj}
@@ -804,7 +827,7 @@ else:
                         if (tense in ["fut", "impf"] and voice == "act" and not (tense == "fut" and mood == "inf")) or (tense in perf_sys and voice == "dep"):
                             verb_vocab_filtered["fīō"] = complete_verb_vocab["fīō"]
                     if number:
-                        # if person/number is already chosen, make sure that 
+                        # if person/number is already chosen, make sure that
                         if voice == "pass":
                             if number != "sg" or person != 3:
                                 verb_vocab_filtered = {k:v for k,v in verb_vocab_filtered.items() if v.get("impers_pass_only") is not True}
@@ -849,7 +872,7 @@ else:
         #         st.write("There's stuff to choose from, but get new verb")
         # else:
         #     st.write("Nothing to choose from, get new verb")
-        
+
         if not verb:
             if len(avail_verbs) > 5 and conjugation_selector and questions_asked and verb_qs_answered:
 #                st.write("Generate a new verb question but not the most recent word")
@@ -895,7 +918,7 @@ else:
             while verb_id is None and i < 5:
                 verb_id = adap_gen_verb_id()
                 i += 1
-    
+
         if verb_id is None:
             st.session_state.question_generation_error_message = ":warning: I'm having trouble generating a question for you based on your selected options; I suggest you make some changes and hit 'New Question' again."
             return
@@ -916,7 +939,7 @@ else:
                                 2: None,
                                 3: None,
                                 4: None}
-        
+
         if verb_vocab[verb]["voice"] == "act":
             verb_principal_parts[3] = verb_vocab[verb]["perf"] + "ī"
             if verb_vocab[verb].get("ppp"):
@@ -941,10 +964,10 @@ else:
             if verb_vocab[verb]["irreg"].get("forms",{}).get(tense):
                 if verb_vocab[verb]["irreg"]["forms"][tense].get(voice):
                     verb_form = verb_vocab[verb]["irreg"]["forms"][tense][voice].get(mood)
-            # If the previous step succeeded, then either: 
-            # the verb_form is now a list or string (in which case that's the correct form and we just need to finish filling in principal parts), 
+            # If the previous step succeeded, then either:
+            # the verb_form is now a list or string (in which case that's the correct form and we just need to finish filling in principal parts),
             # or it's a dictionary and we have to get the appropriate number and person.
-            
+
             if verb_form:
                 if not (isinstance(verb_form, str) or isinstance(verb_form, list)):
                     if verb_form.get(number):
@@ -957,7 +980,7 @@ else:
         pres_act_inf = ""
         if verb == "fīō":
             pres_act_inf = "fiere"
-        
+
         if not pres_inf:
             pres_stem = verb_vocab[verb].get("pres")
             thematic_vowel = verb_vowels["pres"]["inf"].get(conj)
@@ -1002,7 +1025,7 @@ else:
                         if not verb_stem or not (mood == "subj" and tense == "pres"):
                             verb_stem = verb_vocab[verb].get("pres")
                             irreg_form = False
-                        
+
                         if mood == "inf":
                             if tense == "pres":
                                 if voice in ["act","dep"]:
@@ -1012,7 +1035,7 @@ else:
                                         verb_form = verb_stem + "ī"
                                     else:
                                         verb_form = verb_stem + thematic_vowel + "rī"
-                        
+
                         ## OTHER PRESENT SYSTEM MOODS AND TENSES
                         else:
                             verb_ending = verb_endings["pres"].get("act" if voice == "act" else "pass").get(number).get(person)
@@ -1038,7 +1061,7 @@ else:
 
                                     if verb_ending in ["r", "m", "t"] or verb_ending[:2] == "nt": # shorten vowels as needed
                                         vowel = remove_macrons(vowel)
-                                    
+
                                     if isinstance(verb_ending, list):
                                         verb_form = [verb_stem + vowel + ending for ending in verb_ending]
                                     else:
@@ -1116,7 +1139,7 @@ else:
                                     verb_form = [verb_stem + ending for ending in verb_ending]
                                 else:
                                     verb_form = verb_stem + verb_ending
-                    
+
                         # construct alternative 4th conj. perfect forms
                         if verb_stem[-2:] == "īv":
                             # if verb_stem[-2] in ["ā","ē","ō"]:
@@ -1170,11 +1193,11 @@ else:
                                     ppp = verb_stem + "um"
                             else:
                                 ppp = [verb_stem + ending for ending in ["ī", "ae", "a"]]
-                            
+
                             tense_match = {"perf": "pres",
                                 "plupf": "impf",
                                 "fut_pf": "fut"}
-                            
+
                             to_be_form = ""
 
                             # make to-be impf subj for plupf subj
@@ -1189,7 +1212,7 @@ else:
                                 for key, val in tense_match.items():
                                     if tense == key:
                                         to_be_form = complete_verb_vocab["sum"]["irreg"]["forms"][val]["act"][mood][number][person]
-                    
+
                             verb_form = [" ".join([ptc, to_be_form]) for ptc in ppp] if isinstance(ppp, list) else " ".join([ppp, to_be_form])
 
                 # try:
@@ -1216,14 +1239,14 @@ else:
 
         curr_question = {
                 "pos": "verb",
-                "word": verb, 
+                "word": verb,
                 "id": {k:str(v) if v is not None else v for k,v in verb_id.items() if k != "verb"} | {"conj": str(conj)} | {"irreg": "irreg" if irreg_form is True else None}
             }
         if verb in ["volō","nōlō","mālō"] and irreg_form is True:
             curr_question["id"]["conj"] = "-"
         elif verb == "fīō":
             curr_question["id"]["conj"] = "3io"
-        
+
 #        st.write(st.session_state.append_answer)
         if st.session_state.append_answer is True:
             questions_asked.append(
@@ -1266,20 +1289,20 @@ else:
 
             with st.form(key="verb_answer_form", clear_on_submit=True):
                 current_answer = st.text_input(question, key="answer_input")
-                
+
                 submit_button_col, user_answer_col = st.columns([1,2])
                 with submit_button_col:
                     def disable_button():
                             st.session_state.button_disable = True
                     st.form_submit_button(
-                        "Check Answer", 
+                        "Check Answer",
                         key="form_submission_button",
                         on_click=submit_and_check_answer,
                         disabled=st.session_state.button_disable,
                     )
                 with user_answer_col:
                     st.markdown(st.session_state.answer_display_message)
-        
+
 
     ## GENERATE NEW QUESTIONS AND CHECK ANSWERS ##
 
@@ -1292,7 +1315,7 @@ else:
 
     with results_col:
         st.markdown(st.session_state.result_message)    # just write the result message, rather than other things as well.
-        
+
         if st.session_state.current_question and st.session_state.answer_checked and "Incorrect" in st.session_state.result_message:
             starting_form = dict(st.session_state.current_question[1])
             next_form = dict(starting_form)
@@ -1330,7 +1353,7 @@ else:
                                         form = None
                                     if starting_form["voice"] in ["pass","dep"] and starting_form["tense"] == "fut" and num == "pl" and pers != 3:
                                         form = None
-                                    
+
                             conj_table[num].append(form if isinstance(form, str) else "--")
 
                     conjugation_table = pd.DataFrame(conj_table,index=table_index)

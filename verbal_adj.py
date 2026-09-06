@@ -4,6 +4,8 @@ import time
 import pandas as pd
 import ast
 from utils import reset, new_question, submit_and_check_answer, clear_page, remove_macrons, send_setting, save_defaults, clear_defaults
+from exercise_presets import (bool_setting, list_setting, resolve_exercise_settings, initialize_widget_state,
+                              widget_key, url_preset_active, exercise_link_popover)
 from vocab import import_verbs
 
 st.set_page_config("Latin Morph! Verbal Adjectives", layout="centered")
@@ -65,12 +67,12 @@ abbrevs = {
     "dep": "deponent",
     "semidep": "semi-deponent",
     "pass": "passive",
-    1: "1st", 
-    2: "2nd", 
+    1: "1st",
+    2: "2nd",
     3: "3rd",
-    "pap": "present participle", 
-    "ppp": "perfect participle", 
-    "fap": "future participle", 
+    "pap": "present participle",
+    "ppp": "perfect participle",
+    "fap": "future participle",
     "gdv": "gerundive",
 } | adj_abbrevs["gender"] | adj_abbrevs["case"]
 
@@ -189,11 +191,27 @@ adj_endings = {
     },
 }
 
-conjugation_dict = {1: "1st (-āre)", 
-                    2: "2nd (-ēre)", 
-                    3: "3rd (-ere)", 
-                    "3io": '3rd "io" (-ere)', 
+conjugation_dict = {1: "1st (-āre)",
+                    2: "2nd (-ēre)",
+                    3: "3rd (-ere)",
+                    "3io": '3rd "io" (-ere)',
                     4: "4th (-īre)"}
+
+master_ptc_list = ["pap", "ppp", "fap", "gdv"]
+master_voice_list = ["act", "dep", "semidep"]
+master_irregular_verbs_list = [key for key in complete_verb_vocab.keys() if complete_verb_vocab[key].get("irreg",{}).get("irreg") is True]
+if "mālō" in master_irregular_verbs_list:
+    master_irregular_verbs_list.remove("mālō")
+exercise_schema = {
+    "show_principal_parts": bool_setting(False),
+    "conjugation_selector": list_setting(list(conjugation_dict.keys()), list(conjugation_dict.keys())),
+    "ptc_selector": list_setting(master_ptc_list, master_ptc_list),
+    "voice_selector": list_setting(master_voice_list, master_voice_list),
+    "irreg_selector": list_setting(master_irregular_verbs_list, master_irregular_verbs_list),
+}
+exercise_settings = resolve_exercise_settings(page_id, exercise_schema, defaults)
+initialize_widget_state(page_id, exercise_settings)
+preset_active = url_preset_active(page_id)
 
 
 option_expander = st.expander("Settings", expanded=True)
@@ -206,8 +224,8 @@ with options_col:
         st.session_state.enforce_macrons["verbal_adj_enforce_macrons"] = st.session_state["verbal_adj_enforce_macrons"]
         return
     st.markdown("Options:", help="You can adjust these options at any point.")
-    st.checkbox("Enforce macrons?", 
-                help="If this box is selected, macron mistakes will be considered incorrect. If not selected, macrons can be used but will not be evaluated.", 
+    st.checkbox("Enforce macrons?",
+                help="If this box is selected, macron mistakes will be considered incorrect. If not selected, macrons can be used but will not be evaluated.",
                 key="verbal_adj_enforce_macrons",
                 on_change=send_setting,
                 kwargs={"streamlit_page":"verbal_adj.py","setting_name":"verbal_adj_enforce_macrons"},
@@ -221,8 +239,8 @@ with options_col:
 
     st.html('<hr style="border-top: 1px dotted; border-bottom: none;">')
 
-    show_principal_parts = st.checkbox("Show principal parts?", 
-                                       value=defaults.get("show_principal_parts") if defaults.get("show_principal_parts") is not None else False,
+    show_principal_parts = st.checkbox("Show principal parts?",
+                                       key=widget_key(page_id, "show_principal_parts"),
                                        help="Select this box to show the verb's principal parts.")
 
 # with conjugation_col:
@@ -231,66 +249,69 @@ with ptc_options_col:
         "Choose which conjugations to practice (they are all selected by default):",
         conjugation_dict.keys(),
         format_func = lambda x: conjugation_dict.get(x),
-        default = defaults.get("conjugation_selector") if defaults.get("conjugation_selector") is not None else conjugation_dict.keys(),
+        key=widget_key(page_id, "conjugation_selector"),
         help = "If no conjugations are chosen, only irregular verbs will be available. If you just want to practice irregular verbs, unselect all the conjugations."
         )
 
-    master_ptc_list = ["pap", "ppp", "fap", "gdv"]
     ptc_dict = {abbrev: name for abbrev, name in zip(master_ptc_list, [abbrevs[ptc] for ptc in master_ptc_list])}
     ptc_selector = st.multiselect(
         "Choose which types of verbal adjective to practice:",
         master_ptc_list,
         format_func=lambda x: ptc_dict[x],
-        default=defaults.get("ptc_selector") if defaults.get("ptc_selector") is not None else master_ptc_list,
+        key=widget_key(page_id, "ptc_selector"),
         help='The term "gerundive" covers what some books refer to as the "future passive participle," so "future participle" refers only to active/deponent forms.'
     )
 
 # with voice_col:
-    master_voice_list = ["act", "dep", "semidep"]
     voice_dict = {abbrev: name for abbrev, name in zip(master_voice_list,[abbrevs[vc] for vc in master_voice_list])}
 
     voice_selector = st.multiselect("Choose which types of verb to practice:",
                                     master_voice_list,
                                     format_func=lambda x: voice_dict[x],
-                                    default = defaults.get("voice_selector") if defaults.get("voice_selector") is not None else master_voice_list,
+                                    key=widget_key(page_id, "voice_selector"),
                                     help = '"Active" here refers to all non-deponent verbs; whether an active or passive form is requested will depend on the type of verbal adjective selected.')
 
-    master_irregular_verbs_list = [key for key in complete_verb_vocab.keys() if complete_verb_vocab[key].get("irreg",{}).get("irreg") is True]
-    master_irregular_verbs_list.remove("mālō")
     # if "dō" in master_irregular_verbs_list:
     #     master_irregular_verbs_list.remove("dō")
     irreg_selector = st.multiselect("Choose which irregular verbs to practice:",
                                     master_irregular_verbs_list,
-                                    default=defaults.get("irreg_selector") if defaults.get("irreg_selector") is not None else master_irregular_verbs_list,
+                                    key=widget_key(page_id, "irreg_selector"),
                                     help="Selected irregular verbs will be available regardless of which conjugations are selected above. If you just want to practice irregular verbs, unselect all the conjugations.")
+
+current_exercise_settings = {
+    "show_principal_parts": show_principal_parts,
+    "conjugation_selector": conjugation_selector,
+    "ptc_selector": ptc_selector,
+    "voice_selector": voice_selector,
+    "irreg_selector": irreg_selector,
+}
 
 with options_col:
     if st.user.is_logged_in:
-        set_defaults_col, clear_defaults_col = st.container(vertical_alignment="bottom", height="stretch").columns(2, vertical_alignment="center")
+        set_defaults_col, clear_defaults_col, link_col = st.container(vertical_alignment="bottom", height="stretch").columns(3, vertical_alignment="center")
         with set_defaults_col:
-            st.button("Save settings", 
-                        type="primary", 
-                        width="stretch", 
+            st.button("Save settings",
+                        type="primary",
+                        width="stretch",
                         help="Save your current verbal adjective settings (except macron enforcement) as your default.",
                         on_click=save_defaults,
                         args=(page_id, defaults,),
-                        kwargs={
-                            "show_principal_parts": show_principal_parts,
-                            "conjugation_selector": conjugation_selector,
-                            "ptc_selector": ptc_selector,
-                            "voice_selector": voice_selector,
-                            "irreg_selector": irreg_selector
-                            },
+                        kwargs=current_exercise_settings,
+                        disabled=preset_active,
                         )
         with clear_defaults_col:
-            st.button("Reset defaults", 
-                        type="primary", 
-                        width="stretch", 
+            st.button("Reset defaults",
+                        type="primary",
+                        width="stretch",
                         help="Restore the generic Latin Morph! default settings for verbal adjectives.",
                         on_click=clear_defaults,
                         args=(page_id,),
-                        disabled=True if not defaults else False
+                        disabled=preset_active or not defaults
                         )
+        with link_col:
+            exercise_link_popover(page_id, exercise_schema, current_exercise_settings)
+    else:
+        exercise_link_popover(page_id, exercise_schema, current_exercise_settings)
 
 verb_vocab = {key: val for key, val in complete_verb_vocab.items() if not (all(val.get(ptc) is None for ptc in ["pap","ppp","fap","gdv"]) and all(ptc in val for ptc in ["pap","gdv"]))}
 for vb in master_irregular_verbs_list:
@@ -367,7 +388,7 @@ else:
         # If there are no options left in the participle selector, we've got a problem.
         if len(avail_ptc) == 0:
             return
-                
+
         ptc_type = random.choice(avail_ptc)
 
         if verb_vocab[verb].get("impers_pass_only") and ptc_type in ["ppp","gdv"]:
@@ -393,7 +414,7 @@ else:
         roll_again = False
 
         if questions_asked and len([item for item in questions_asked if item["pos"] == "verbal adj." and "correct" in item]) > 0:
-            
+
             ptc_df = pd.json_normalize([item for item in questions_asked if item["pos"] == "verbal adj." and "correct" in item]).replace({None: "-", pd.NA: "-", "nan": "-", "None": "-"})
 #            st.write(ptc_df)
             dfs["ptc_df"] = ptc_df
@@ -421,10 +442,10 @@ else:
                 if len(ptc_df_wrong_indiv) > 0:
                     dfs["ptc_df_wrong_indiv"] = ptc_df_wrong_indiv
                     dfs["ptc_df_wrong_agg"] = ptc_df_wrong_agg
-                
+
                 # st.write("incorrect answers:",ptc_df_wrong_indiv)
                 # st.write("aggregated incorrect answers:",ptc_df_wrong_agg)
-            
+
                 recent = min(len(avail_verbs)-1,3)
                 recent_words = list(ptc_df.tail(recent)["word"].values) if recent > 0 else []
                 # st.write(recent_words)
@@ -454,7 +475,7 @@ else:
                         verb = None
 
                     if verb and verb in avail_verbs: # specific irregular participial verb form that needs review
-                        
+
                         # st.write("verb:", verb)
                         pass
                         # have ptc type and verb; need to assign case/number/gender
@@ -511,7 +532,7 @@ else:
                                 case = random.choice(adj_options["case"])
                 else:
                     ptc_type = None
-                
+
                 # st.write("repeat question:", verb, ptc_type, case, number, gender)
                 last_q = [item for item in questions_asked if item["pos"] == "verbal adj." and "correct" in item][-1]
                 if verb == last_q["word"] and ptc_type == last_q["id"]["ptc_type"] and case == last_q["id"]["case"] and number == last_q["id"]["number"] and gender == last_q["id"]["gender"]:
@@ -559,7 +580,7 @@ else:
         if ptc_id is None:
             st.session_state.question_generation_error_message = ":warning: I'm having trouble generating a question for you based on your selected options; I suggest you make some changes and hit 'New Question' again."
             return
-        
+
         verb, ptc_type, gender, number, case = ptc_id
         conj = complete_verb_vocab[verb]["conj"]
 
@@ -572,7 +593,7 @@ else:
                                 2: None,
                                 3: None,
                                 4: None}
-        
+
         if verb_info["voice"] == "act":
             verb_principal_parts[3] = verb_info["perf"] + "ī"
             if verb_info.get("ppp"):
@@ -638,7 +659,7 @@ else:
                     ptc_stem = verb_info["fap"]
                 else:
                     ptc_stem += "ūr"
-        
+
         if ptc_type == "pap":
             if number == "sg" and (case in ["nom","voc"] or (case == "acc" and gender == "n")) :
                 ptc_form = ptc_nom
@@ -664,11 +685,11 @@ else:
 
         curr_question = {
                 "pos": "verbal adj.",
-                "word": verb, 
+                "word": verb,
                 "id": {
                     "ptc_type": ptc_type,
-                    "gender": gender, 
-                    "number": number, 
+                    "gender": gender,
+                    "number": number,
                     "case": case,
                     "conj": str(conj),
                     "irreg": "irreg" if irreg_form is True else None
@@ -678,7 +699,7 @@ else:
             curr_question["id"]["conj"] = "3io"
         elif verb == "eō" and ptc_type in ["pap","gdv"]:
             curr_question["id"]["conj"] = None
-        
+
         if st.session_state.append_answer is True:
             questions_asked.append(
                 curr_question
@@ -708,13 +729,13 @@ else:
         # st.write(st.session_state.correct_answer)
         with st.form(key="ptc_form", clear_on_submit=True):
             current_answer = st.text_input(question, key="answer_input")
-            
+
             submit_button_col, user_answer_col = st.columns([1,2])
             with submit_button_col:
                 def disable_button():
                         st.session_state.button_disable = True
                 st.form_submit_button(
-                    "Check Answer", 
+                    "Check Answer",
                     key="form_submission_button",
                     on_click=submit_and_check_answer,
                     disabled=st.session_state.button_disable,
