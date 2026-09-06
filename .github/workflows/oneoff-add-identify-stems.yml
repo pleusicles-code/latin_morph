@@ -1,0 +1,56 @@
+name: One-off add Identify Stems integration
+
+on:
+  push:
+    branches: [optional-supabase]
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    if: github.event.head_commit.message == 'Run Identify Stems integration patch'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: optional-supabase
+      - name: Patch navigation and account statistics
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          p = Path('latin_morph.py')
+          text = p.read_text()
+          replacements = {
+              'recognize_pos_page = st.Page("recognize_pos.py", title="Recognize Part of Speech")\nnouns_page = st.Page("nouns.py", title="Nouns")':
+                  'recognize_pos_page = st.Page("recognize_pos.py", title="Recognize Part of Speech")\nidentify_stems_page = st.Page("identify_stems.py", title="Identify Stems")\nnouns_page = st.Page("nouns.py", title="Nouns")',
+              '                                recognize_pos_page,\n                                nouns_page,':
+                  '                                recognize_pos_page,\n                                identify_stems_page,\n                                nouns_page,',
+              'menu_pos_row.page_link("recognize_pos.py", label="Recognize Part of Speech")\nmenu_pos_row.page_link("nouns.py", label="Nouns")':
+                  'menu_pos_row.page_link("recognize_pos.py", label="Recognize Part of Speech")\nmenu_pos_row.page_link("identify_stems.py", label="Identify Stems")\nmenu_pos_row.page_link("nouns.py", label="Nouns")',
+          }
+          for old, new in replacements.items():
+              if text.count(old) != 1:
+                  raise SystemExit(f'latin_morph target count {text.count(old)} for {old!r}')
+              text = text.replace(old, new, 1)
+          p.write_text(text)
+
+          p = Path('account.py')
+          text = p.read_text()
+          old = '    pos_dict = {\n        "recognize_pos": "part-of-speech recognition answers",\n        "noun": "nouns",\n'
+          new = '    pos_dict = {\n        "recognize_pos": "part-of-speech recognition answers",\n        "identify_stems": "stem identification answers",\n        "noun": "nouns",\n'
+          if text.count(old) != 1:
+              raise SystemExit(f'account target count {text.count(old)}')
+          text = text.replace(old, new, 1)
+          p.write_text(text)
+          PY
+      - name: Syntax check
+        run: python -m py_compile identify_stems.py latin_morph.py account.py
+      - name: Commit integration
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add identify_stems.py latin_morph.py account.py
+          git commit -m "Integrate Identify Stems exercise"
+          git push origin optional-supabase
