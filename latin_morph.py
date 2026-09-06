@@ -251,11 +251,11 @@ choose_page = st.navigation(nav_dict)
 
 st.logo("https://darcykrasne.com/digital_humanities/latin_morph/latin_morph_icon_120px.png", size="large")
 st.sidebar.select_slider("Auto-advance to next question?", 
-                         options=[False] + list(range(5,61)), 
+                         options=[False, 3] + list(range(5,61)), 
                          format_func=lambda x: "No" if x is False else str(x)+" sec", 
                         #  value=False if len(st.session_state.user_settings) == 0 else st.session_state.user_settings.query("setting_name=='auto_advance' and streamlit_page=='latin_morph.py'")["setting_value"].values[0],
                          key="auto_advance", 
-                         help="If you want to automatically advance to the next question after answering, rather than having to click **New Question**, set this to the number of seconds you want to wait before advancing (between 5 and 60 seconds). (You can still use **New Question** to advance or skip a question if you want.)",
+                         help="If you want to automatically advance to the next question after answering, rather than having to click **New Question**, set this to the number of seconds you want to wait before advancing (between 3 and 60 seconds). (You can still use **New Question** to advance or skip a question if you want.)",
                          on_change=send_setting,
                          kwargs={"streamlit_page":"latin_morph.py","setting_name":"auto_advance"}
                          )
