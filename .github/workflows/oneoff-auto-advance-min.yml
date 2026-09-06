@@ -1,0 +1,42 @@
+name: One-off auto-advance minimum
+
+on:
+  push:
+    branches: [optional-supabase]
+
+permissions:
+  contents: write
+
+jobs:
+  change:
+    if: github.event.head_commit.message == 'Run auto-advance minimum change'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: optional-supabase
+      - name: Change auto-advance minimum
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          p = Path('latin_morph.py')
+          text = p.read_text()
+          replacements = {
+              'options=[False] + list(range(5,61)),': 'options=[False, 3] + list(range(5,61)),',
+              'between 5 and 60 seconds': 'between 3 and 60 seconds',
+          }
+          for old, new in replacements.items():
+              if text.count(old) != 1:
+                  raise SystemExit(f'Expected exactly one target for {old!r}, found {text.count(old)}')
+              text = text.replace(old, new, 1)
+          p.write_text(text)
+          PY
+      - name: Syntax check
+        run: python -m py_compile latin_morph.py
+      - name: Commit change
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add latin_morph.py
+          git commit -m "Allow 3-second auto-advance"
+          git push origin optional-supabase
