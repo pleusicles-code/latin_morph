@@ -1,0 +1,168 @@
+name: One-off Identify Stems UI fixes
+
+on:
+  push:
+    branches: [optional-supabase]
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    if: github.event.head_commit.message == 'Run Identify Stems UI fixes'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: optional-supabase
+      - name: Patch identify_stems.py
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          p = Path('identify_stems.py')
+          text = p.read_text()
+
+          old = 'def canonical_stem(stem):\n    return unicodedata.normalize("NFC", stem.strip().rstrip("-").strip())\n'
+          new = 'def canonical_stem(stem):\n    return unicodedata.normalize("NFC", stem.strip().rstrip("-.,").strip())\n'
+          assert text.count(old) == 1, text.count(old)
+          text = text.replace(old, new, 1)
+
+          start = text.index('def partial_feedback(user_parts, correct_parts, part_results):')
+          end = text.index('\n\n# --- Question generation and checking', start)
+          new_feedback = '''def verb_feedback(user_parts, correct_parts, part_results, state):
+    display_parts = list(user_parts[:len(correct_parts)])
+    while len(display_parts) < len(correct_parts):
+        display_parts.append("—")
+
+    if state == "correct":
+        background = "#dff3e4"
+        border = "#9bc8a6"
+        label = "Your answers are:"
+    elif state == "partial":
+        background = "#fff4d6"
+        border = "#e2c66d"
+        label = "Your answers are partially correct:"
+    else:
+        background = "#f7dddd"
+        border = "#d9a0a0"
+        label = "Your answers are:"
+
+    user_cells = []
+    for i, part in enumerate(display_parts):
+        if state == "partial":
+            color = "#137333" if part_results[i] else "#b3261e"
+        elif state == "correct":
+            color = "#137333"
+        else:
+            color = "#b3261e"
+        user_cells.append(
+            f'<td style="padding:0 0.35rem;color:{color};font-weight:600;">{html.escape(part)}</td>'
+        )
+
+    correct_cells = [
+        f'<td style="padding:0 0.35rem;">{html.escape(part)}</td>' for part in correct_parts
+    ]
+
+    return (
+        f'<div style="background:{background};border:1px solid {border};border-radius:0.5rem;'
+        'padding:0.55rem 0.75rem;line-height:1.6;">'
+        '<table style="border-collapse:collapse;border:none;">'
+        f'<tr><td style="padding:0 0.6rem 0 0;white-space:nowrap;">{label}</td>{"".join(user_cells)}</tr>'
+        f'<tr><td style="padding:0 0.6rem 0 0;white-space:nowrap;">The correct answers are:</td>{"".join(correct_cells)}</tr>'
+        '</table></div>'
+    )
+'''
+          text = text[:start] + new_feedback + text[end:]
+
+          old = '''    if partially_correct:
+        st.session_state.answer_display_message = partial_feedback(user_parts, correct_parts, part_results)
+    else:
+        feedback_color = "green" if fully_correct else "red"
+        singular = len(correct_parts) == 1
+        user_label = "Your answer is" if singular else "Your answers are"
+        correct_label = "The correct answer is" if singular else "The correct answers are"
+        st.session_state.answer_display_message = (
+            f":{feedback_color}-background[{user_label}: {normalized_user_display}]  \\n"
+            f":{feedback_color}-background[{correct_label}: {correct_display}]"
+        )
+'''
+          new = '''    if target_pos == "verb":
+        feedback_state = "correct" if fully_correct else ("partial" if partially_correct else "incorrect")
+        st.session_state.answer_display_message = verb_feedback(
+            user_parts, correct_parts, part_results, feedback_state
+        )
+    else:
+        feedback_color = "green" if fully_correct else "red"
+        st.session_state.answer_display_message = (
+            f":{feedback_color}-background[Your answer is: {normalized_user_display}]  \\n"
+            f":{feedback_color}-background[The correct answer is: {correct_display}]"
+        )
+'''
+          assert text.count(old) == 1, text.count(old)
+          text = text.replace(old, new, 1)
+
+          old = '''    if question["target_pos"] == "verb":
+        st.markdown(f"What are the stems (present, perfect, supine) of *{question['entry']}*?")
+    else:
+        st.markdown(f"What is the stem of *{question['entry']}*?")
+
+    st.text_input(
+        "Your answer:",
+        key=answer_key,
+        disabled=st.session_state.answer_checked,
+    )
+
+    submit_col, feedback_col = st.columns([1, 2])
+    with submit_col:
+        st.button(
+            "Check Answer",
+            on_click=check_stem_answer,
+            args=(answer_key,),
+            disabled=st.session_state.answer_checked,
+            width="stretch",
+        )
+    with feedback_col:
+        if st.session_state.answer_display_message.startswith("<div"):
+            st.markdown(st.session_state.answer_display_message, unsafe_allow_html=True)
+        else:
+            st.markdown(st.session_state.answer_display_message)
+'''
+          new = '''    if question["target_pos"] == "verb":
+        st.markdown(f"What are the stems of *{question['entry']}*?")
+    else:
+        st.markdown(f"What is the stem of *{question['entry']}*?")
+
+    with st.form(key=f"identify_stems_form_{question['qid']}"):
+        st.text_input(
+            "Your answer:",
+            key=answer_key,
+            disabled=st.session_state.answer_checked,
+        )
+        st.form_submit_button(
+            "Check Answer",
+            on_click=check_stem_answer,
+            args=(answer_key,),
+            disabled=st.session_state.answer_checked,
+            width="stretch",
+        )
+
+    if st.session_state.answer_display_message.startswith("<div"):
+        st.markdown(st.session_state.answer_display_message, unsafe_allow_html=True)
+    else:
+        st.markdown(st.session_state.answer_display_message)
+'''
+          assert text.count(old) == 1, text.count(old)
+          text = text.replace(old, new, 1)
+
+          p.write_text(text)
+          PY
+      - name: Syntax check
+        run: python -m py_compile identify_stems.py
+      - name: Commit patch
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add identify_stems.py
+          git commit -m "Refine Identify Stems answer UI"
+          git push origin optional-supabase
