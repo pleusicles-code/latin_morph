@@ -86,6 +86,10 @@ def patch_nouns():
         '''                        disabled=preset_active or (not defaults and not noun_settings_changed)\n                        )\n        with link_col:\n            exercise_link_popover(page_id, exercise_schema, current_exercise_settings)\n    else:\n        exercise_link_popover(page_id, exercise_schema, current_exercise_settings)\n\n\nfor noun in irreg_nouns:\n''',
     )
 
+    file_path = ROOT / path
+    cleaned = "\n".join(line.rstrip() for line in file_path.read_text().splitlines()) + "\n"
+    file_path.write_text(cleaned)
+
 
 if __name__ == "__main__":
     patch_nouns()
