@@ -168,7 +168,7 @@ def build_exercise_link(page_id, schema, current_settings):
     return f"{base_url}?{urlencode(params)}"
 
 
-def exercise_link_popover(page_id, schema, current_settings, *, label="Copy exercise link"):
+def exercise_link_popover(page_id, schema, current_settings, *, label="Share settings"):
     link = build_exercise_link(page_id, schema, current_settings)
     with st.popover(
         label,
