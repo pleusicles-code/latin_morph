@@ -5,14 +5,13 @@ import pandas as pd
 import ast
 from utils import radio_change, reset, new_question, submit_and_check_answer, clear_page, send_setting, save_defaults, clear_defaults
 from vocab import import_nouns
-from noun_metadata import attach_noun_genders
 
 
 st.set_page_config("Latin Morph! Nouns", layout="centered")
 
 # if st.session_state.question_list:
 questions_asked = st.session_state.question_list
-noun_vocab = attach_noun_genders(import_nouns())
+noun_vocab = import_nouns()
 
 # if "nouns_enforce_macrons" not in st.session_state:
 st.session_state.nouns_enforce_macrons = st.session_state.enforce_macrons["nouns_enforce_macrons"]
