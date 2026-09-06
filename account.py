@@ -150,6 +150,7 @@ if st.user.is_logged_in:
 
     pos_dict = {
         "recognize_pos": "part-of-speech recognition answers",
+        "identify_stems": "stem identification answers",
         "noun": "nouns",
         "verb": "verbs",
         "adj": "adjectives",

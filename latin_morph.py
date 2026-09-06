@@ -219,6 +219,7 @@ main_page = st.Page("main_page.py", title="Main Page")
 about_page = st.Page("about.py", title="About")
 faq_page = st.Page("faq.py", title="FAQ")
 recognize_pos_page = st.Page("recognize_pos.py", title="Recognize Part of Speech")
+identify_stems_page = st.Page("identify_stems.py", title="Identify Stems")
 nouns_page = st.Page("nouns.py", title="Nouns")
 verbs_page = st.Page("verbs.py", title="Verbs")
 pronouns_page = st.Page("pronouns.py", title="Pronouns")
@@ -232,6 +233,7 @@ vocab_page = st.Page("vocab_list.py", title="Vocabulary List")
 nav_dict = {"**Latin Morph!**": [main_page, account_page, about_page, faq_page], 
                             "Parts of Speech": [
                                 recognize_pos_page,
+                                identify_stems_page,
                                 nouns_page, 
                                 verbs_page, 
                                 adj_page,
@@ -364,6 +366,7 @@ menu_nav_row.page_link("account.py", label="User Account")
 
 menu_pos_row.markdown(":blue[**Practice**]")
 menu_pos_row.page_link("recognize_pos.py", label="Recognize Part of Speech")
+menu_pos_row.page_link("identify_stems.py", label="Identify Stems")
 menu_pos_row.page_link("nouns.py", label="Nouns")
 menu_pos_row.page_link("verbs.py", label="Verbs")
 menu_pos_row.page_link("adjectives.py", label="Adjectives & Adverbs")
