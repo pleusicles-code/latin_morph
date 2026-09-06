@@ -119,7 +119,7 @@ with col_declension:
                                         default=[noun for noun in defaults.get("irregs_include") if noun in irreg_nouns] if defaults.get("irregs_include") is not None else (["deus"] if "deus" in irreg_nouns else []), 
                                         help="Only irregular nouns for the selected declension(s) are shown.")
         if len(irregs_include) > 0:
-            irregs_only = st.radio("Include *only* the selected irregular nouns?", 
+            irregs_only = st.radio("Practice *only* the selected irregular nouns?", 
                                    options=["No", "Yes"], 
                                    index=["No", "Yes"].index(defaults.get("irregs_only")) if defaults.get("irregs_only") is not None else 0,                                   
                                    horizontal=True)
