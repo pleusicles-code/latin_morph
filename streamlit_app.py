@@ -7,11 +7,12 @@ fallbacks so the app can boot in session-only guest mode. Once real Streamlit
 secrets/authentication are configured, this wrapper leaves them untouched.
 """
 
+import runpy
 import streamlit as st
 
 try:
-    st.secrets["connections"]["supabase"]["SUPABASE_URL"]
-    st.secrets["connections"]["supabase"]["SUPABASE_KEY"]
+    _supabase_url = st.secrets["connections"]["supabase"]["SUPABASE_URL"]
+    _supabase_key = st.secrets["connections"]["supabase"]["SUPABASE_KEY"]
 except (FileNotFoundError, KeyError):
     # These values are never used to contact Supabase for an anonymous user;
     # latin_morph.py only creates a Supabase client after a successful login.
@@ -31,4 +32,6 @@ except (FileNotFoundError, KeyError):
 if not hasattr(st.user, "is_logged_in"):
     type(st.user).is_logged_in = property(lambda self: False)
 
-import latin_morph  # noqa: E402,F401
+# Execute the real app as a script on every Streamlit rerun. A normal Python import
+# would be cached after the first run and would therefore leave later reruns blank.
+runpy.run_path("latin_morph.py", run_name="__main__")
