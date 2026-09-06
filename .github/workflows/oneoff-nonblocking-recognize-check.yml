@@ -1,0 +1,98 @@
+name: One-off nonblocking recognition check
+
+on:
+  push:
+    branches: [optional-supabase]
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    if: github.event.head_commit.message == 'Run nonblocking recognition check patch'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: optional-supabase
+      - name: Patch recognize_pos.py
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          p = Path('recognize_pos.py')
+          text = p.read_text()
+
+          old = '''def check_recognition_answer(answer_key):
+    answer = st.session_state.get(answer_key)
+    if not answer or st.session_state.answer_checked:
+        return
+'''
+          new = '''def check_recognition_answer(answer_key):
+    answer = st.session_state.get(answer_key)
+    if not answer or st.session_state.answer_checked:
+        return
+
+    st.session_state.pop("recognize_pos_pending_answer_key", None)
+    st.session_state.pop("recognize_pos_check_after", None)
+'''
+          if text.count(old) != 1:
+              raise SystemExit(f'check block count: {text.count(old)}')
+          text = text.replace(old, new, 1)
+
+          old = '''def choose_recognition_answer(answer_key):
+    # Keep the explicit button available, but automatically run the same check
+    # one second after the learner selects a radio option.
+    time.sleep(1)
+    check_recognition_answer(answer_key)
+'''
+          new = '''def choose_recognition_answer(answer_key):
+    # Schedule the same check used by the explicit button without blocking
+    # Streamlit for the one-second delay.
+    if not st.session_state.answer_checked:
+        st.session_state.recognize_pos_pending_answer_key = answer_key
+        st.session_state.recognize_pos_check_after = time.monotonic() + 1.0
+'''
+          if text.count(old) != 1:
+              raise SystemExit(f'choose block count: {text.count(old)}')
+          text = text.replace(old, new, 1)
+
+          marker = '''    with feedback_col:
+        st.markdown(st.session_state.answer_display_message)
+
+new_question_col, results_col, score_col = st.columns(3)
+'''
+          replacement = '''    with feedback_col:
+        st.markdown(st.session_state.answer_display_message)
+
+pending_answer_key = st.session_state.get("recognize_pos_pending_answer_key")
+check_after = st.session_state.get("recognize_pos_check_after")
+recognition_timer_interval = 0.2 if pending_answer_key and not st.session_state.answer_checked else None
+
+@st.fragment(run_every=recognition_timer_interval)
+def recognition_check_timer():
+    pending_key = st.session_state.get("recognize_pos_pending_answer_key")
+    pending_time = st.session_state.get("recognize_pos_check_after")
+    if pending_key and pending_time and not st.session_state.answer_checked and time.monotonic() >= pending_time:
+        check_recognition_answer(pending_key)
+        st.rerun()
+
+recognition_check_timer()
+
+new_question_col, results_col, score_col = st.columns(3)
+'''
+          if text.count(marker) != 1:
+              raise SystemExit(f'timer insertion marker count: {text.count(marker)}')
+          text = text.replace(marker, replacement, 1)
+
+          p.write_text(text)
+          PY
+      - name: Syntax check
+        run: python -m py_compile recognize_pos.py
+      - name: Commit patch
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add recognize_pos.py
+          git commit -m "Make recognition auto-check nonblocking"
+          git push origin optional-supabase
