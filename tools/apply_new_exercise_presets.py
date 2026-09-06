@@ -17,13 +17,18 @@ def clean(path):
     p.write_text("\n".join(line.rstrip() for line in p.read_text().splitlines()) + "\n")
 
 
-def patch_page(path, page_id, reset_function):
+def patch_page(path, page_id):
+    if path == "identify_stems.py":
+        utils_import = "from utils import clear_page, new_question, remove_macrons, reset, save_defaults, clear_defaults\n"
+    else:
+        utils_import = "from utils import clear_page, new_question, reset, save_defaults, clear_defaults\n"
+
     replace_once(
         path,
-        "from utils import clear_page, new_question, reset, save_defaults, clear_defaults\n",
-        "from utils import clear_page, new_question, reset, save_defaults, clear_defaults\n"
-        "from exercise_presets import (list_setting, resolve_exercise_settings, initialize_widget_state,\n"
-        "                              widget_key, url_preset_active, exercise_link_popover)\n",
+        utils_import,
+        utils_import
+        + "from exercise_presets import (list_setting, resolve_exercise_settings, initialize_widget_state,\n"
+        + "                              widget_key, url_preset_active, exercise_link_popover)\n",
     )
 
     replace_once(
@@ -74,7 +79,7 @@ def patch_page(path, page_id, reset_function):
 
     replace_once(
         path,
-        f'                disabled=not defaults and not settings_changed,\n'
+        '                disabled=not defaults and not settings_changed,\n'
         '            )\n\n\n# --- ',
         '                disabled=preset_active or (not defaults and not settings_changed),\n'
         '            )\n\n'
@@ -87,5 +92,5 @@ def patch_page(path, page_id, reset_function):
     clean(path)
 
 
-patch_page("recognize_pos.py", "recognize_pos", "reset_recognition_defaults")
-patch_page("identify_stems.py", "identify_stems", "reset_stem_defaults")
+patch_page("recognize_pos.py", "recognize_pos")
+patch_page("identify_stems.py", "identify_stems")
