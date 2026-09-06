@@ -61,8 +61,13 @@ def patch_nouns():
     )
     replace_once(
         path,
-        '''                                   index=["No", "Yes"].index(defaults.get("irregs_only")) if defaults.get("irregs_only") is not None else 0,                                  \n                                   horizontal=True,\n                                   key="nouns_irregs_only")\n''',
-        '''                                   horizontal=True,\n                                   key=widget_key(page_id, "irregs_only"))\n''',
+        '                                   index=["No", "Yes"].index(defaults.get("irregs_only")) if defaults.get("irregs_only") is not None else 0,',
+        '',
+    )
+    replace_once(
+        path,
+        '                                   key="nouns_irregs_only")',
+        '                                   key=widget_key(page_id, "irregs_only"))',
     )
 
     replace_once(
