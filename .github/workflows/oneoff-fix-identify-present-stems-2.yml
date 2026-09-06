@@ -1,0 +1,40 @@
+name: One-off present stem correction
+
+on:
+  push:
+    branches:
+      - optional-supabase
+    paths:
+      - .present-stem-fix-trigger
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: optional-supabase
+      - name: Patch and validate
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          p = Path('identify_stems.py')
+          text = p.read_text()
+          old = 'def correct_stems_for(pos, word):\n    data = VOCABULARIES[pos][word]\n    if pos in ["noun", "adjective"]:\n        return [canonical_stem(data["stem"])]\n    return [canonical_stem(data["pres"]), canonical_stem(data["perf"]), canonical_stem(data["ppp"])]\n'
+          new = 'def learner_present_stem(data):\n    stem = data["pres"]\n    conj = data.get("conj")\n    if conj == 1:\n        stem += "ā"\n    elif conj == 2:\n        stem += "ē"\n    elif conj == "3io":\n        stem += "i"\n    elif conj == 4:\n        stem += "ī"\n    return canonical_stem(stem)\n\n\ndef correct_stems_for(pos, word):\n    data = VOCABULARIES[pos][word]\n    if pos in ["noun", "adjective"]:\n        return [canonical_stem(data["stem"])]\n    return [learner_present_stem(data), canonical_stem(data["perf"]), canonical_stem(data["ppp"])]\n'
+          if text.count(old) != 1:
+              raise SystemExit(f'Expected one target, found {text.count(old)}')
+          p.write_text(text.replace(old, new, 1))
+          PY
+          python -m py_compile identify_stems.py
+          grep -n 'def learner_present_stem' -A15 identify_stems.py
+      - name: Commit
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add identify_stems.py
+          git commit -m "Fix learner-facing present stems"
+          git push origin optional-supabase
