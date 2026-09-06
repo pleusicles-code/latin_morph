@@ -9,13 +9,9 @@ def widget_key(page_id, setting_name):
     return f"{page_id}_{setting_name}"
 
 
-def widget_kwargs(page_id, setting_name, resolved_settings, value_arg="value"):
-    """Return widget kwargs without conflicting with preloaded session state."""
-    key = widget_key(page_id, setting_name)
-    kwargs = {"key": key}
-    if key not in st.session_state:
-        kwargs[value_arg] = resolved_settings[setting_name]
-    return kwargs
+def initialize_widget_state(page_id, resolved_settings):
+    for name, value in resolved_settings.items():
+        st.session_state.setdefault(widget_key(page_id, name), value)
 
 
 def bool_setting(default):
