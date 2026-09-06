@@ -65,7 +65,7 @@ with col_options:
     show_dictionary_entry = st.checkbox(
         "Show dictionary entry?",
         help="Select this box to show the whole dictionary entry of the noun, which allows one to reconstruct the stem/base from the genitive form.",
-        value=defaults.get("show_dictionary_entry") if defaults.get("show_dictionary_entry") is not None else False,
+        value=defaults.get("show_dictionary_entry") if defaults.get("show_dictionary_entry") is not None else True,
     )
     show_declension = st.checkbox("Show declension?", 
                                   help="Select this box to show the noun's declension.", 
