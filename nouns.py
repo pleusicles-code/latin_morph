@@ -4,6 +4,8 @@ import time
 import pandas as pd
 import ast
 from utils import radio_change, reset, new_question, submit_and_check_answer, clear_page, send_setting, save_defaults, clear_defaults
+from exercise_presets import (bool_setting, choice_setting, list_setting, resolve_exercise_settings,
+                              initialize_widget_state, widget_key, url_preset_active, exercise_link_popover)
 from vocab import import_nouns
 
 
@@ -26,12 +28,27 @@ st.markdown("# Nouns")
 st.warning('If you come across any incorrectly generated forms, please fill out the "Latin mistake" part of [this Google form](https://forms.gle/xT8hQ27sjposeXPc9).')
 
 declension_dict = {
-    "1st": 1, 
-    "2nd":["2_us", "2_er", "2_neut"], 
-    "3rd": [3, "3_istem", "3_neut", "3_istem_neut"], 
-    "4th": [4, "4_neut"], 
+    "1st": 1,
+    "2nd":["2_us", "2_er", "2_neut"],
+    "3rd": [3, "3_istem", "3_neut", "3_istem_neut"],
+    "4th": [4, "4_neut"],
     "5th": ["5_vowel", "5_consonant"]
     }
+
+master_irregular_nouns_list = [
+    noun for noun, data in noun_vocab.items() if data.get("irreg", {}).get("irreg")
+]
+exercise_schema = {
+    "show_dictionary_entry": bool_setting(True),
+    "show_declension": bool_setting(False),
+    "show_stem": bool_setting(False),
+    "declension": list_setting(list(declension_dict.keys()), list(declension_dict.keys())),
+    "irregs_include": list_setting(["deus"] if "deus" in master_irregular_nouns_list else [], master_irregular_nouns_list),
+    "irregs_only": choice_setting("No", ["No", "Yes"]),
+}
+exercise_settings = resolve_exercise_settings(page_id, exercise_schema, defaults)
+initialize_widget_state(page_id, exercise_settings)
+preset_active = url_preset_active(page_id)
 
 ## SET OPTIONS ##
 
@@ -45,8 +62,8 @@ with col_options:
         st.session_state.enforce_macrons["nouns_enforce_macrons"] = st.session_state["nouns_enforce_macrons"]
         return
     st.markdown("Options:", help="You can adjust these options at any point.")
-    st.checkbox("Enforce macrons?", 
-                help="If this box is selected, macron mistakes will be considered incorrect. If not selected, macrons can be used but will not be evaluated.", 
+    st.checkbox("Enforce macrons?",
+                help="If this box is selected, macron mistakes will be considered incorrect. If not selected, macrons can be used but will not be evaluated.",
                 key="nouns_enforce_macrons",
                 # value=st.session_state.enforce_macrons["nouns_enforce_macrons"],
                 on_change=send_setting,
@@ -65,26 +82,22 @@ with col_options:
     show_dictionary_entry = st.checkbox(
         "Show dictionary entry?",
         help="Select this box to show the whole dictionary entry of the noun, which allows one to reconstruct the stem/base from the genitive form.",
-        value=defaults.get("show_dictionary_entry") if defaults.get("show_dictionary_entry") is not None else True,
-        key="nouns_show_dictionary_entry",
+        key=widget_key(page_id, "show_dictionary_entry"),
     )
-    show_declension = st.checkbox("Show declension?", 
-                                  help="Select this box to show the noun's declension.", 
-                                  value=defaults.get("show_declension") if defaults.get("show_declension") is not None else False,
-                                  key="nouns_show_declension")
-    show_stem = st.checkbox("Show noun stem/base?", 
+    show_declension = st.checkbox("Show declension?",
+                                  help="Select this box to show the noun's declension.",
+                                  key=widget_key(page_id, "show_declension"))
+    show_stem = st.checkbox("Show noun stem/base?",
                             help="Select this box to show the noun base. (The base is the stem without any of the trailing vowels that sometimes combine with endings.)",
-                            value=defaults.get("show_stem") if defaults.get("show_stem") is not None else False,
-                            key="nouns_show_stem")
+                            key=widget_key(page_id, "show_stem"))
 
 with col_declension:
     # radio_change() is defined in utils.py
     # declension = st.radio("Choose a declension to practice:",{"random":"random"} | declension_dict, on_change=radio_change)
-    declension = st.multiselect("Choose which declensions to practice (they are all selected by default):", 
-                                options=list(declension_dict.keys()), 
-                                default=defaults.get("declension") if defaults.get("declension") is not None else list(declension_dict.keys()), 
+    declension = st.multiselect("Choose which declensions to practice (they are all selected by default):",
+                                options=list(declension_dict.keys()),
                                 help="If the selected declension(s) include irregular nouns, an option will be shown to include or exclude them.",
-                                key="nouns_declension")
+                                key=widget_key(page_id, "declension"))
 
 
 ## DEFINE AVAILABLE NOUNS AND NOUN ENDINGS ##
@@ -116,38 +129,42 @@ irregs_only = "No"
 
 with col_declension:
     if len(irreg_nouns) > 0:
+        irregs_key = widget_key(page_id, "irregs_include")
+        st.session_state[irregs_key] = [noun for noun in st.session_state.get(irregs_key, []) if noun in irreg_nouns]
         # default_irreg_nouns = [noun for noun in irreg_nouns if noun in active_vocab]
         # if defaults.get("irre")
-        irregs_include = st.multiselect("Choose which irregular nouns to include:", 
-                                        options=irreg_nouns, 
-                                        default=[noun for noun in defaults.get("irregs_include") if noun in irreg_nouns] if defaults.get("irregs_include") is not None else (["deus"] if "deus" in irreg_nouns else []), 
+        irregs_include = st.multiselect("Choose which irregular nouns to include:",
+                                        options=irreg_nouns,
                                         help="Only irregular nouns for the selected declension(s) are shown.",
-                                        key="nouns_irregs_include")
+                                        key=widget_key(page_id, "irregs_include"))
         if len(irregs_include) > 0:
-            irregs_only = st.radio("Practice *only* the selected irregular nouns?", 
-                                   options=["No", "Yes"], 
-                                   index=["No", "Yes"].index(defaults.get("irregs_only")) if defaults.get("irregs_only") is not None else 0,                                   
+            irregs_only = st.radio("Practice *only* the selected irregular nouns?",
+                                   options=["No", "Yes"],
+
                                    horizontal=True,
-                                   key="nouns_irregs_only")
+                                   key=widget_key(page_id, "irregs_only"))
+
+current_exercise_settings = {
+    "show_dictionary_entry": show_dictionary_entry,
+    "show_declension": show_declension,
+    "show_stem": show_stem,
+    "declension": declension,
+    "irregs_include": irregs_include,
+    "irregs_only": irregs_only,
+}
 
 with col_options:
     if st.user.is_logged_in:
-        set_defaults_col, clear_defaults_col = st.container(vertical_alignment="bottom", height="stretch").columns(2, vertical_alignment="center")
+        set_defaults_col, clear_defaults_col, link_col = st.container(vertical_alignment="bottom", height="stretch").columns(3, vertical_alignment="center")
         with set_defaults_col:
-            st.button("Save settings", 
-                        type="primary", 
-                        width="stretch", 
+            st.button("Save settings",
+                        type="primary",
+                        width="stretch",
                         help="Save your current noun settings (except macron enforcement) as your default.",
                         on_click=save_defaults,
                         args=(page_id, defaults,),
-                        kwargs={
-                            "show_declension": show_declension,
-                            "show_stem": show_stem,
-                            "show_dictionary_entry": show_dictionary_entry,
-                            "irregs_include": irregs_include,
-                            "irregs_only": irregs_only,
-                            "declension": declension
-                            }
+                        kwargs=current_exercise_settings,
+                        disabled=preset_active
                         )
         with clear_defaults_col:
             generic_noun_settings = {
@@ -177,13 +194,17 @@ with col_options:
                 st.session_state.nouns_irregs_include = ["deus"]
                 st.session_state.nouns_irregs_only = "No"
 
-            st.button("Reset defaults", 
-                        type="primary", 
-                        width="stretch", 
+            st.button("Reset defaults",
+                        type="primary",
+                        width="stretch",
                         help="Restore the generic Latin Morph! default settings for nouns.",
                         on_click=reset_noun_defaults,
-                        disabled=not defaults and not noun_settings_changed
+                        disabled=preset_active or (not defaults and not noun_settings_changed)
                         )
+        with link_col:
+            exercise_link_popover(page_id, exercise_schema, current_exercise_settings)
+    else:
+        exercise_link_popover(page_id, exercise_schema, current_exercise_settings)
 
 
 for noun in irreg_nouns:
@@ -356,7 +377,7 @@ else:
         if irregs_only == "Yes":
             decl_dict_subset = random.choice(irreg_decl)
         # st.write(decl_dict_subset)
-        
+
         if isinstance(decl_dict_subset, list):
             decl_rand_subset = random.choice(decl_dict_subset)
             vocab_subset = {k: v for k,v in active_vocab.items() if v["decl"] == decl_rand_subset}
@@ -386,7 +407,7 @@ else:
             elif number == last_question.get("id", {}).get("num") and noun_vocab[noun]["decl"] == noun_vocab.get(last_question.get("word"),{}).get("decl"):
                 if case == last_question.get("id", {}).get("case"):
                     case = ""
-        
+
         # st.write(noun, case, number)
         return [noun, case, number]
 
@@ -404,7 +425,7 @@ else:
 
         dfs = {}
         noun = case = number = decl = None
-        
+
         if questions_asked and noun_qs_answered:
 
             noun_df = (
@@ -422,9 +443,9 @@ else:
 
             def agg_df(gb):
                 df = (
-                    gb.agg(num_correct=("correct","sum"),total_q=("correct","count")) 
-                        .assign(pct_wrong = lambda df: (df["total_q"]-df["num_correct"])/df["total_q"]) 
-                        .assign(weight = lambda df: ((df["total_q"]-df["num_correct"])/(df["num_correct"]+1))**0.5) 
+                    gb.agg(num_correct=("correct","sum"),total_q=("correct","count"))
+                        .assign(pct_wrong = lambda df: (df["total_q"]-df["num_correct"])/df["total_q"])
+                        .assign(weight = lambda df: ((df["total_q"]-df["num_correct"])/(df["num_correct"]+1))**0.5)
                         .query("pct_wrong > 0")
                 )
                 return df
@@ -612,7 +633,7 @@ else:
                 def disable_button():
                         st.session_state.button_disable = True
                 st.form_submit_button(
-                    "Check Answer", 
+                    "Check Answer",
                     key="form_submission_button",
                     on_click=submit_and_check_answer,
                     disabled=st.session_state.button_disable,
@@ -622,16 +643,16 @@ else:
 
         curr_question = {
                 "pos": "noun",
-                "word": noun, 
+                "word": noun,
                 "id": {
                     "case": case,
                     "num": number,
                     "decl": (
-                        "1st" if str(noun_decl)[0] == "1" 
-                        else "2nd" if str(noun_decl)[0] == "2" 
-                        else "3rd (i-stem)" if "istem" in str(noun_decl) 
-                        else "3rd" if str(noun_decl)[0] == "3" 
-                        else "4th" if str(noun_decl)[0] == "4" 
+                        "1st" if str(noun_decl)[0] == "1"
+                        else "2nd" if str(noun_decl)[0] == "2"
+                        else "3rd (i-stem)" if "istem" in str(noun_decl)
+                        else "3rd" if str(noun_decl)[0] == "3"
+                        else "4th" if str(noun_decl)[0] == "4"
                         else "5th"
                         ),
                     "irreg": "irreg" if noun_vocab[noun].get("irreg",{}).get("irreg") is True else None
@@ -647,7 +668,7 @@ else:
     new_q_button_text = "New Question" if st.session_state.question_list else "Click here for your first question!"
     new_q_button_type = "secondary" if st.session_state.question_list else "primary"
     with new_question_col:
-        st.button(new_q_button_text, on_click=new_question, args=(adap_gen_question,), key="question_button", width="stretch", 
+        st.button(new_q_button_text, on_click=new_question, args=(adap_gen_question,), key="question_button", width="stretch",
                   disabled=True if len(declension) == 0 else False, type=new_q_button_type
                   )
 
