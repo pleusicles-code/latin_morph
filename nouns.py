@@ -5,13 +5,14 @@ import pandas as pd
 import ast
 from utils import radio_change, reset, new_question, submit_and_check_answer, clear_page, send_setting, save_defaults, clear_defaults
 from vocab import import_nouns
+from noun_metadata import attach_noun_genders
 
 
 st.set_page_config("Latin Morph! Nouns", layout="centered")
 
 # if st.session_state.question_list:
 questions_asked = st.session_state.question_list
-noun_vocab = import_nouns()
+noun_vocab = attach_noun_genders(import_nouns())
 
 # if "nouns_enforce_macrons" not in st.session_state:
 st.session_state.nouns_enforce_macrons = st.session_state.enforce_macrons["nouns_enforce_macrons"]
@@ -68,6 +69,11 @@ with col_options:
     show_stem = st.checkbox("Show noun stem/base?", 
                             help="Select this box to show the noun base. (The base is the stem without any of the trailing vowels that sometimes combine with endings.)",
                             value=defaults.get("show_stem") if defaults.get("show_stem") is not None else False)
+    show_dictionary_entry = st.checkbox(
+        "Show dictionary entry?",
+        help="Select this box to show the whole dictionary entry of the noun, which allows one to reconstruct the stem/base from the genitive form.",
+        value=defaults.get("show_dictionary_entry") if defaults.get("show_dictionary_entry") is not None else False,
+    )
 
 with col_declension:
     # radio_change() is defined in utils.py
@@ -132,6 +138,7 @@ with col_options:
                         kwargs={
                             "show_declension": show_declension,
                             "show_stem": show_stem,
+                            "show_dictionary_entry": show_dictionary_entry,
                             "irregs_include": irregs_include,
                             "irregs_only": irregs_only,
                             "declension": declension
@@ -392,116 +399,68 @@ else:
                 return df
 
             if not noun_df.empty and len(noun_df) > 5:
-                # create individual case/number df
                 noun_df_wrong_indiv = agg_df(
                     noun_df.copy()
                         .groupby(["decl_mod","id.decl","id.case","id.num"])
                     )
-                # st.write(noun_df_wrong_indiv)
-                
                 if not noun_df_wrong_indiv.empty:
-                    # create superset aggregated df, declensions overall (+ irregulars)
                     noun_df_wrong_agg_superset = agg_df(
                         noun_df.copy()
                             .groupby("decl_mod")
                         )
-
-                    # create aggregated df, declension categories (+ irregulars)                
                     noun_df_wrong_agg = agg_df(
                         noun_df.copy()
                             .groupby(["decl_mod","id.decl"])
                     )
-                    
-                    # st.write(noun_df_wrong_agg_superset)
-                    # st.write(noun_df_wrong_agg)
-
                     dfs["noun_df_wrong_indiv"] = noun_df_wrong_indiv
                     dfs["noun_df_wrong_agg_superset"] = noun_df_wrong_agg_superset
                     dfs["noun_df_wrong_agg"] = noun_df_wrong_agg
 
         if "noun_df_wrong_agg" in dfs and noun_df_wrong_agg["weight"].max() >= .58:
-            repeat_chance = random.choices(["new","repeat"],[st.session_state["adap_learning_frequency"],1])[0]   # 1 in 3 chance of repeated question
-            # repeat_chance = "repeat"
-
+            repeat_chance = random.choices(["new","repeat"],[st.session_state["adap_learning_frequency"],1])[0]
             if repeat_chance == "repeat":
                 noun_info = None
-
-                # get noun declension (or irregular noun) from superset df
                 noun_decl_cat = (
                     noun_df_wrong_agg_superset["weight"]
                         .sample(n=1, weights=noun_df_wrong_agg_superset["weight"])
                         .index[0]
                     )
-                # st.write(noun_decl_cat)
-
                 if noun_decl_cat not in noun_vocab:
-                    # if relevant, get noun sub-declension from agg df
-                    # st.write(noun_decl_cat)
                     if not noun_df_wrong_agg.xs(noun_decl_cat,level="decl_mod").query("weight >= .58").empty:
-
                         df_slice = noun_df_wrong_agg.xs(noun_decl_cat,level="decl_mod").query("weight >= .58")
-                        # st.write("Choose a declension from here:",df_slice)
                         decl = df_slice.sample(n=1,weights=df_slice["weight"]).index[0]
-                        # st.write("Chosen declension:",decl)
-
                 if decl:
-                    # We already have a specific problematic sub-declension
-                    # st.write("See what's in the individual df for this specific declension")
                     df_slice = noun_df_wrong_indiv.xs((noun_decl_cat,decl),level=["decl_mod","id.decl"]).query("weight > 1.7")
-
-                    # st.write(df_slice)
                 else:
-                    # just go with the overall declension category or specific irregular noun
-                    # st.write("See what's in the individual df for this general declension/word")
                     df_slice = noun_df_wrong_indiv.xs(noun_decl_cat,level="decl_mod").query("weight > 1.7")
-                    # st.write(df_slice)
-
-                if not df_slice.empty:                
-                    # st.write(df_slice.index.names)
+                if not df_slice.empty:
                     noun_info = df_slice.sample(n=1, weights=df_slice["weight"]).index[0]
-                    # st.write(noun_info)
                     if len(noun_info) == 2:
-                        # st.write("We have a specific declension already assigned, get both items (case and number) from a sampled index tuple")
                         case, number = noun_info
                     else:
                         if noun_decl_cat in noun_vocab:
-                            # st.write("We have an irregular noun: get the 2nd and 3rd items from a sampled index tuple")
                             case, number = noun_info[1:]
                             noun = noun_decl_cat
                         else:
-                            # st.write("We need to get specific declension, case, and number (1st, 2nd, and 3rd items) from a sampled index tuple")
                             decl, case, number = noun_info
-
                 if decl and decl != "5":
                     decl = int(decl) if decl.isdigit() else decl
-                    # st.write("Check this declension:", decl)
-                    # st.write("Choose a noun from the subset of nouns in this specific sub-declension, but exclude irregulars")
                 elif noun_decl_cat in noun_vocab:
                     noun = noun_decl_cat
-                    # st.write("Irregular noun:",noun)
                 else:
-                    # st.write("Check this declension category, but exclude irregulars:",noun_decl_cat)
                     decl = next(val for key,val in declension_dict.items() if key.startswith(noun_decl_cat))
                 if not noun:
                     if noun_decl_cat == "5":
-                        # st.write("Fifth declension selected, so need to include both vowel- and consonant-stem options when choosing noun")
                         avail_nouns = {k:v for k,v in avail_nouns.items() if v["decl"] in decl and not v.get("irreg", {}).get("irreg")}
                     else:
                         if isinstance(decl, list):
                             decl = random.choice(decl)
                         avail_nouns = {k:v for k,v in avail_nouns.items() if v["decl"] == decl and not v.get("irreg", {}).get("irreg")}
-                    # st.write(decl)
-                    # st.write(avail_nouns.keys())
                     noun = random.choice(list(avail_nouns))
-                # st.write(noun)
-
-                # st.write("Double-check what needs to be done regarding declension, at this point; but we may have an irregular noun already")
                 if not noun_info:
-                    # st.write("Assign random case and number (within what exists for selected noun)")
                     number = random.choice(list(noun_options["number"].keys()))
                     if number == "sg" and noun != "deus":
                         case_weights = [1,9,9,9,9]
-                        # if decl_rand == "2nd":
                         if decl == "2_us":
                             case_weights.append(8)
                         elif noun[-2:] == "us" or (isinstance(decl, str) and decl.startswith("2")):
@@ -515,37 +474,25 @@ else:
                         case = random.choices(list(noun_options["case"].keys()),case_weights)[0]
                         if (noun == last_q.get("word") or noun_vocab[noun]["decl"] == last_q.get("decl")) and case == last_q.get("id", {}).get("case") and number == last_q.get("id", {}).get("num"):
                             case = ""
-                # st.write("Old question:", noun,case, number)
-        # if not noun:
-        #     noun, case, number = gen_question()
         while not noun:
             noun, case, number = gen_question()
-            if (noun == last_q.get("word") or noun_vocab[noun]["decl"] == last_q.get("decl")) and case == last_q.get("id", {}).get("case") and number == last_q.get("id", {}).get("num"):
+            if (noun == last_q.get("word") or noun_vocab[noun]["decl"] == noun_vocab.get(last_q.get("word"),{}).get("decl")) and case == last_q.get("id", {}).get("case") and number == last_q.get("id", {}).get("num"):
                 noun = None
-            # st.write("New question:",noun,case,number)
         return [noun, case, number]
 
-    # adap_gen_question()
-
     def build_noun(noun_id=None):
-
         if noun_id:
             pass
         else:
             noun_id = adap_gen_question()
-        
         noun, case, number = noun_id
-
         noun_decl = noun_vocab.get(noun, {}).get("decl")
         noun_stem = noun_vocab.get(noun, {}).get("stem")
-
         correct_answer = ""
-
-        if case == "nom" and number == "sg":    # nominative singulars don't choose from list
+        if case == "nom" and number == "sg":
             correct_answer = noun
         else:
             if "irreg" in noun_vocab[noun]:
-                # pass
                 irreg_form = noun_vocab[noun]["irreg"].get(number, {}).get(case, "")
                 if irreg_form:
                     correct_answer = irreg_form
@@ -566,24 +513,28 @@ else:
                         correct_ending = ["im", "em"]
                     if case == "abl":
                         correct_ending = ["ī", "e"]
-                    
-
-                if correct_ending is None and number == "sg":   # deal with vocative singular other than 2nd decl. -us nouns
+                if correct_ending is None and number == "sg":
                     correct_answer = noun
-
                 else:
-                    if correct_ending is None and number == "pl":   # deal with vocative plurals
+                    if correct_ending is None and number == "pl":
                         correct_ending = noun_endings[noun_decl][number]["nom"]
                         correct_answer = noun_stem + correct_ending
-                    elif isinstance(correct_ending, list):    # deal with alternative forms
-                        #correct_ending = correct_ending[0]
+                    elif isinstance(correct_ending, list):
                         correct_answer = []
                         for ending in correct_ending:
                             correct_answer.append(noun_stem + ending)
                     else:
                         correct_answer = noun_stem + correct_ending
-
         return correct_answer
+
+    def build_dictionary_entry(noun):
+        genitive = build_noun([noun, "gen", "sg"])
+        gender = noun_vocab[noun]["gender"]
+        if isinstance(genitive, list):
+            genitive = "/".join(genitive)
+        if genitive:
+            return f"{noun}, {genitive} {gender}."
+        return f"{noun} {gender}."
 
     st.session_state.gen_func = adap_gen_question
 
@@ -591,7 +542,8 @@ else:
         noun, case, number = st.session_state.current_question
         st.session_state["correct_answer"] = correct_answer = build_noun(st.session_state.current_question)
 
-        question = f'For *{noun}*, give the **{noun_options["case"][case]} {noun_options["number"][number]}**.'
+        noun_prompt = build_dictionary_entry(noun) if show_dictionary_entry else noun
+        question = f'For *{noun_prompt}*, give the **{noun_options["case"][case]} {noun_options["number"][number]}**.'
         noun_decl = noun_vocab.get(noun)["decl"]
 
         if show_declension:
@@ -624,7 +576,6 @@ else:
 
         with st.form(key="noun_form", clear_on_submit=True):
             current_answer = st.text_input(question, key="answer_input")
-            
             submit_button_col, user_answer_col = st.columns([1,2])
             with submit_button_col:
                 def disable_button():
@@ -654,16 +605,11 @@ else:
                         ),
                     "irreg": "irreg" if noun_vocab[noun].get("irreg",{}).get("irreg") is True else None
                 },
-    #            "correct": False
             }
 
         if st.session_state.append_answer is True:
-            questions_asked.append(
-                curr_question
-            )
+            questions_asked.append(curr_question)
             st.session_state.append_answer = False
-
-    ## GENERATE NEW QUESTIONS AND CHECK ANSWERS ##
 
     new_question_col, results_col, score_col = st.columns(3)
 
@@ -675,7 +621,7 @@ else:
                   )
 
     with results_col:
-        st.markdown(st.session_state.result_message)    # just write the result message, rather than other things as well.
+        st.markdown(st.session_state.result_message)
 
         if st.session_state.current_question and st.session_state.answer_checked and "Incorrect" in st.session_state.result_message:
             chart_popover = st.popover("View chart",type="primary")
@@ -684,11 +630,9 @@ else:
                 st.caption("You can change your preferred case order in the navigation menu.")
                 starting_form = list(st.session_state.current_question)
                 next_form = list(starting_form)
-
                 noun_table = {}
                 table_index = []
                 cs_order = st.session_state.case_order
-                # st.write(cs_order)
                 for num in ["sg","pl"]:
                     noun_table[num] = []
                     for cs in cs_order:
@@ -696,7 +640,6 @@ else:
                             table_index.append(cs)
                         next_form[2] = num
                         next_form[1] = cs
-
                         try:
                             form = build_noun(next_form)
                             if isinstance(form, list):
@@ -706,11 +649,8 @@ else:
                         except:
                             form = None
                         noun_table[num].append(form if form is not None else "--")
-                
                 declension_table = pd.DataFrame(noun_table, index=table_index)
-                st.table(declension_table, 
-                        #  width="content"
-                         )
+                st.table(declension_table)
 
     with score_col:
         st.button("Reset Score", "reset", on_click=reset, width="stretch")
