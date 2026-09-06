@@ -183,6 +183,16 @@ def noun_has_beginner_dictionary_entry(data):
     return data.get("irreg", {}).get("sg", {}).get("gen", "__regular__") is not None
 
 
+def adjective_has_beginner_dictionary_entry(data):
+    # Exclude one-termination 3rd-declension adjectives (e.g. vetus, ingēns).
+    # This beginner exercise uses only adjective entries that visibly distinguish
+    # at least the neuter nominative from the masculine/feminine form.
+    if data.get("decl") == 3:
+        noms = data.get("noms")
+        return bool(noms and len(noms) >= 2)
+    return True
+
+
 def verb_has_beginner_dictionary_entry(data):
     # Exclude genuinely irregular verbs such as sum, possum, ferō, etc.
     # Verbs with only isolated irregular forms (e.g. dīcō, dūcō) remain eligible.
@@ -191,7 +201,7 @@ def verb_has_beginner_dictionary_entry(data):
 
 VOCABULARIES = {
     "noun": {word: data for word, data in noun_vocab.items() if noun_has_beginner_dictionary_entry(data)},
-    "adjective": adjective_vocab,
+    "adjective": {word: data for word, data in adjective_vocab.items() if adjective_has_beginner_dictionary_entry(data)},
     "verb": {word: data for word, data in verb_vocab.items() if verb_has_beginner_dictionary_entry(data)},
 }
 
@@ -269,9 +279,7 @@ def start_new_question():
 
 def check_recognition_answer(answer_key):
     answer = st.session_state.get(answer_key)
-    if not answer:
-        st.session_state.answer_display_message = "Choose an answer before checking."
-        st.session_state.button_disable = False
+    if not answer or st.session_state.answer_checked:
         return
 
     correct_answer = st.session_state.current_question["pos"]
@@ -312,6 +320,13 @@ def check_recognition_answer(answer_key):
     st.session_state.auto_advance_trigger = bool(st.session_state.auto_advance)
 
 
+def choose_recognition_answer(answer_key):
+    # Give the learner one second to register the selected radio option visually,
+    # then evaluate it automatically.
+    time.sleep(1)
+    check_recognition_answer(answer_key)
+
+
 st.session_state.gen_func = gen_question
 
 if not selected_pos and not st.session_state.current_question:
@@ -324,24 +339,17 @@ if st.session_state.current_question:
     st.markdown("### Current question")
     st.markdown(f"Which part of speech is *{question['entry']}*?")
 
-    with st.form(key=f"recognize_pos_form_{question['qid']}"):
-        st.radio(
-            "Choose one:",
-            options=PARTS_OF_SPEECH,
-            index=None,
-            key=answer_key,
-            horizontal=True,
-        )
-        submit_col, feedback_col = st.columns([1, 2])
-        with submit_col:
-            st.form_submit_button(
-                "Check Answer",
-                on_click=check_recognition_answer,
-                args=(answer_key,),
-                disabled=st.session_state.button_disable,
-            )
-        with feedback_col:
-            st.markdown(st.session_state.answer_display_message)
+    st.radio(
+        "Choose one:",
+        options=PARTS_OF_SPEECH,
+        index=None,
+        key=answer_key,
+        horizontal=True,
+        disabled=st.session_state.answer_checked,
+        on_change=choose_recognition_answer,
+        args=(answer_key,),
+    )
+    st.markdown(st.session_state.answer_display_message)
 
 new_question_col, results_col, score_col = st.columns(3)
 
