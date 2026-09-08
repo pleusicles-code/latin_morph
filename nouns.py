@@ -1064,7 +1064,7 @@ else:
                         st.session_state.answer_display_message = feedback_box(
                             '<strong>Részben helyes válasz.</strong> '
                             '<span>Válaszod: {user}</span> '
-                            '<strong>A helyes válasz: {correct}.</strong>'.format(
+                            '<strong>A helyes válasz: {correct}</strong>'.format(
                                 user="".join(display_parts),
                                 correct=heavy(all_possible_text),
                             ),
@@ -1073,7 +1073,7 @@ else:
                     else:
                         st.session_state.result_message = "**Incorrect. Better luck next time!**"
                         st.session_state.answer_display_message = feedback_box(
-                            f"<strong>Helytelen válasz. A helyes válasz: {heavy(all_possible_text)}.</strong>",
+                            f"<strong>Helytelen válasz. A helyes válasz: {heavy(all_possible_text)}</strong>",
                             "incorrect",
                         )
 
