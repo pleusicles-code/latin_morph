@@ -180,7 +180,7 @@ if st.session_state.supabase_connection is not None and st.session_state.current
         st.radio("Choose one:",[True,False], format_func=consent_display, index=None, key="consent_radio")
         def log_consent():
             st.session_state.current_user_consent = st.session_state.consent_radio            
-            insert_dict = {"user_id": st.session_state.user_id, "consent":st.session_state.current_user_consent}
+            insert_dict = {"user_id":st.session_state.user_id,"consent":st.session_state.current_user_consent}
             sb_conn.table("user_consent").insert(insert_dict).execute()
         if st.button("Submit", on_click=log_consent, disabled=True if st.session_state.get("consent_radio") is None else False):
             st.rerun()
@@ -226,7 +226,7 @@ nav_dict = {"**BevLat**": [main_page, account_page, about_page, faq_page],
 if st.context.headers.get("host","").startswith("localhost"):
     nav_dict["Tesztelés"] = [test_page]
 
-st.logo("bevlat_logo.svg", size="large")
+st.logo("bevlat_logo.png", size="large")
 choose_page = st.navigation(nav_dict, position="hidden")
 
 st.sidebar.caption(
