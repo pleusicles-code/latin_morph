@@ -66,6 +66,7 @@ def new_question(gen_question):
     st.session_state.button_disable = False
     st.session_state.append_answer = True
     st.session_state.gen_string = None
+    st.session_state.pop("answer_credit_override", None)
 
     st.session_state.current_question = gen_question()
     # except:
@@ -167,9 +168,11 @@ def submit_and_check_answer():
             elif user_answer_check == correct_answer_check:
                 correct_flag = True
             
-            # set correct/incorrect result message
+            # set score and correct/incorrect result message
+            credit_override = st.session_state.pop("answer_credit_override", None)
+            answer_credit = (1 if correct_flag else 0) if credit_override is None else credit_override
+            st.session_state.current_score += answer_credit
             if correct_flag is True:
-                st.session_state.current_score += 1
                 st.session_state.result_message = "**Good job!**"
             else:
                 st.session_state.result_message = "**Incorrect. Better luck next time!**"
@@ -189,7 +192,9 @@ def submit_and_check_answer():
 #            st.write(st.session_state.append_answer)
             if st.session_state.append_answer is False:
                 st.session_state.question_list[-1]["answer"] = user_answer
-                st.session_state.question_list[-1]["correct"] = correct_flag  # write correctness to question_list
+                st.session_state.question_list[-1]["correct"] = (
+                    answer_credit if credit_override is not None else correct_flag
+                )  # write correctness / partial credit to question_list
 
                 # if st.context.headers["host"].startswith("localhost"):
                 if st.user.is_logged_in is True:

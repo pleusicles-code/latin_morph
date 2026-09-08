@@ -41,7 +41,7 @@ exercise_schema = {
     "exercise_type": choice_setting("inflect", ["inflect", "recognize"]),
     "print_macrons": bool_setting(False),
     "indicate_multiple_answers": bool_setting(False),
-    "expect_all_answers": bool_setting(False),
+    "award_partial_credit": bool_setting(False),
     "show_dictionary_entry": bool_setting(True),
     "show_declension": bool_setting(False),
     "show_stem": bool_setting(False),
@@ -102,10 +102,10 @@ with col_options:
             help="If enabled, the question will contain a message that there are multiple correct answers.",
             key=widget_key(page_id, "indicate_multiple_answers"),
         )
-        expect_all_answers = st.checkbox(
-            "Expect all correct answers?",
-            help="If checked, the answer will be deemed fully correct only if each possible analysis is given; otherwise, any possible analysis will be accepted as correct.",
-            key=widget_key(page_id, "expect_all_answers"),
+        award_partial_credit = st.checkbox(
+            "Award partial credit?",
+            help="If enabled, partially correct answers receive half credit; otherwise, only fully correct answers receive credit.",
+            key=widget_key(page_id, "award_partial_credit"),
         )
 
     st.html('<hr style="border-top: 1px dotted; border-bottom: none;">')
@@ -179,7 +179,7 @@ current_exercise_settings = {
     "exercise_type": exercise_type,
     "print_macrons": st.session_state[widget_key(page_id, "print_macrons")],
     "indicate_multiple_answers": st.session_state[widget_key(page_id, "indicate_multiple_answers")],
-    "expect_all_answers": st.session_state[widget_key(page_id, "expect_all_answers")],
+    "award_partial_credit": st.session_state[widget_key(page_id, "award_partial_credit")],
     "show_dictionary_entry": show_dictionary_entry,
     "show_declension": show_declension,
     "show_stem": show_stem,
@@ -206,7 +206,7 @@ with col_options:
                 "exercise_type": "inflect",
                 "print_macrons": False,
                 "indicate_multiple_answers": False,
-                "expect_all_answers": False,
+                "award_partial_credit": False,
                 "show_dictionary_entry": True,
                 "show_declension": False,
                 "show_stem": False,
@@ -218,7 +218,7 @@ with col_options:
                 "exercise_type": exercise_type,
                 "print_macrons": st.session_state[widget_key(page_id, "print_macrons")],
                 "indicate_multiple_answers": st.session_state[widget_key(page_id, "indicate_multiple_answers")],
-                "expect_all_answers": st.session_state[widget_key(page_id, "expect_all_answers")],
+                "award_partial_credit": st.session_state[widget_key(page_id, "award_partial_credit")],
                 "show_dictionary_entry": show_dictionary_entry,
                 "show_declension": show_declension,
                 "show_stem": show_stem,
@@ -233,7 +233,7 @@ with col_options:
                 st.session_state.nouns_exercise_type = "inflect"
                 st.session_state.nouns_print_macrons = False
                 st.session_state.nouns_indicate_multiple_answers = False
-                st.session_state.nouns_expect_all_answers = False
+                st.session_state.nouns_award_partial_credit = False
                 st.session_state.nouns_show_dictionary_entry = True
                 st.session_state.nouns_show_declension = False
                 st.session_state.nouns_show_stem = False
@@ -428,26 +428,15 @@ def format_noun_analysis_list(analyses):
     )
 
 
-def evaluate_noun_recognition_answer(user_analyses, possible_analyses, expect_all):
-    """Return correct / partial / incorrect for a parsed noun recognition answer."""
+def evaluate_noun_recognition_answer(user_analyses, possible_analyses):
+    """Return correct / partial / incorrect using complete-analysis semantics."""
     user_analyses = set(user_analyses)
     possible_analyses = set(possible_analyses)
     correct_supplied = user_analyses & possible_analyses
-    impossible_supplied = user_analyses - possible_analyses
 
-    if len(possible_analyses) == 1:
-        return "correct" if user_analyses == possible_analyses else "incorrect"
-
-    if expect_all:
-        if user_analyses == possible_analyses:
-            return "correct"
-        if correct_supplied:
-            return "partial"
-        return "incorrect"
-
-    if correct_supplied and not impossible_supplied:
+    if user_analyses == possible_analyses:
         return "correct"
-    if correct_supplied and impossible_supplied:
+    if correct_supplied:
         return "partial"
     return "incorrect"
 
@@ -958,7 +947,6 @@ else:
                             evaluation = evaluate_noun_recognition_answer(
                                 parsed_answer["analyses"],
                                 matching_analyses,
-                                st.session_state[widget_key(page_id, "expect_all_answers")],
                             )
                             # Let the shared checker perform score/history/logging. It only
                             # understands binary correctness, so partial answers are logged
@@ -968,6 +956,12 @@ else:
                                 if evaluation == "correct"
                                 else "__noun_recognition_incorrect__"
                             )
+                            if evaluation == "partial":
+                                st.session_state.answer_credit_override = (
+                                    0.5
+                                    if st.session_state[widget_key(page_id, "award_partial_credit")]
+                                    else 0
+                                )
                         else:
                             # Use the temporary self-match only so the shared function can
                             # execute safely; all of its submission effects are rolled back below.
@@ -1000,22 +994,9 @@ else:
 
                         if evaluation == "correct":
                             st.session_state.result_message = "**Good job!**"
-                            if missing_analyses:
-                                st.session_state.answer_display_message = (
-                                    f":green-background[**The correct answer is: {all_possible_text}**]"
-                                )
-                                if (
-                                    not st.session_state[widget_key(page_id, "expect_all_answers")]
-                                    and len(possible_analyses) > 1
-                                ):
-                                    st.session_state.answer_display_message += (
-                                        "  \n:yellow-background[Take note, however, that other analyses are possible!]"
-                                    )
-                                    st.session_state.nouns_recognition_extra_delay = 5
-                            else:
-                                st.session_state.answer_display_message = (
-                                    ":green-background[**Correct answer!**]"
-                                )
+                            st.session_state.answer_display_message = (
+                                ":green-background[**Correct answer!**]"
+                            )
                         elif evaluation == "partial":
                             st.session_state.result_message = "**Partially correct.**"
                             feedback_parts = []
