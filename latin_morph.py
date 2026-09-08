@@ -10,13 +10,79 @@ import jwt
 import time
 from streamlit_sortables import sort_items
 
-st.set_page_config("Latin Morph!", 
+st.set_page_config("BevLat", 
                    menu_items={
                        "About": "A pedagogical morphology tool for Latin students at any level to practice creating correct word forms."
                         },
                     layout="centered",
-                    page_icon="https://darcykrasne.com/digital_humanities/latin_morph/latin_morph_icon_120px.png"
+                    page_icon="bevlat_logo.svg"
                     )
+
+# Apply the BevLat branding consistently to older page source without having to
+# duplicate simple branding-only edits across every exercise module. The sidebar
+# attribution deliberately uses its own bound method below, so its reference to
+# the original Latin Morph! app is preserved.
+_original_set_page_config = st.set_page_config
+_original_markdown = st.markdown
+_original_title = st.title
+_original_caption = st.caption
+_original_expander = st.expander
+_original_button = st.button
+_original_warning = st.warning
+
+
+def _bevlat_text(value):
+    return value.replace("Latin Morph!", "BevLat") if isinstance(value, str) else value
+
+
+def _bevlat_set_page_config(*args, **kwargs):
+    args = list(args)
+    if args:
+        args[0] = _bevlat_text(args[0])
+    if "page_title" in kwargs:
+        kwargs["page_title"] = _bevlat_text(kwargs["page_title"])
+    return _original_set_page_config(*args, **kwargs)
+
+
+def _bevlat_markdown(body, *args, **kwargs):
+    return _original_markdown(_bevlat_text(body), *args, **kwargs)
+
+
+def _bevlat_title(body, *args, **kwargs):
+    return _original_title(_bevlat_text(body), *args, **kwargs)
+
+
+def _bevlat_caption(body, *args, **kwargs):
+    return _original_caption(_bevlat_text(body), *args, **kwargs)
+
+
+def _bevlat_expander(label, *args, **kwargs):
+    return _original_expander(_bevlat_text(label), *args, **kwargs)
+
+
+def _bevlat_button(label, *args, **kwargs):
+    if "help" in kwargs:
+        kwargs["help"] = _bevlat_text(kwargs["help"])
+    return _original_button(_bevlat_text(label), *args, **kwargs)
+
+
+def _bevlat_warning(body, *args, **kwargs):
+    text = str(body)
+    if (
+        ("incorrectly generated forms" in text and "Google form" in text)
+        or ("If you encounter any errors" in text and "report them" in text)
+    ):
+        return None
+    return _original_warning(_bevlat_text(body), *args, **kwargs)
+
+
+st.set_page_config = _bevlat_set_page_config
+st.markdown = _bevlat_markdown
+st.title = _bevlat_title
+st.caption = _bevlat_caption
+st.expander = _bevlat_expander
+st.button = _bevlat_button
+st.warning = _bevlat_warning
 
 # if st.user.is_logged_in:
 #     st.logout()
@@ -208,8 +274,8 @@ test_page = st.Page("button_test.py", title="Test page") if st.context.headers.g
 account_page = st.Page("account.py", title=("User Account" if st.user.is_logged_in else "User Account (login)"))
 vocab_page = st.Page("vocab_list.py", title="Vocabulary List")
 
-nav_dict = {"**Latin Morph!**": [main_page, account_page, about_page, faq_page], 
-                            "Parts of Speech": [
+nav_dict = {"**BevLat**": [main_page, account_page, about_page, faq_page], 
+                            "Practice": [
                                 recognize_pos_page,
                                 recognize_declension_page,
                                 identify_stems_page,
@@ -225,46 +291,54 @@ nav_dict = {"**Latin Morph!**": [main_page, account_page, about_page, faq_page],
 
 if st.context.headers.get("host","").startswith("localhost"):
     nav_dict["Testing"] = [test_page]
-    
-choose_page = st.navigation(nav_dict)
 
-st.logo("https://darcykrasne.com/digital_humanities/latin_morph/latin_morph_icon_120px.png", size="large")
+st.logo("bevlat_logo.svg", size="large")
+choose_page = st.navigation(nav_dict, position="hidden")
+
+st.sidebar.caption(
+    "This app is a custom version of [Latin Morph!](https://latin-morph.streamlit.app/), originally developed by Darcy Krasne."
+)
+st.sidebar.markdown("**BevLat**")
+st.sidebar.page_link(main_page)
+st.sidebar.page_link(account_page)
+st.sidebar.page_link(about_page)
+st.sidebar.page_link(faq_page)
+st.sidebar.markdown("**Practice**")
+st.sidebar.page_link(recognize_pos_page)
+st.sidebar.page_link(recognize_declension_page)
+st.sidebar.page_link(identify_stems_page)
+st.sidebar.page_link(nouns_page)
+st.sidebar.page_link(verbs_page)
+st.sidebar.page_link(adj_page)
+st.sidebar.page_link(verbal_adj_page)
+st.sidebar.page_link(pronouns_page)
+st.sidebar.markdown("**Tools**")
+st.sidebar.page_link(data_page)
+st.sidebar.page_link(vocab_page)
+if st.context.headers.get("host", "").startswith("localhost"):
+    st.sidebar.markdown("**Testing**")
+    st.sidebar.page_link(test_page)
+
 st.sidebar.select_slider("Auto-advance to next question?", 
                          options=[False, 3] + list(range(5,61)), 
                          format_func=lambda x: "No" if x is False else str(x)+" sec", 
                          key="auto_advance", 
-                         help="If you want to automatically advance to the next question after answering, rather than having to click **New Question**, set this to the number of seconds you want to wait before advancing (between 3 and 60 seconds). (You can still use **New Question** to advance or skip a question if you want.)",
+                         help="If you want to automatically advance to the next question after answering, rather than having to click **New Question**, set this to the number of seconds you want to wait before advancing (between 3 and 60 seconds). In case of wrong or partially correct answers, 5 seconds will be added to review your answer. (You can still use **New Question** to advance or skip a question if you want.)",
                          on_change=send_setting,
                          kwargs={"streamlit_page":"latin_morph.py","setting_name":"auto_advance"}
                          )
 
 st.sidebar.divider()
-st.sidebar.checkbox("Use consonantal *u*?", 
-                    help="Only select this if you are learning from a book that does not use the letter *v* but consistently uses *u* instead, such as Jones & Sidwell's *Learning Latin*. If selected, you will still see forms with *v*, but you can safely use *u* in your answers.", 
-                    key="cons_u_normalize",
-                    on_change=send_setting,
-                    kwargs={"streamlit_page":"latin_morph.py","setting_name":"cons_u_normalize"}
-                    )
 
-st.sidebar.space("xxsmall")
-case_order_selector = st.sidebar.expander("Choose your preferred case order", expanded=False)
-
+# Consonantal-u and case-order functionality remain available internally for compatibility,
+# but the sidebar controls are intentionally hidden in BevLat.
 def change_case_order():
-    default_case_order = ["nom","gen","dat","acc","abl","voc"]
+    default_case_order = ["nom","voc","acc","gen","dat","abl"]
     if not st.session_state.case_order:
         st.session_state.case_order = default_case_order
-    custom_case_order = sort_items(default_case_order if not st.session_state.case_order else st.session_state.case_order, 
-                                   direction="vertical",
-                                   key="case_drag_widget"
-                                   )
-    if st.session_state.case_order != custom_case_order:
-        st.session_state.case_order = custom_case_order
-        send_setting(streamlit_page = "latin_morph.py",setting_name = "case_order")
 
-with case_order_selector:
-    st.caption("Drag the cases into your preferred order.", help="This only affects the charts that are shown for incorrect answers.")
-    change_case_order()
-    
+change_case_order()
+
 ####### PAGE FRAME #######
 
 st.markdown("""
