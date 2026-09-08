@@ -46,7 +46,11 @@ def auto_advance_delay():
     base_delay = st.session_state.auto_advance
     if not base_delay:
         return 0
-    if st.session_state.answer_checked and "Good job!" not in st.session_state.result_message:
+    success_messages = ("Good job!", "Helyes!")
+    if st.session_state.answer_checked and not any(
+        success_message in st.session_state.result_message
+        for success_message in success_messages
+    ):
         return min(60, base_delay + 5)
     return base_delay
 
