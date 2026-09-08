@@ -31,6 +31,7 @@ if not hasattr(st, "_bevlat_original_set_page_config"):
     st._bevlat_original_expander = st.expander
     st._bevlat_original_button = st.button
     st._bevlat_original_warning = st.warning
+    st._bevlat_original_fragment = st.fragment
 
 _original_set_page_config = st._bevlat_original_set_page_config
 _original_markdown = st._bevlat_original_markdown
@@ -39,6 +40,7 @@ _original_caption = st._bevlat_original_caption
 _original_expander = st._bevlat_original_expander
 _original_button = st._bevlat_original_button
 _original_warning = st._bevlat_original_warning
+_original_fragment = st._bevlat_original_fragment
 
 
 def _bevlat_text(value):
@@ -86,6 +88,24 @@ def _bevlat_warning(body, *args, **kwargs):
     return _original_warning(_bevlat_text(body), *args, **kwargs)
 
 
+def _bevlat_fragment(*args, **kwargs):
+    """Skip idle recognition timer fragments when their polling interval is disabled."""
+    run_every = kwargs.get("run_every")
+
+    # Preserve ordinary @st.fragment usage unchanged.
+    if args and callable(args[0]):
+        return _original_fragment(*args, **kwargs)
+
+    original_decorator = _original_fragment(*args, **kwargs)
+
+    def decorator(func):
+        if func.__name__ == "recognition_check_timer" and run_every is None:
+            return func
+        return original_decorator(func)
+
+    return decorator
+
+
 st.set_page_config = _bevlat_set_page_config
 st.markdown = _bevlat_markdown
 st.title = _bevlat_title
@@ -93,6 +113,7 @@ st.caption = _bevlat_caption
 st.expander = _bevlat_expander
 st.button = _bevlat_button
 st.warning = _bevlat_warning
+st.fragment = _bevlat_fragment
 
 # if st.user.is_logged_in:
 #     st.logout()
