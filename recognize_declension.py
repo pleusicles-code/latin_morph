@@ -17,6 +17,8 @@ new_run = st.session_state.curr_page_id != page_id
 clear_page(page_id)
 if new_run or "recognize_declension_recent_categories" not in st.session_state:
     st.session_state.recognize_declension_recent_categories = []
+if new_run or "recognize_declension_selected_answer" not in st.session_state:
+    st.session_state.recognize_declension_selected_answer = None
 questions_asked = st.session_state.question_list
 defaults = st.session_state.default_settings.get(f"{page_id}.py", {})
 
@@ -279,6 +281,7 @@ def gen_question():
 
 
 def start_new_question():
+    st.session_state.recognize_declension_selected_answer = None
     new_question(gen_question)
 
 
@@ -331,11 +334,12 @@ def check_recognition_answer(answer_key):
     st.session_state.auto_advance_trigger = bool(st.session_state.auto_advance)
 
 
-def choose_recognition_answer(answer_key, answer):
+def choose_recognition_answer(answer_key, answer, answer_index):
     if st.session_state.answer_checked:
         return
 
     st.session_state[answer_key] = answer
+    st.session_state.recognize_declension_selected_answer = answer_index
     st.session_state.recognize_declension_pending_answer_key = answer_key
     st.session_state.recognize_declension_check_after = time.monotonic() + ANSWER_CHECK_DELAY
 
@@ -357,18 +361,31 @@ if not pool_available and not st.session_state.current_question:
 if st.session_state.current_question:
     question = st.session_state.current_question
     answer_key = f"recognize_declension_answer_{question['qid']}"
+    selected_answer_index = st.session_state.recognize_declension_selected_answer
 
     st.markdown("### Current question")
     st.markdown(f"Which declension does *{question['entry']}* belong to?")
 
+    if selected_answer_index is not None:
+        st.markdown(
+            f"""
+            <style>
+            .st-key-{answer_key}_option_{selected_answer_index} button {{
+                background-color: rgba(128, 128, 128, 0.25) !important;
+            }}
+            </style>
+            """,
+            unsafe_allow_html=True,
+        )
+
     answer_columns = st.columns(len(ANSWER_OPTIONS))
-    for answer_column, answer_option in zip(answer_columns, ANSWER_OPTIONS):
+    for answer_index, (answer_column, answer_option) in enumerate(zip(answer_columns, ANSWER_OPTIONS)):
         with answer_column:
             st.button(
                 answer_option,
-                key=f"{answer_key}_{answer_option}",
+                key=f"{answer_key}_option_{answer_index}",
                 on_click=choose_recognition_answer,
-                args=(answer_key, answer_option),
+                args=(answer_key, answer_option, answer_index),
                 disabled=st.session_state.answer_checked,
                 width="stretch",
             )
@@ -417,5 +434,5 @@ if not st.session_state.auto_advance:
 
 if st.session_state.auto_advance and st.session_state.auto_advance_trigger and st.session_state.answer_checked:
     time.sleep(st.session_state.auto_advance)
-    new_question(gen_question)
+    start_new_question()
     st.rerun()
