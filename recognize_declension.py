@@ -267,13 +267,12 @@ def check_recognition_answer(answer_key):
     st.session_state.total_questions += 1
     if correct:
         st.session_state.current_score += 1
-        st.session_state.result_message = ""
-        st.session_state.answer_display_message = ""
+        st.session_state.result_message = "**Helyes!**"
+        st.session_state.answer_display_message = ":green-background[**Helyes válasz!**]"
     else:
         st.session_state.result_message = "**Helytelen. Próbáld meg a következőt!**"
         st.session_state.answer_display_message = (
-            f":red-background[A válaszod: {ANSWER_LABELS[answer]}]  \n"
-            f":red-background[A helyes válasz: {ANSWER_LABELS[correct_answer]}]"
+            f":red-background[**Helytelen válasz. A helyes válasz: {ANSWER_LABELS[correct_answer]}**]"
         )
     record = {
         "pos": "recognize_declension",
@@ -342,12 +341,7 @@ if st.session_state.current_question:
             )
     feedback_space = st.container(height=72, border=False)
     with feedback_space:
-        if st.session_state.answer_checked and st.session_state.get(answer_key) == question["declension"]:
-            left, center, right = st.columns([1, 1, 1])
-            with center:
-                st.markdown(":green-background[**Helyes válasz!**]")
-        else:
-            st.markdown(st.session_state.answer_display_message)
+        st.markdown(st.session_state.answer_display_message)
 
 pending_answer_key = st.session_state.get("recognize_declension_pending_answer_key")
 check_after = st.session_state.get("recognize_declension_check_after")
@@ -376,9 +370,7 @@ with control_row:
             width="stretch", disabled=not pool_available, type=button_type,
         )
     with results_col:
-        result_space = st.container(height=48, border=False)
-        with result_space:
-            st.markdown(st.session_state.result_message)
+        st.container(height=48, border=False)
     with score_col:
         st.button("Pontszám törlése", "recognize_declension_reset", on_click=reset_recognition_score, width="stretch")
         st.markdown(f"Jelenlegi pontszám: **{st.session_state.current_score}** / **{st.session_state.total_questions}**")
