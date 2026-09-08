@@ -1,0 +1,44 @@
+name: Downweight diagnostic nominatives
+
+on:
+  push:
+    branches:
+      - exercise-url-presets
+    paths:
+      - tools/downweight_diagnostic_nominatives.py
+      - .github/workflows/downweight-diagnostic-nominatives.yml
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: exercise-url-presets
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Apply patch
+        run: python tools/downweight_diagnostic_nominatives.py
+      - name: Syntax check
+        run: python -m py_compile nouns.py
+      - name: Verify weighting logic
+        run: |
+          python - <<'PY'
+          text = open('nouns.py').read()
+          assert 'def is_diagnostic_sg_nom(noun, preserve_macrons):' in text
+          assert 'nom_weight = 1 if is_diagnostic_sg_nom(noun, st.session_state.nouns_enforce_macrons) else 9' in text
+          assert 'diagnostic_nom = is_diagnostic_sg_nom(noun, print_macrons)' in text
+          assert '1 if diagnostic_nom and form == displayed_nom else 9' in text
+          assert 'random.choices(displayed_forms, weights=form_weights, k=1)[0]' in text
+          PY
+      - name: Commit change
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add nouns.py
+          git commit -m "Downweight diagnostic singular nominatives"
+          git push
