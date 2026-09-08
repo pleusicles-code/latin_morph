@@ -3,7 +3,7 @@ import random
 import time
 import pandas as pd
 import ast
-from utils import radio_change, reset, new_question, submit_and_check_answer, clear_page, send_setting, save_defaults, clear_defaults, auto_advance_delay
+from utils import radio_change, reset, new_question, submit_and_check_answer, clear_page, send_setting, save_defaults, clear_defaults, auto_advance_delay, remove_macrons
 from exercise_presets import (bool_setting, choice_setting, list_setting, resolve_exercise_settings,
                               initialize_widget_state, widget_key, url_preset_active, exercise_link_popover)
 from vocab import import_nouns
@@ -642,8 +642,9 @@ else:
         st.session_state["correct_answer"] = correct_answer = build_noun(st.session_state.current_question)
 
         noun_prompt = build_dictionary_entry(noun) if show_dictionary_entry else noun
-        question = f'For *{noun_prompt}*, give the **{noun_options["case"][case]} {noun_options["number"][number]}**.'
         noun_decl = noun_vocab.get(noun)["decl"]
+        decl = ""
+        third_logic = ""
 
         if show_declension:
             for key, val in declension_dict.items():
@@ -659,17 +660,38 @@ else:
                             third_logic = "neuter i-stem "
                         else:
                             third_logic = ""
-                    else:
-                        pass
-                else:
-                    if noun_decl == val:
-                        decl = key
-                    else:
-                        pass
-            question += f" This is a {decl} declension {third_logic}noun."
+                elif noun_decl == val:
+                    decl = key
 
-        if show_stem:
-            question += f' (The base is: {noun_vocab[noun]["stem"]}-)'
+        if exercise_type == "inflect":
+            question = f'For *{noun_prompt}*, give the **{noun_options["case"][case]} {noun_options["number"][number]}**.'
+            if show_declension:
+                question += f" This is a {decl} declension {third_logic}noun."
+            if show_stem:
+                question += f' (The base is: {noun_vocab[noun]["stem"]}-)'
+        else:
+            displayed_form = correct_answer
+            if isinstance(displayed_form, list):
+                displayed_form = random.choice(displayed_form)
+            if not st.session_state[widget_key(page_id, "print_macrons")]:
+                displayed_form = remove_macrons(displayed_form)
+
+            question = f"Which number and case can *{displayed_form}* represent?"
+            if show_dictionary_entry:
+                question += f" The dictionary entry is *{build_dictionary_entry(noun)}*."
+            if show_declension and show_stem:
+                question += f' This is a {decl} declension {third_logic}noun and the base is: *{noun_vocab[noun]["stem"]}-*.'
+            elif show_declension:
+                question += f" This is a {decl} declension {third_logic}noun."
+            elif show_stem:
+                question += f' The base is: *{noun_vocab[noun]["stem"]}-*.'
+
+            vowel_phrase = "are" if st.session_state[widget_key(page_id, "print_macrons")] else "are not"
+            multiple_phrase = "are" if st.session_state[widget_key(page_id, "indicate_multiple_answers")] else "might be"
+            question += (
+                f" Take into account that vowel lengths {vowel_phrase} indicated and that "
+                f"multiple correct answers {multiple_phrase} possible."
+            )
 
         st.markdown("### Current question")
 
@@ -679,10 +701,16 @@ else:
             with submit_button_col:
                 def disable_button():
                         st.session_state.button_disable = True
+
+                def submit_noun_answer():
+                    if exercise_type == "recognize" and st.session_state.get("answer_input"):
+                        st.session_state.correct_answer = st.session_state.answer_input
+                    submit_and_check_answer()
+
                 st.form_submit_button(
                     "Check Answer",
                     key="form_submission_button",
-                    on_click=submit_and_check_answer,
+                    on_click=submit_noun_answer,
                     disabled=st.session_state.button_disable,
                 )
             with user_answer_col:
