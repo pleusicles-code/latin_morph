@@ -239,11 +239,7 @@ def verb_feedback(user_parts, correct_parts, part_results, state):
     while len(display_parts) < len(correct_parts):
         display_parts.append("—")
 
-    if state == "correct":
-        background = "#dff3e4"
-        border = "#9bc8a6"
-        label = "Your answers are:"
-    elif state == "partial":
+    if state == "partial":
         background = "#fff4d6"
         border = "#e2c66d"
         label = "Your answers are partially correct:"
@@ -256,8 +252,6 @@ def verb_feedback(user_parts, correct_parts, part_results, state):
     for i, part in enumerate(display_parts):
         if state == "partial":
             color = "#137333" if part_results[i] else "#b3261e"
-        elif state == "correct":
-            color = "#137333"
         else:
             color = "#b3261e"
         user_cells.append(
@@ -372,16 +366,19 @@ def check_stem_answer(answer_key):
     normalized_user_display = canonical_display(user_parts)
     correct_display = canonical_display(correct_parts)
 
-    if target_pos == "verb":
-        feedback_state = "correct" if fully_correct else ("partial" if partially_correct else "incorrect")
+    if fully_correct:
+        st.session_state.answer_display_message = (
+            f":green-background[The correct answer is: {correct_display}]"
+        )
+    elif target_pos == "verb":
+        feedback_state = "partial" if partially_correct else "incorrect"
         st.session_state.answer_display_message = verb_feedback(
             user_parts, correct_parts, part_results, feedback_state
         )
     else:
-        feedback_color = "green" if fully_correct else "red"
         st.session_state.answer_display_message = (
-            f":{feedback_color}-background[Your answer is: {normalized_user_display}]  \n"
-            f":{feedback_color}-background[The correct answer is: {correct_display}]"
+            f":red-background[Your answer is: {normalized_user_display}]  \n"
+            f":red-background[The correct answer is: {correct_display}]"
         )
 
     answer_id = {"target_pos": target_pos}
@@ -443,19 +440,20 @@ if st.session_state.current_question:
             width="stretch",
         )
 
-    if not st.session_state.answer_checked:
-        components.html(
-            f"""
-            <span style="display:none">{question['qid']}</span>
-            <script>
-                setTimeout(() => {{
-                    const input = window.parent.document.querySelector('input[aria-label="Your answer:"]');
-                    if (input) input.focus();
-                }}, 50);
-            </script>
-            """,
-            height=0,
-        )
+    # Keep this zero-height component present both before and after checking so
+    # its wrapper cannot subtly change the vertical position of the lower controls.
+    components.html(
+        f"""
+        <span style="display:none">{question['qid']}</span>
+        <script>
+            setTimeout(() => {{
+                const input = window.parent.document.querySelector('input[aria-label="Your answer:"]');
+                if (input && !input.disabled) input.focus();
+            }}, 50);
+        </script>
+        """,
+        height=0,
+    )
 
     feedback_space = st.container(height=90, border=False)
     with feedback_space:
