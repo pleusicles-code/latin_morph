@@ -1,5 +1,6 @@
 import random
 import time
+import unicodedata
 from datetime import datetime as dt, timezone
 
 import streamlit as st
@@ -31,6 +32,22 @@ POS_LABELS = {
     "verb": "ige",
 }
 ANSWER_CHECK_DELAY = 0.0  # Set back to 1.0 to restore the former one-second pause.
+
+LATIN_VOWELS = set("aeiouy")
+LATIN_DIPHTHONGS = {"ae", "au", "oe", "ei", "eu", "ui"}
+
+
+def hungarian_article(word):
+    normalized = "".join(
+        char for char in unicodedata.normalize("NFD", word.lower())
+        if unicodedata.category(char) != "Mn"
+    )
+    if not normalized or normalized[0] not in LATIN_VOWELS:
+        return "a"
+    if len(normalized) > 1 and normalized[1] in LATIN_VOWELS:
+        return "az" if normalized[:2] in LATIN_DIPHTHONGS else "a"
+    return "az"
+
 
 exercise_schema = {
     "selected_pos": list_setting(PARTS_OF_SPEECH, PARTS_OF_SPEECH),
@@ -387,7 +404,8 @@ if st.session_state.current_question:
 
     prompt_space = st.container(height=52, border=False)
     with prompt_space:
-        st.markdown(f"Milyen szófajú szó a *{question['entry']}*?")
+        article = hungarian_article(question["word"])
+        st.markdown(f"Milyen szófajú szó {article} *{question['entry']}*?")
 
     if selected_answer_index is not None:
         st.html(
