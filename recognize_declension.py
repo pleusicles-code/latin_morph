@@ -129,7 +129,14 @@ def noun_has_dictionary_entry(data):
 
 
 def adjective_is_eligible(data):
-    return data.get("cardinal") is not True and adjective_declension(data) is not None
+    if data.get("cardinal") is True:
+        return False
+
+    if data.get("decl") == 3:
+        noms = data.get("noms")
+        return bool(noms and len(noms) >= 2)
+
+    return adjective_declension(data) is not None
 
 
 NOUNS = {word: data for word, data in noun_vocab.items() if noun_has_dictionary_entry(data)}
@@ -239,10 +246,6 @@ def gen_question():
 
     active_categories = list(pools.keys())
 
-    # Look at the previous nine generated questions so that the new question
-    # completes a ten-question window containing every active category whenever
-    # possible. During the initial fill, this also forces each active category
-    # to appear once before any category is repeated.
     recent_categories = st.session_state.recognize_declension_recent_categories[-9:]
     missing_categories = [
         category for category in active_categories
