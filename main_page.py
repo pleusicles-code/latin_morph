@@ -6,12 +6,12 @@ st.set_page_config("BevLat", layout="centered")
 page_id = "main_page"
 st.session_state.curr_page_id = page_id
 
-st.title("Welcome to BevLat")
+st.title("Üdvözöl a BevLat!")
 
 #### temporary announcements ####
 temp_announcements = [
     {"date": date(2026, 5, 20),
-     "text": "Apologies if you got caught by the recent bug in macron-checking. This is now fixed!",
+     "text": "Elnézést, ha érintett a hosszú magánhangzók ellenőrzésével kapcsolatos közelmúltbeli hiba. A problémát kijavítottuk!",
     },
     ]
 for announcement in [announce["text"] for announce in temp_announcements if announce["date"] >= date.today() - timedelta(days=3)]:
@@ -19,32 +19,32 @@ for announcement in [announce["text"] for announce in temp_announcements if anno
 ##########
 
 st.markdown("""
-            **BevLat** is a site for practicing your Latin word forms (morphology). 
-            The goal is to create randomly-requested forms correctly, 
-            allowing you to both reinforce your existing knowledge 
-            and discover from your incorrect answers where your knowledge of forms may be weak. 
-            You can practice nouns, verbs, adjectives and adverbs, verbal adjectives (i.e., participles and gerundives), and pronouns.
+            A **BevLat** a latin szóalakok (morfológia) gyakorlására szolgáló oldal. 
+            A cél a véletlenszerűen kért alakok helyes létrehozása, 
+            így egyszerre erősítheted meg meglévő tudásodat, 
+            és a hibás válaszaidból azt is felismerheted, mely alakokban bizonytalanabb a tudásod. 
+            Gyakorolhatod a főneveket, igéket, mellékneveket és határozószókat, igeneveket (jelenleg participiumokat és gerundivumokat), valamint a névmásokat.
             """)
 
 st.markdown("""
-            BevLat is **data driven**, drawing on your response history 
-            to test you more frequently on forms you struggle with, 
-            based on a fine-grained analysis of sub-categories within each part of speech. 
-            You can also see on the Statistics & Data page which larger categories you may most need to review.
+            A BevLat **adatvezérelt**: a korábbi válaszaid alapján 
+            gyakrabban kérdezi azokat az alakokat, amelyekkel nehezebben boldogulsz, 
+            az egyes szófajokon belüli részletes alkategóriák elemzése alapján. 
+            A Statisztikáid és adataid oldalon azt is megnézheted, mely nagyobb kategóriákat lenne érdemes leginkább átismételned.
             """)
 
 st.markdown("""
-            BevLat is also highly **customizable**: 
-            you can specify exactly what you want to practice within a given part of speech,
-            and you can set your personal preferences for things like macrons (long-marks), case order, 
-            and what information you're given about a word.
+            A BevLat emellett nagymértékben **testreszabható**: 
+            pontosan megadhatod, hogy egy adott szófajon belül mit szeretnél gyakorolni,
+            és beállíthatod személyes preferenciáidat többek között a hosszú magánhangzók jelölésére, az esetek sorrendjére, 
+            valamint arra vonatkozóan, milyen információkat kapsz egy-egy szóról.
             """)
 
 st.markdown("""
-            All of these features work best with a **free account**, 
-            which saves your data (answer history and preferred settings) across sessions; 
-            otherwise, everything resets on each visit (or even after a temporary network disconnect). 
-            You can sign in on the User Account page using any Google account.
+            Mindezek a funkciók egy **ingyenes fiókkal** működnek a legjobban, 
+            amely munkamenetek között is megőrzi az adataidat (a válaszelőzményeket és a beállításaidat); 
+            enélkül minden alaphelyzetbe áll minden egyes látogatáskor (vagy akár egy átmeneti hálózati kapcsolatmegszakítás után). 
+            A Felhasználói fiók oldalon bármely Google-fiókkal bejelentkezhetsz.
             """)
 
 st.html("""
@@ -59,72 +59,71 @@ st.html("""
 st.markdown("""
             <details>
             <summary class="highlight">
-            <i>If this is your <b>first visit</b>, click here for some helpful information!</i>
+            <i>Ha <b>először jársz itt</b>, kattints ide néhány hasznos tudnivalóért!</i>
             </summary>
 
-            To get started, choose a **part of speech** that you want to practice. 
-            You can find the parts of speech either in the sidebar navigation menu 
-            (if it's not currently open, click on the :material/keyboard_double_arrow_right: at the top left of your screen)
-            or in the menu at the bottom of each page.
+            Első lépésként válassz egy **szófajt**, amelyet gyakorolni szeretnél. 
+            A szófajokat az oldalsáv navigációs menüjében találod 
+            (ha éppen nincs nyitva, kattints a képernyő bal felső sarkában látható :material/keyboard_double_arrow_right: ikonra).
 
-            Each part of speech has many customizable options so that BevLat tests you at your level of knowledge and preferences.
-            For instance, if you haven't learned all the forms of a given part of speech yet
-            (e.g., if you only know present indicative verbs, or you only know first and second declension nouns),
-            you can limit your practice to just the forms you know. 
-            Similarly, if there are particular forms or irregular words that you specifically want to practice, you can choose to target those.
-            My advice is to start with more limited options while you're just learning a particular set of forms 
-            and then to progressively add in other forms as you start to feel more confident.
-            If a question shows up that you don't have any idea about 
-            (e.g., if you only know nominative and accusative forms but you get asked for a dative),
-            you can just skip the question.
+            Minden szófajhoz számos testreszabható beállítás tartozik, így a BevLat a tudásszintedhez és preferenciáidhoz igazíthatja a feladatokat.
+            Ha például még nem tanultad meg egy adott szófaj összes alakját
+            (például az igék közül csak a praesens indicativust, vagy a főnevek közül csak az első és második declinatiót ismered),
+            a gyakorlást leszűkítheted az általad már ismert alakokra. 
+            Ugyanígy, ha bizonyos alakokat vagy rendhagyó szavakat különösen szeretnél gyakorolni, célzottan kiválaszthatod őket.
+            Azt javaslom, hogy amikor egy új alakrendszert tanulsz, kezdetben kevesebb lehetőséget válassz ki, 
+            majd fokozatosan adj hozzá újabb alakokat, ahogy egyre biztosabbá válik a tudásod.
+            Ha olyan kérdést kapsz, amelyről egyáltalán nincs elképzelésed 
+            (például csak a nominativusi és accusativusi alakokat ismered, de dativust kér a program),
+            egyszerűen átugorhatod a kérdést.
 
-            By default, all options are selected for each part of speech. 
-            Remove all the options that you don't want to include 
-            (if you only want to keep a couple of options, 
-            it may be faster to remove them all by clicking the :material/cancel: symbol 
-            at the far right of the field, and add them back one by one). 
-            If you're unsure about what exactly a particular option will do, 
-            you can get more information by hovering over the relevant :material/help: symbol.
+            Alapértelmezés szerint minden lehetőség ki van választva az egyes szófajoknál. 
+            Távolítsd el azokat, amelyeket nem szeretnél gyakorolni 
+            (ha csak néhány lehetőséget szeretnél megtartani, 
+            gyorsabb lehet először mindet eltávolítani a mező jobb szélén található :material/cancel: ikonra kattintva, 
+            majd egyenként visszaadni a kívánt elemeket). 
+            Ha nem vagy biztos benne, pontosan mit jelent egy adott beállítás, 
+            a hozzá tartozó :material/help: ikon fölé húzva az egeret további információt kaphatsz.
 
-            Once you've selected your options, generate your first question by clicking on the red button that says 
-            :color[Click here for your first question!]{foreground="white" background="red"}. 
-            After you've clicked on it once, the button will just be labeled 'New Question' for the remainder of your session, across all parts of speech.
+            Miután kiválasztottad a beállításokat, hozd létre az első kérdést a piros 
+            :color[Kattints ide az első kérdéshez!]{foreground="white" background="red"} gombra kattintva. 
+            Miután egyszer rákattintottál, a gomb felirata a munkamenet hátralévő részében, minden szófajnál egyszerűen „Új kérdés” lesz.
 
-            After you've answered some questions, visit the **Stats & Data page**, 
-            which gives you a downloadable record of your answers 
-            *and also* suggested categories to review within a given part of speech, 
-            based on your correct and incorrect answers.
+            Miután megválaszoltál néhány kérdést, keresd fel a **Statisztikáid és adataid** oldalt, 
+            ahol letölthető formában megtalálod a válaszaidat, 
+            *és emellett* javaslatokat is kapsz arra, mely kategóriákat lenne érdemes átismételned egy adott szófajon belül, 
+            a helyes és hibás válaszaid alapján.
 
-            You can use all the features of BevLat without an account. 
-            However, creating an account (by simply logging in with Google) will improve your user experience. 
-            In particular, your answer history will be saved across sessions, 
-            meaning that the adaptive learning algorithm will be more functional, 
-            the Stats & Data page will have a more accurate assessment of your weak spots, 
-            and you won't lose your progress if you lose your internet connection. 
-            (BevLat can't be used offline, but if you're signed in, your answers will be restored when your connection is restored.)
-            An account also allows you to save your preferred settings (such as which declensions you want to practice) 
-            so that you don't have to reset them each time you change between parts of speech.
+            A BevLat minden funkciója fiók nélkül is használható. 
+            Egy fiók létrehozása (egyszerűen Google-fiókkal történő bejelentkezéssel) azonban javítja a felhasználói élményt. 
+            A válaszelőzményeid megmaradnak a különböző munkamenetek között, 
+            így az adaptív tanulási algoritmus hatékonyabban működik, 
+            a Statisztikáid és adataid oldal pontosabban tudja felmérni a gyenge pontjaidat, 
+            és internetkapcsolat megszakadása esetén sem veszíted el a haladásodat. 
+            (A BevLat offline nem használható, de ha be vagy jelentkezve, a kapcsolat helyreállásakor a válaszaid is helyreállnak.)
+            A fiók lehetővé teszi a személyes beállításaid (például a gyakorolni kívánt declinatiók) mentését is, 
+            így ezeket nem kell minden alkalommal újra beállítanod, amikor másik szófajra váltasz.
 
-            If you still have questions, you may find some helpful answers on the **FAQ page**; 
-            and if you still have questions after that, please feel free to [contact me](https://forms.gle/xT8hQ27sjposeXPc9).
+            Ha még maradt kérdésed, a **Gyakori kérdések** oldalon találhatsz hasznos válaszokat; 
+            ha pedig ezek után is kérdésed van, nyugodtan [írj nekem](https://forms.gle/xT8hQ27sjposeXPc9).
             </details>
 
             <p></p>
 
-            To automatically advance to the next question, set the auto-advance option in the navigation menu.
+            Ha automatikusan szeretnél továbblépni a következő kérdésre, állítsd be az automatikus továbblépést a navigációs menüben.
             """, unsafe_allow_html=True)
 
 
 announcements_all = [
     {"date": date(2026, 6, 21),
     "text": """
-    After an incorrect answer, you now have the option to view a **complete chart** for that set of forms. 
-    (Preferred case order can be adjusted in the side navigation menu.)
+    Hibás válasz után mostantól megtekintheted az adott alakrendszer **teljes táblázatát**. 
+    (Az esetek kívánt sorrendje az oldalsó navigációs menüben állítható be.)
     """,
     },
     {"date": date(2026, 5, 17),
     "text": """
-    User accounts are now available!!! Save your question history across multiple sessions!
+    Mostantól felhasználói fiók is létrehozható!!! Mentsd el a kérdéselőzményeidet több munkameneten keresztül!
     """,
     },
 ]
@@ -132,7 +131,7 @@ announcements_all = [
 announcements = [announcement for announcement in announcements_all if announcement["date"] >= date.today() - timedelta(days=65)]
 
 if len(announcements) > 0:
-    st.markdown("""##### Recent Major Updates and Announcements""")
+    st.markdown("""##### Legutóbbi fontos frissítések és hírek""")
     for announcement in announcements:
-        st.info(f"{':green-badge[New!] ' if announcement['date'] >= date.today() - timedelta(days=31) else ''}:blue-badge[{announcement['date'].strftime("%Y-%b-%d")}] {announcement['text']}")
+        st.info(f"{':green-badge[Új!] ' if announcement['date'] >= date.today() - timedelta(days=31) else ''}:blue-badge[{announcement['date'].strftime("%Y-%b-%d")}] {announcement['text']}")
 
