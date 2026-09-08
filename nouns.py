@@ -877,18 +877,18 @@ else:
 
             article = hungarian_article(displayed_form)
             question_html = (
-                f'Milyen számú és esetű alak lehet {article} '
+                f'Milyen alak lehet {article} '
                 f'<strong><em>{html.escape(displayed_form)}</em></strong>?'
             )
-
             if show_dictionary_entry:
-                supplementary.append(
-                    f'Szótári alak: <strong><em>{html.escape(build_dictionary_entry(noun))}</em></strong>'
+                question_html += (
+                    f' <em>({html.escape(build_dictionary_entry(noun))})</em>'
                 )
             if show_declension:
-                decl_text = f"{DECLENSION_LABELS[decl]} declinatio"
+                decl_text = f"Ez egy {DECLENSION_LABELS[decl]} declinatiós"
                 if third_logic:
                     decl_text += f", {third_logic}"
+                decl_text += " szó."
                 supplementary.append(decl_text)
             if show_stem:
                 supplementary.append(
