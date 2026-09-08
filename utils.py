@@ -1,6 +1,7 @@
 import streamlit as st
 # import random
 import unicodedata
+import time as _time
 # from st_supabase_connection import SupabaseConnection
 from supabase import create_client, Client
 from datetime import datetime as dt, timezone
@@ -36,6 +37,36 @@ def radio_change():
 def reset():
     st.session_state.current_score = 0
     st.session_state.total_questions = 0
+
+
+def auto_advance_delay():
+    """Return the effective delay before advancing to the next question."""
+    base_delay = st.session_state.auto_advance
+    if not base_delay:
+        return 0
+    if st.session_state.answer_checked and "Good job!" not in st.session_state.result_message:
+        return min(60, base_delay + 5)
+    return base_delay
+
+
+# Existing exercise pages call time.sleep(st.session_state.auto_advance) directly.
+# Route only those auto-advance sleeps through the shared delay helper so the rule
+# applies consistently to every exercise without duplicating the calculation.
+if not getattr(_time.sleep, "_latin_morph_auto_advance_wrapper", False):
+    _original_sleep = _time.sleep
+
+    def _auto_advance_aware_sleep(seconds):
+        if (
+            st.session_state.get("auto_advance_trigger")
+            and st.session_state.get("answer_checked")
+            and seconds == st.session_state.get("auto_advance")
+        ):
+            seconds = auto_advance_delay()
+        return _original_sleep(seconds)
+
+    _auto_advance_aware_sleep._latin_morph_auto_advance_wrapper = True
+    _time.sleep = _auto_advance_aware_sleep
+
 
 def new_question(gen_question):
     ''' 
