@@ -10,7 +10,7 @@ from exercise_presets import (list_setting, resolve_exercise_settings, initializ
 from vocab import import_nouns, import_adjectives
 
 
-st.set_page_config("BevLat Recognize Declension", layout="centered")
+st.set_page_config("BevLat – Declinatio felismerése", layout="centered")
 
 page_id = "recognize_declension"
 new_run = st.session_state.curr_page_id != page_id
@@ -30,6 +30,26 @@ PARTS_OF_SPEECH = ["noun", "adjective"]
 ANSWER_OPTIONS = ["1", "2", "3", "4", "5", "1–2"]
 ANSWER_CHECK_DELAY = 0.0  # Set back to 1.0 to restore the former one-second pause.
 
+DECLENSION_LABELS = {
+    "1st": "1.",
+    "2nd": "2.",
+    "3rd": "3.",
+    "4th": "4.",
+    "5th": "5.",
+}
+PART_OF_SPEECH_LABELS = {
+    "noun": "főnév",
+    "adjective": "melléknév",
+}
+ANSWER_LABELS = {
+    "1": "1.",
+    "2": "2.",
+    "3": "3.",
+    "4": "4.",
+    "5": "5.",
+    "1–2": "1–2.",
+}
+
 exercise_schema = {
     "declension": list_setting(DECLENSIONS, DECLENSIONS),
     "selected_pos": list_setting(PARTS_OF_SPEECH, PARTS_OF_SPEECH),
@@ -38,7 +58,7 @@ exercise_settings = resolve_exercise_settings(page_id, exercise_schema, defaults
 initialize_widget_state(page_id, exercise_settings)
 preset_active = url_preset_active(page_id)
 
-st.markdown("# Recognize Declension")
+st.markdown("# Declinatio felismerése")
 
 
 # --- Dictionary-entry builders -------------------------------------------------
@@ -148,21 +168,23 @@ ADJECTIVES = {word: data for word, data in adjective_vocab.items() if adjective_
 
 # --- Settings ------------------------------------------------------------------
 
-option_expander = st.expander("Settings", expanded=True)
+option_expander = st.expander("Beállítások", expanded=True)
 with option_expander:
     col_declension, col_pos = st.columns(2)
 
     with col_declension:
         declension = st.multiselect(
-            "Choose which declensions to practice (they are all selected by default):",
+            "Válaszd ki, mely declinatiókat szeretnéd gyakorolni (alapértelmezés szerint mindegyik ki van választva):",
             options=DECLENSIONS,
+            format_func=lambda x: DECLENSION_LABELS[x],
             key=widget_key(page_id, "declension"),
         )
 
     with col_pos:
         selected_pos = st.multiselect(
-            "Choose which parts of speech to practice (they are all selected by default):",
+            "Válaszd ki, mely szófajokat szeretnéd gyakorolni (alapértelmezés szerint mindegyik ki van választva):",
             options=PARTS_OF_SPEECH,
+            format_func=lambda x: PART_OF_SPEECH_LABELS[x],
             key=widget_key(page_id, "selected_pos"),
         )
 
@@ -175,10 +197,10 @@ with option_expander:
         set_defaults_col, clear_defaults_col, link_col = st.columns(3)
         with set_defaults_col:
             st.button(
-                "Save settings",
+                "Beállítások mentése",
                 type="primary",
                 width="stretch",
-                help="Save your current declension and part-of-speech selections as your default.",
+                help="A declinatiók és szófajok jelenlegi kiválasztásának mentése alapértelmezett beállításként.",
                 on_click=save_defaults,
                 args=(page_id, defaults),
                 kwargs=current_settings,
@@ -198,10 +220,10 @@ with option_expander:
                 st.session_state[widget_key(page_id, "selected_pos")] = list(PARTS_OF_SPEECH)
 
             st.button(
-                "Reset defaults",
+                "Alapbeállítások",
                 type="primary",
                 width="stretch",
-                help="Restore the generic BevLat default settings for this exercise.",
+                help="A BevLat általános alapértelmezett beállításainak visszaállítása ehhez a gyakorlathoz.",
                 on_click=reset_recognition_defaults,
                 disabled=preset_active or (not defaults and not settings_changed),
             )
@@ -301,15 +323,15 @@ def check_recognition_answer(answer_key):
     st.session_state.total_questions += 1
     if correct:
         st.session_state.current_score += 1
-        st.session_state.result_message = "**Good job!**"
+        st.session_state.result_message = "**Helyes!**"
         st.session_state.answer_display_message = (
-            f":green-background[The correct answer is: {correct_answer}]"
+            f":green-background[A helyes válasz: {ANSWER_LABELS[correct_answer]}]"
         )
     else:
-        st.session_state.result_message = "**Incorrect. Better luck next time!**"
+        st.session_state.result_message = "**Helytelen. Próbáld meg a következőt!**"
         st.session_state.answer_display_message = (
-            f":red-background[Your answer is: {answer}]  \n"
-            f":red-background[The correct answer is: {correct_answer}]"
+            f":red-background[A válaszod: {ANSWER_LABELS[answer]}]  \n"
+            f":red-background[A helyes válasz: {ANSWER_LABELS[correct_answer]}]"
         )
 
     record = {
@@ -357,19 +379,19 @@ st.session_state.gen_func = gen_question
 
 pool_available = bool(available_questions_by_category())
 if not pool_available and not st.session_state.current_question:
-    st.write("You need to choose at least one compatible declension and part of speech.")
+    st.write("Válassz ki legalább egy egymással összeegyeztethető declinatiót és szófajt.")
 
 if st.session_state.current_question:
     question = st.session_state.current_question
     answer_key = f"recognize_declension_answer_{question['qid']}"
     selected_answer_index = st.session_state.recognize_declension_selected_answer
 
-    st.markdown("### Current question")
+    st.markdown("### Aktuális kérdés")
 
     # Keep the prompt area the same height even for longer dictionary entries.
     prompt_space = st.container(height=52, border=False)
     with prompt_space:
-        st.markdown(f"Which declension does *{question['entry']}* belong to?")
+        st.markdown(f"Melyik declinatióhoz tartozik a(z) *{question['entry']}*?")
 
     # Inject styling without creating an extra layout block. This keeps the
     # answer buttons at exactly the same vertical position before and after a click.
@@ -388,7 +410,7 @@ if st.session_state.current_question:
     for answer_index, (answer_column, answer_option) in enumerate(zip(answer_columns, ANSWER_OPTIONS)):
         with answer_column:
             st.button(
-                answer_option,
+                ANSWER_LABELS[answer_option],
                 key=f"{answer_key}_option_{answer_index}",
                 on_click=choose_recognition_answer,
                 args=(answer_key, answer_option, answer_index),
@@ -423,7 +445,7 @@ with control_row:
     new_question_col, results_col, score_col = st.columns(3, gap="medium", vertical_alignment="top")
 
     with new_question_col:
-        button_text = "New Question" if st.session_state.question_list else "Click here for your first question!"
+        button_text = "Új kérdés" if st.session_state.question_list else "Kattints ide az első kérdéshez!"
         button_type = "secondary" if st.session_state.question_list else "primary"
         st.button(
             button_text,
@@ -440,8 +462,8 @@ with control_row:
             st.markdown(st.session_state.result_message)
 
     with score_col:
-        st.button("Reset Score", "recognize_declension_reset", on_click=reset_recognition_score, width="stretch")
-        st.markdown(f"Current score: **{st.session_state.current_score}** out of **{st.session_state.total_questions}**")
+        st.button("Pontszám törlése", "recognize_declension_reset", on_click=reset_recognition_score, width="stretch")
+        st.markdown(f"Jelenlegi pontszám: **{st.session_state.current_score}** / **{st.session_state.total_questions}**")
 
 if not st.session_state.auto_advance:
     st.session_state.auto_advance_trigger = False
