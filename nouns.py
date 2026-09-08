@@ -27,7 +27,8 @@ st.markdown("# Főnevek")
 declension_dict = {
     "1st": 1,
     "2nd": ["2_us", "2_er", "2_neut"],
-    "3rd": [3, "3_istem", "3_neut", "3_istem_neut"],
+    "3rd_cons": [3, "3_neut"],
+    "3rd_i": ["3_istem", "3_istem_neut"],
     "4th": [4, "4_neut"],
     "5th": ["5_vowel", "5_consonant"],
 }
@@ -35,10 +36,42 @@ declension_dict = {
 DECLENSION_LABELS = {
     "1st": "1.",
     "2nd": "2.",
-    "3rd": "3.",
+    "3rd_cons": "3. (msh)",
+    "3rd_i": "3. (i)",
     "4th": "4.",
     "5th": "5.",
 }
+
+DECLENSION_NUMBER_LABELS = {
+    "1st": "1.",
+    "2nd": "2.",
+    "3rd_cons": "3.",
+    "3rd_i": "3.",
+    "4th": "4.",
+    "5th": "5.",
+}
+
+DEFAULT_DECLENSIONS = list(declension_dict.keys())
+DECLENSION_URL_CHOICES = {
+    "1st": "1st",
+    "2nd": "2nd",
+    "3rd_cons": "3rd_cons",
+    "3rd_i": "3rd_i",
+    "3rd": "3rd",
+    "4th": "4th",
+    "5th": "5th",
+}
+
+
+def normalize_declension_selection(values):
+    normalized = []
+    for value in values:
+        expanded = ["3rd_cons", "3rd_i"] if value == "3rd" else [value]
+        for item in expanded:
+            if item in declension_dict and item not in normalized:
+                normalized.append(item)
+    return normalized
+
 
 LATIN_VOWELS = set("aeiouy")
 LATIN_DIPHTHONGS = {"ae", "au", "oe", "ei", "eu", "ui"}
@@ -86,12 +119,19 @@ exercise_schema = {
     "award_partial_credit": bool_setting(False),
     "show_dictionary_entry": bool_setting(True),
     "show_declension": bool_setting(False),
+    "show_third_group": bool_setting(False),
     "show_stem": bool_setting(False),
-    "declension": list_setting(list(declension_dict.keys()), list(declension_dict.keys())),
+    "declension": list_setting(DEFAULT_DECLENSIONS, DECLENSION_URL_CHOICES),
     "irregs_include": list_setting(["deus"] if "deus" in master_irregular_nouns_list else [], master_irregular_nouns_list),
     "irregs_only": choice_setting("No", ["No", "Yes"]),
 }
 exercise_settings = resolve_exercise_settings(page_id, exercise_schema, defaults)
+exercise_settings["declension"] = normalize_declension_selection(exercise_settings["declension"])
+declension_widget_key = widget_key(page_id, "declension")
+if declension_widget_key in st.session_state:
+    st.session_state[declension_widget_key] = normalize_declension_selection(
+        st.session_state[declension_widget_key]
+    )
 initialize_widget_state(page_id, exercise_settings)
 preset_active = url_preset_active(page_id)
 
@@ -161,6 +201,12 @@ with col_options:
         help="A főnév declinatiójának megjelenítése.",
         key=widget_key(page_id, "show_declension"),
     )
+    show_third_group = st.checkbox(
+        "3. decl. csoport megjelenítése?",
+        help="A 3. declinatiós főneveknél megjeleníti, hogy a szó msh.-tövű, gyenge i-tövű vagy erős i-tövű.",
+        key=widget_key(page_id, "show_third_group"),
+        disabled=not show_declension,
+    )
     show_stem = st.checkbox(
         "Tő megjelenítése?",
         help="A főnév tövének megjelenítése.",
@@ -170,7 +216,7 @@ with col_options:
 with col_declension:
     declension = st.multiselect(
         "Válaszd ki, mely declinatiókat szeretnéd gyakorolni (alapértelmezés szerint mindegyik ki van választva):",
-        options=list(declension_dict.keys()),
+        options=DEFAULT_DECLENSIONS,
         format_func=lambda x: DECLENSION_LABELS[x],
         help="Ha a kiválasztott declinatiók között rendhagyó főnevek is vannak, külön megadhatod, melyeket szeretnéd bevonni a gyakorlásba.",
         key=widget_key(page_id, "declension"),
@@ -229,6 +275,7 @@ current_exercise_settings = {
     "award_partial_credit": st.session_state[widget_key(page_id, "award_partial_credit")],
     "show_dictionary_entry": show_dictionary_entry,
     "show_declension": show_declension,
+    "show_third_group": show_third_group,
     "show_stem": show_stem,
     "declension": declension,
     "irregs_include": irregs_include,
@@ -243,8 +290,9 @@ if st.user.is_logged_in:
         "award_partial_credit": False,
         "show_dictionary_entry": True,
         "show_declension": False,
+        "show_third_group": False,
         "show_stem": False,
-        "declension": list(declension_dict.keys()),
+        "declension": DEFAULT_DECLENSIONS,
         "irregs_include": [],
         "irregs_only": "No",
     }
@@ -255,6 +303,7 @@ if st.user.is_logged_in:
         "award_partial_credit": st.session_state[widget_key(page_id, "award_partial_credit")],
         "show_dictionary_entry": show_dictionary_entry,
         "show_declension": show_declension,
+        "show_third_group": show_third_group,
         "show_stem": show_stem,
         "declension": declension,
         "irregs_include": irregs_include,
@@ -270,8 +319,9 @@ if st.user.is_logged_in:
         st.session_state.nouns_award_partial_credit = False
         st.session_state.nouns_show_dictionary_entry = True
         st.session_state.nouns_show_declension = False
+        st.session_state.nouns_show_third_group = False
         st.session_state.nouns_show_stem = False
-        st.session_state.nouns_declension = list(declension_dict.keys())
+        st.session_state.nouns_declension = DEFAULT_DECLENSIONS
         st.session_state.nouns_irregs_include = []
         st.session_state.nouns_irregs_only = "No"
 
@@ -733,6 +783,17 @@ else:
         return stem
 
 
+    def third_declension_group(noun):
+        noun_decl = noun_vocab[noun]["decl"]
+        if noun_decl in (3, "3_neut"):
+            return "msh.-tövű"
+        if noun_decl == "3_istem_neut" or noun_vocab[noun].get("true_i_stem") is True:
+            return "erős i-tövű"
+        if noun_decl == "3_istem":
+            return "gyenge i-tövű"
+        return ""
+
+
     def normalize_noun_surface(form, preserve_macrons):
         normalized = unicodedata.normalize("NFC", form)
         return normalized if preserve_macrons else remove_macrons(normalized)
@@ -836,24 +897,17 @@ else:
         noun_prompt = build_dictionary_entry(noun) if show_dictionary_entry else noun
         noun_decl = noun_vocab.get(noun)["decl"]
         decl = ""
-        third_logic = ""
+        third_group = ""
 
         if show_declension:
             for key, val in declension_dict.items():
                 if isinstance(val, list):
                     if noun_decl in val:
                         decl = key
-                    if key == "3rd":
-                        if noun_decl == "3_istem":
-                            third_logic = "i-tövű"
-                        elif noun_decl == "3_neut":
-                            third_logic = "semlegesnemű"
-                        elif noun_decl == "3_istem_neut":
-                            third_logic = "semlegesnemű i-tövű"
-                        else:
-                            third_logic = ""
                 elif noun_decl == val:
                     decl = key
+            if show_third_group:
+                third_group = third_declension_group(noun)
 
         supplementary = []
         stem_html = f'<strong><em>{html.escape(display_noun_stem(noun))}-</em></strong>'
@@ -864,14 +918,14 @@ else:
                 f'<strong>{noun_options["number"][number]} {noun_options["case"][case]}</strong>át!'
             )
             if show_declension and show_stem:
-                decl_text = f"Ez egy {DECLENSION_LABELS[decl]} declinatiós"
-                if third_logic:
-                    decl_text += f", {third_logic}"
+                decl_text = f"Ez egy {DECLENSION_NUMBER_LABELS[decl]} declinatiós"
+                if third_group:
+                    decl_text += f" {third_group}"
                 supplementary.append(f"{decl_text} szó, a töve {stem_html}")
             elif show_declension:
-                decl_text = f"Ez egy {DECLENSION_LABELS[decl]} declinatiós"
-                if third_logic:
-                    decl_text += f", {third_logic}"
+                decl_text = f"Ez egy {DECLENSION_NUMBER_LABELS[decl]} declinatiós"
+                if third_group:
+                    decl_text += f" {third_group}"
                 supplementary.append(f"{decl_text} szó.")
             elif show_stem:
                 supplementary.append(f"A szó töve {stem_html}")
@@ -892,14 +946,14 @@ else:
             if show_dictionary_entry:
                 question_html += f' <em>({html.escape(build_dictionary_entry(noun))})</em>'
             if show_declension and show_stem:
-                decl_text = f"Ez egy {DECLENSION_LABELS[decl]} declinatiós"
-                if third_logic:
-                    decl_text += f", {third_logic}"
+                decl_text = f"Ez egy {DECLENSION_NUMBER_LABELS[decl]} declinatiós"
+                if third_group:
+                    decl_text += f" {third_group}"
                 supplementary.append(f"{decl_text} szó, a töve {stem_html}")
             elif show_declension:
-                decl_text = f"Ez egy {DECLENSION_LABELS[decl]} declinatiós"
-                if third_logic:
-                    decl_text += f", {third_logic}"
+                decl_text = f"Ez egy {DECLENSION_NUMBER_LABELS[decl]} declinatiós"
+                if third_group:
+                    decl_text += f" {third_group}"
                 supplementary.append(f"{decl_text} szó.")
             elif show_stem:
                 supplementary.append(f"A szó töve {stem_html}")
