@@ -151,8 +151,6 @@ with col_options:
             key=widget_key(page_id, "award_partial_credit"),
         )
 
-    st.html('<hr style="border-top: 1px dotted; border-bottom: none;">')
-
     show_dictionary_entry = st.checkbox(
         "Szótári alak megjelenítése?",
         help="A teljes szótári alak megjelenítése; ennek genitivusából a tő is meghatározható.",
@@ -869,14 +867,14 @@ else:
                 decl_text = f"Ez egy {DECLENSION_LABELS[decl]} declinatiós"
                 if third_logic:
                     decl_text += f", {third_logic}"
-                supplementary.append(f"{decl_text} szó, a töve {stem_html}.")
+                supplementary.append(f"{decl_text} szó, a töve {stem_html}")
             elif show_declension:
                 decl_text = f"Ez egy {DECLENSION_LABELS[decl]} declinatiós"
                 if third_logic:
                     decl_text += f", {third_logic}"
                 supplementary.append(f"{decl_text} szó.")
             elif show_stem:
-                supplementary.append(f"A szó töve {stem_html}.")
+                supplementary.append(f"A szó töve {stem_html}")
         else:
             displayed_form = st.session_state.get("nouns_recognition_displayed_form")
             if not displayed_form:
@@ -897,14 +895,14 @@ else:
                 decl_text = f"Ez egy {DECLENSION_LABELS[decl]} declinatiós"
                 if third_logic:
                     decl_text += f", {third_logic}"
-                supplementary.append(f"{decl_text} szó, a töve {stem_html}.")
+                supplementary.append(f"{decl_text} szó, a töve {stem_html}")
             elif show_declension:
                 decl_text = f"Ez egy {DECLENSION_LABELS[decl]} declinatiós"
                 if third_logic:
                     decl_text += f", {third_logic}"
                 supplementary.append(f"{decl_text} szó.")
             elif show_stem:
-                supplementary.append(f"A szó töve {stem_html}.")
+                supplementary.append(f"A szó töve {stem_html}")
 
             print_macrons = st.session_state[widget_key(page_id, "print_macrons")]
             comparable_displayed_form = normalize_noun_surface(displayed_form, print_macrons)
@@ -932,11 +930,17 @@ else:
                 if print_macrons
                 else "A magánhangzók hosszúsága nincs jelölve."
             )
+            multiple_answer_message = None
             if st.session_state[widget_key(page_id, "indicate_multiple_answers")]:
                 if len(required_analyses) > 1:
-                    supplementary.append("Több helyes válaszlehetőség van.")
+                    multiple_answer_message = "Több helyes válaszlehetőség van."
             else:
-                supplementary.append("Több helyes válaszlehetőség is lehet.")
+                multiple_answer_message = "Több helyes válaszlehetőség is lehet."
+            if multiple_answer_message:
+                if show_dictionary_entry and show_declension and show_stem:
+                    supplementary.append(f"<br>{multiple_answer_message}")
+                else:
+                    supplementary.append(multiple_answer_message)
 
         prompt_height = 104 if supplementary else 72
         prompt_space = st.container(height=prompt_height, border=False)
