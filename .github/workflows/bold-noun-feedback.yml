@@ -1,0 +1,41 @@
+name: Bold noun recognition feedback
+
+on:
+  push:
+    branches:
+      - exercise-url-presets
+    paths:
+      - tools/bold_noun_feedback.py
+      - .github/workflows/bold-noun-feedback.yml
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: exercise-url-presets
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Apply patch
+        run: python tools/bold_noun_feedback.py
+      - name: Syntax check
+        run: python -m py_compile nouns.py
+      - name: Verify bold feedback
+        run: |
+          python - <<'PY'
+          text = open('nouns.py').read()
+          assert ':green-background[**The correct answer is: {all_possible_text}**]' in text
+          assert ':red-background[**Correct: {all_possible_text}**]' in text
+          PY
+      - name: Commit change
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add nouns.py
+          git commit -m "Bold noun recognition answer lines"
+          git push
