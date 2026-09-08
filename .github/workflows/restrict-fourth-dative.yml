@@ -1,0 +1,42 @@
+name: Restrict fourth declension dative
+
+on:
+  push:
+    branches:
+      - exercise-url-presets
+    paths:
+      - tools/restrict_fourth_dative.py
+      - .github/workflows/restrict-fourth-dative.yml
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: exercise-url-presets
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Apply patch
+        run: python tools/restrict_fourth_dative.py
+      - name: Syntax check
+        run: python -m py_compile nouns.py
+      - name: Verify endings
+        run: |
+          python - <<'PY'
+          text = open('nouns.py').read()
+          assert '4: {"sg": {"gen": "ūs",\n                           "dat": "uī",' in text
+          assert '"4_neut": {"sg": {"gen": "ūs",\n                           "dat": "ū",' in text
+          assert '"dat": ["uī","ū"]' not in text
+          PY
+      - name: Commit change
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add nouns.py
+          git commit -m "Restrict 4th declension dative to uī"
+          git push
