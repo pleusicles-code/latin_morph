@@ -273,16 +273,6 @@ def change_case_order():
 
 change_case_order()
 
-####### PAGE FRAME #######
-
-st.markdown("""
-            <div style="position:relative;top:-2.5em;left:0;margin-bottom:-3.25em;">
-
-            *Use the navigation menu to choose a part of speech to practice. (Click on* :material/keyboard_double_arrow_right: *at the upper left to open the menu.)*
-
-            </div>
-            """, unsafe_allow_html=True)
-
 # Stabilize the common quiz rows used by the legacy text-entry exercises.
 # This reserves evaluation space and prevents the bottom controls from wrapping
 # or shifting when feedback appears.
@@ -314,41 +304,10 @@ choose_page.run()
 
 ## PAGE FOOTER ##
 
-st.html("<p></p>")
-menu = st.container(border=True,horizontal_alignment="center", gap="xsmall")
-
-menu_nav_row = menu.container(
-    horizontal=True, 
-    horizontal_alignment="center"
-    )
-menu_pos_row = menu.container(
-    horizontal=True, 
-    horizontal_alignment="center"
-    )
-
-menu_nav_row.markdown(":blue[**Information and Tools**]")
-menu_nav_row.page_link("main_page.py", label="Home")
-menu_nav_row.page_link("account.py", label="User Account")
-
-menu_pos_row.markdown(":blue[**Practice**]")
-menu_pos_row.page_link("recognize_pos.py", label="Recognize Part of Speech")
-menu_pos_row.page_link("recognize_declension.py", label="Recognize Declension")
-menu_pos_row.page_link("identify_stems.py", label="Identify Stems")
-menu_pos_row.page_link("nouns.py", label="Nouns")
-menu_pos_row.page_link("verbs.py", label="Verbs")
-menu_pos_row.page_link("adjectives.py", label="Adjectives & Adverbs")
-menu_pos_row.page_link("verbal_adj.py", label="Verbal Adjectives")
-menu_pos_row.page_link("pronouns.py", label="Pronouns")
-
-menu_nav_row.page_link("about.py", label="About")
-menu_nav_row.page_link("faq.py", label="FAQ")
-menu_nav_row.page_link("data.py", label="Stats & Data")
-menu_nav_row.page_link("vocab_list.py", label="Vocab")
-
 st.markdown(
     body='''<div style="position:relative;height:5em;width:100%;">
         <p style="font-size:smaller;text-align:right;position:absolute;bottom:0;right:-3em;">
-            &copy; 2026 Darcy Krasne (<a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" target="_BLANK">CC BY-NC-SA 4.0</a>)
+            &copy; 2026 (<a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" target="_BLANK">CC BY-NC-SA 4.0</a>)
         </p>
         </div>''',
     width="stretch", unsafe_allow_html=True
