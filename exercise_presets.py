@@ -168,13 +168,13 @@ def build_exercise_link(page_id, schema, current_settings):
     return f"{base_url}?{urlencode(params)}"
 
 
-def exercise_link_popover(page_id, schema, current_settings, *, label="Share settings"):
+def exercise_link_popover(page_id, schema, current_settings, *, label="Beállítások megosztása"):
     link = build_exercise_link(page_id, schema, current_settings)
     with st.popover(
         label,
         width="stretch",
-        help=("Create a link that reproduces the current exercise settings. "
-              "The link does not include personal preferences such as macron enforcement, consonantal u, or auto-advance."),
+        help=("Hozz létre egy hivatkozást, amely megőrzi a feladat jelenlegi beállításait. "
+              "A hivatkozás nem tartalmaz személyes beállításokat, például a hosszú magánhangzók ellenőrzését vagy az automatikus továbblépést."),
     ):
-        st.caption("Copy this link and send it to your students:")
+        st.caption("Másold ki ezt a hivatkozást, és küldd el a diákjaidnak:")
         st.code(link, language=None, wrap_lines=True)
