@@ -47,6 +47,19 @@ def hungarian_article(word):
     return "az"
 
 
+def feedback_box(content, state):
+    colors = {
+        "correct": ("#e3f3e7", "#7aa682"),
+        "incorrect": ("#f7dddd", "#c48282"),
+        "partial": ("#fff4d6", "#e2c66d"),
+    }
+    background, border = colors[state]
+    return (
+        f'<div style="background:{background};border:1px solid {border};border-radius:0.5rem;'
+        f'padding:0.55rem 0.75rem;line-height:1.7;">{content}</div>'
+    )
+
+
 exercise_schema = {
     "selected_pos": list_setting(PARTS_OF_SPEECH, PARTS_OF_SPEECH),
 }
@@ -260,10 +273,12 @@ def partial_verb_feedback(user_parts, correct_parts, part_results):
     highlighted_parts = []
     for i, part in enumerate(display_parts):
         background = "#d7f2df" if part_results[i] else "#f7dddd"
+        border = "#7aa682" if part_results[i] else "#c48282"
         highlighted_parts.append(
-            '<span style="display:inline-block;background:{background};border-radius:0.3rem;'
+            '<span style="display:inline-block;background:{background};border:1px solid {border};border-radius:0.3rem;'
             'padding:0.08rem 0.35rem;margin-right:0.25rem;font-weight:700;">{part}</span>'.format(
                 background=background,
+                border=border,
                 part=html.escape(part),
             )
         )
@@ -273,16 +288,14 @@ def partial_verb_feedback(user_parts, correct_parts, part_results):
         for part in correct_parts
     )
 
-    return (
-        '<div style="background:#fff4d6;border:1px solid #e2c66d;border-radius:0.5rem;'
-        'padding:0.55rem 0.75rem;line-height:1.7;">'
+    return feedback_box(
         '<strong>Részben helyes válasz.</strong> '
         '<span>Válaszod: {user}</span> '
-        '<strong>A helyes válasz:</strong> {correct}.'
-        '</div>'
-    ).format(
-        user="".join(highlighted_parts),
-        correct=correct_html,
+        '<strong>A helyes válasz:</strong> {correct}.'.format(
+            user="".join(highlighted_parts),
+            correct=correct_html,
+        ),
+        "partial",
     )
 
 
@@ -377,14 +390,15 @@ def check_stem_answer(answer_key):
     correct_display = canonical_display(correct_parts)
 
     if fully_correct:
-        st.session_state.answer_display_message = ":green-background[**Helyes válasz!**]"
+        st.session_state.answer_display_message = feedback_box("<strong>Helyes válasz!</strong>", "correct")
     elif partially_correct:
         st.session_state.answer_display_message = partial_verb_feedback(
             user_parts, correct_parts, part_results
         )
     else:
-        st.session_state.answer_display_message = (
-            f":red-background[**Helytelen válasz. A helyes válasz: ***{correct_display}***.**]"
+        st.session_state.answer_display_message = feedback_box(
+            f"<strong>Helytelen válasz. A helyes válasz: <em>{correct_display}</em>.</strong>",
+            "incorrect",
         )
 
     answer_id = {"target_pos": target_pos}
@@ -462,10 +476,7 @@ if st.session_state.current_question:
 
     feedback_space = st.container(height=90, border=False)
     with feedback_space:
-        if st.session_state.answer_display_message.startswith("<div"):
-            st.markdown(st.session_state.answer_display_message, unsafe_allow_html=True)
-        else:
-            st.markdown(st.session_state.answer_display_message)
+        st.markdown(st.session_state.answer_display_message, unsafe_allow_html=True)
 
 control_row = st.container(height=92, border=False)
 with control_row:
