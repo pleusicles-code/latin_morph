@@ -302,14 +302,15 @@ def check_recognition_answer(answer_key):
     if correct:
         st.session_state.current_score += 1
         st.session_state.result_message = "**Good job!**"
+        st.session_state.answer_display_message = (
+            f":green-background[The correct answer is: {correct_answer}]"
+        )
     else:
         st.session_state.result_message = "**Incorrect. Better luck next time!**"
-
-    feedback_color = "green" if correct else "red"
-    st.session_state.answer_display_message = (
-        f":{feedback_color}-background[Your answer is: {answer}]  \n"
-        f":{feedback_color}-background[The correct answer is: {correct_answer}]"
-    )
+        st.session_state.answer_display_message = (
+            f":red-background[Your answer is: {answer}]  \n"
+            f":red-background[The correct answer is: {correct_answer}]"
+        )
 
     record = {
         "pos": "recognize_declension",
