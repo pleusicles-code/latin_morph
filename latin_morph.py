@@ -21,14 +21,24 @@ st.set_page_config("BevLat",
 # Apply the BevLat branding consistently to older page source without having to
 # duplicate simple branding-only edits across every exercise module. The sidebar
 # attribution deliberately uses its own bound method below, so its reference to
-# the original Latin Morph! app is preserved.
-_original_set_page_config = st.set_page_config
-_original_markdown = st.markdown
-_original_title = st.title
-_original_caption = st.caption
-_original_expander = st.expander
-_original_button = st.button
-_original_warning = st.warning
+# the original Latin Morph! app is preserved. Store the unwrapped Streamlit
+# methods once so repeated Streamlit reruns do not build nested wrappers.
+if not hasattr(st, "_bevlat_original_set_page_config"):
+    st._bevlat_original_set_page_config = st.set_page_config
+    st._bevlat_original_markdown = st.markdown
+    st._bevlat_original_title = st.title
+    st._bevlat_original_caption = st.caption
+    st._bevlat_original_expander = st.expander
+    st._bevlat_original_button = st.button
+    st._bevlat_original_warning = st.warning
+
+_original_set_page_config = st._bevlat_original_set_page_config
+_original_markdown = st._bevlat_original_markdown
+_original_title = st._bevlat_original_title
+_original_caption = st._bevlat_original_caption
+_original_expander = st._bevlat_original_expander
+_original_button = st._bevlat_original_button
+_original_warning = st._bevlat_original_warning
 
 
 def _bevlat_text(value):
