@@ -3,6 +3,7 @@ import random
 import time
 import pandas as pd
 import ast
+import unicodedata
 from utils import radio_change, reset, new_question, submit_and_check_answer, clear_page, send_setting, save_defaults, clear_defaults, auto_advance_delay, remove_macrons, tokenize_morphology_answer
 from exercise_presets import (bool_setting, choice_setting, list_setting, resolve_exercise_settings,
                               initialize_widget_state, widget_key, url_preset_active, exercise_link_popover)
@@ -804,6 +805,11 @@ else:
             return f"{noun}, {genitive} {gender}."
         return f"{noun} {gender}."
 
+    def normalize_noun_surface(form, preserve_macrons):
+        """Normalize a generated/displayed noun form before morphology comparisons."""
+        normalized = unicodedata.normalize("NFC", form)
+        return normalized if preserve_macrons else remove_macrons(normalized)
+
     def recognition_cases_for_noun(noun, number):
         """Return cases used in noun recognition, with vocative only when distinctive."""
         cases = [case for case in noun_options["case"] if case != "voc"]
@@ -830,7 +836,7 @@ else:
         nominative = build_noun([noun, "nom", "sg"])
         nominative_forms = nominative if isinstance(nominative, list) else [nominative]
         displayed_nominatives = {
-            form if preserve_macrons else remove_macrons(form)
+            normalize_noun_surface(form, preserve_macrons)
             for form in nominative_forms
             if form is not None
         }
@@ -843,7 +849,7 @@ else:
                     continue
                 possible_forms = possible_form if isinstance(possible_form, list) else [possible_form]
                 for form in possible_forms:
-                    displayed = form if preserve_macrons else remove_macrons(form)
+                    displayed = normalize_noun_surface(form, preserve_macrons)
                     if displayed in displayed_nominatives:
                         analyses.add((possible_number, possible_case))
                         break
@@ -864,12 +870,12 @@ else:
                     continue
                 possible_forms = possible_form if isinstance(possible_form, list) else [possible_form]
                 for form in possible_forms:
-                    displayed = form if print_macrons else remove_macrons(form)
+                    displayed = normalize_noun_surface(form, print_macrons)
                     form_analyses.setdefault(displayed, set()).add((possible_case, possible_number))
 
         displayed_forms = list(form_analyses)
         diagnostic_nom = is_diagnostic_sg_nom(noun, print_macrons)
-        displayed_nom = noun if print_macrons else remove_macrons(noun)
+        displayed_nom = normalize_noun_surface(noun, print_macrons)
         form_weights = [
             1 if diagnostic_nom and form == displayed_nom else 9
             for form in displayed_forms
@@ -935,7 +941,7 @@ else:
                 question += f' The base is: *{noun_vocab[noun]["stem"]}-*.'
 
             print_macrons = st.session_state[widget_key(page_id, "print_macrons")]
-            comparable_displayed_form = displayed_form if print_macrons else remove_macrons(displayed_form)
+            comparable_displayed_form = normalize_noun_surface(displayed_form, print_macrons)
             matching_analyses = set()
             for possible_number in noun_options["number"]:
                 for possible_case in recognition_cases_for_noun(noun, possible_number):
@@ -944,7 +950,7 @@ else:
                         continue
                     possible_forms = possible_form if isinstance(possible_form, list) else [possible_form]
                     for form in possible_forms:
-                        comparable_form = form if print_macrons else remove_macrons(form)
+                        comparable_form = normalize_noun_surface(form, print_macrons)
                         if comparable_form == comparable_displayed_form:
                             matching_analyses.add((possible_number, possible_case))
                             break
