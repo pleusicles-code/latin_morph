@@ -51,15 +51,11 @@ def refresh_user_token():
 if "curr_page_id" not in st.session_state:
     st.session_state["curr_page_id"] = ""
 if "enforce_macrons" not in st.session_state:
-    # st.session_state["enforce_macrons"] = False
     st.session_state["enforce_macrons"] = {"pronouns_enforce_macrons": False,
                                            "verbal_adj_enforce_macrons": False,
                                            "verbs_enforce_macrons": False,
                                            "nouns_enforce_macrons": False,
                                            "adjectives_enforce_macrons": False}
-# for macrons_checkbox in list(st.session_state.enforce_macrons):
-#     if macrons_checkbox not in st.session_state:
-#         st.session_state[macrons_checkbox] = st.session_state.enforce_macrons[macrons_checkbox]
 if "current_question" not in st.session_state:
     st.session_state["current_question"] = []
 if "correct_answer" not in st.session_state:
@@ -130,7 +126,6 @@ if "supabase_connection" not in st.session_state:
         st.session_state["supabase_connection"] = create_client(sb_url, sb_apikey)
         sb_conn: Client = st.session_state.supabase_connection
         try:
-            # raise Exception("Testing the rescue block!")
             sb_conn.auth.sign_in_with_id_token(
                 {
                     "provider":"google",
@@ -139,15 +134,12 @@ if "supabase_connection" not in st.session_state:
                 }
             )
             st.session_state.user_id = sb_conn.auth.get_user().user.id
-        except: #  except Exception as native_error
-            # print(f"Native auth failed: {native_error}")
+        except:
             try:
                 refresh_user_token()
-            except: #  except Exception as rescue_error
-                # st.error(f"Rescue block crashed: {rescue_error}")
-                # st.stop()
+            except:
                 st.logout()
-        sb_conn: Client = st.session_state.supabase_connection # we redefine sb_conn here in case the client was overwritten by a refresh.
+        sb_conn: Client = st.session_state.supabase_connection
         answer_history = st.session_state.supabase_connection.table("answer").select("answer").eq("user_id",st.session_state.user_id).eq("deleted",False).execute().data
         if answer_history:
             st.session_state["question_list"] = [answer["answer"] for answer in answer_history]
@@ -155,27 +147,18 @@ if "supabase_connection" not in st.session_state:
         if curr_consent:
             st.session_state.current_user_consent = curr_consent[0]["consent"]
         user_settings = sb_conn.table("user_setting").select("*").eq("user_id",st.session_state.user_id).execute().data
-        # user_settings = json.loads()
         if user_settings:
             st.session_state.user_settings = (
                 pd.DataFrame.from_dict(user_settings)
                     .drop(columns=["user_setting_id","user_id"])
-                    # .assign(setting_value = lambda df: df.setting_value.apply(lambda x: json.loads(x) if isinstance(x, str) else x))
             )
             for idx, row in st.session_state.user_settings.iterrows():
                 if row["streamlit_page"] == "latin_morph.py":
                     st.session_state[row["setting_name"]] = row["setting_value"]
                 elif "macrons" in row["setting_name"]:
                     st.session_state.enforce_macrons[row["setting_name"]] = row["setting_value"]
-                # else:
-                #     if row["streamlit_page"] not in st.session_state.default_settings:
-                #         st.session_state.default_settings
-                #     pass
             default_dict = st.session_state.default_settings
             for page in list(st.session_state.user_settings.streamlit_page.unique()):
-                # default_dict[page] = {}
-                # for idx, row in st.session_state.user_settings.query(f"streamlit_page == '{page}'").iterrows():
-                #     default_dict[page][row["setting_name"]] = default_dict[page][row["setting_value"]]
                 df = st.session_state.user_settings.query(f"streamlit_page == '{page}'")
                 default_dict[page] = dict(zip(df["setting_name"],df["setting_value"]))
 
@@ -195,20 +178,14 @@ if st.session_state.supabase_connection is not None and st.session_state.current
             if x is False:
                 return "No, I do not consent."
         st.radio("Choose one:",[True,False], format_func=consent_display, index=None, key="consent_radio")
-        # print("box showing")
         def log_consent():
             st.session_state.current_user_consent = st.session_state.consent_radio            
             insert_dict = {"user_id": st.session_state.user_id, "consent":st.session_state.current_user_consent}
-            # print(insert_dict)
             sb_conn.table("user_consent").insert(insert_dict).execute()
         if st.button("Submit", on_click=log_consent, disabled=True if st.session_state.get("consent_radio") is None else False):
             st.rerun()
 
     show_consent_dialog()
-# elif st.session_state.supabase_connection and st.session_state.current_user_consent is not None:
-#     if "user_consent_box" not in st.session_state:
-#         st.session_state["user_consent_box"] = st.session_state.current_user_consent
-
 
 if st.user.is_logged_in and st.session_state.user_token_expiry is not None and time.time() > st.session_state.user_token_expiry - 60:
     refresh_user_token()
@@ -228,7 +205,7 @@ adj_page = st.Page("adjectives.py", title="Adjectives and Adverbs")
 verbal_adj_page = st.Page("verbal_adj.py", title="Verbal Adjectives")
 data_page = st.Page("data.py", title="Your Statistics & Data")
 test_page = st.Page("button_test.py", title="Test page") if st.context.headers.get("host","").startswith("localhost") else ""
-account_page = st.Page("account.py", title=("User Account" if st.user.is_logged_in else "User Account (login)")) #if st.context.headers.get("host","").startswith("localhost") else ""
+account_page = st.Page("account.py", title=("User Account" if st.user.is_logged_in else "User Account (login)"))
 vocab_page = st.Page("vocab_list.py", title="Vocabulary List")
 
 nav_dict = {"**Latin Morph!**": [main_page, account_page, about_page, faq_page], 
@@ -247,19 +224,14 @@ nav_dict = {"**Latin Morph!**": [main_page, account_page, about_page, faq_page],
                             } 
 
 if st.context.headers.get("host","").startswith("localhost"):
-    nav_dict["Testing"] = [test_page, 
-                        #    account_page
-                           ]
+    nav_dict["Testing"] = [test_page]
     
-
 choose_page = st.navigation(nav_dict)
-
 
 st.logo("https://darcykrasne.com/digital_humanities/latin_morph/latin_morph_icon_120px.png", size="large")
 st.sidebar.select_slider("Auto-advance to next question?", 
                          options=[False, 3] + list(range(5,61)), 
                          format_func=lambda x: "No" if x is False else str(x)+" sec", 
-                        #  value=False if len(st.session_state.user_settings) == 0 else st.session_state.user_settings.query("setting_name=='auto_advance' and streamlit_page=='latin_morph.py'")["setting_value"].values[0],
                          key="auto_advance", 
                          help="If you want to automatically advance to the next question after answering, rather than having to click **New Question**, set this to the number of seconds you want to wait before advancing (between 3 and 60 seconds). (You can still use **New Question** to advance or skip a question if you want.)",
                          on_change=send_setting,
@@ -267,8 +239,6 @@ st.sidebar.select_slider("Auto-advance to next question?",
                          )
 
 st.sidebar.divider()
-# st.sidebar.space("xxsmall")
-
 st.sidebar.checkbox("Use consonantal *u*?", 
                     help="Only select this if you are learning from a book that does not use the letter *v* but consistently uses *u* instead, such as Jones & Sidwell's *Learning Latin*. If selected, you will still see forms with *v*, but you can safely use *u* in your answers.", 
                     key="cons_u_normalize",
@@ -277,7 +247,6 @@ st.sidebar.checkbox("Use consonantal *u*?",
                     )
 
 st.sidebar.space("xxsmall")
-
 case_order_selector = st.sidebar.expander("Choose your preferred case order", expanded=False)
 
 def change_case_order():
@@ -291,25 +260,12 @@ def change_case_order():
     if st.session_state.case_order != custom_case_order:
         st.session_state.case_order = custom_case_order
         send_setting(streamlit_page = "latin_morph.py",setting_name = "case_order")
-        # st.rerun()
 
 with case_order_selector:
     st.caption("Drag the cases into your preferred order.", help="This only affects the charts that are shown for incorrect answers.")
     change_case_order()
-    # if st.user.is_logged_in:
-    #     st.button("Save", help="Click this to save your custom order across sessions; it's automatically saved for the current session.", on_click=send_setting, kwargs={"streamlit_page": "latin_morph.py","setting_name": "case_order"})
     
 ####### PAGE FRAME #######
-
-## PAGE HEADER ##
-
-# if st.user.is_logged_in:
-#     email = st.user.email
-#     st.html(f"""
-#             <p style="position:relative;top:-2.5em;left:0;margin-bottom:-3em;font-size:smaller;">
-#             You are logged in as <b>{email}</b>
-#             </p>
-#             """)
 
 st.markdown("""
             <div style="position:relative;top:-2.5em;left:0;margin-bottom:-3.25em;">
@@ -319,8 +275,33 @@ st.markdown("""
             </div>
             """, unsafe_allow_html=True)
 
-## PAGE ##
+# Stabilize the common quiz rows used by the legacy text-entry exercises.
+# This reserves evaluation space and prevents the bottom controls from wrapping
+# or shifting when feedback appears.
+st.html("""
+<style>
+div[data-testid="stHorizontalBlock"]:has(.st-key-form_submission_button) {
+    min-height: 72px;
+    align-items: flex-start !important;
+    flex-wrap: nowrap !important;
+}
 
+div[data-testid="stHorizontalBlock"]:has(.st-key-question_button),
+div[data-testid="stHorizontalBlock"]:has(.st-key-identify_stems_question_button),
+div[data-testid="stHorizontalBlock"]:has(.st-key-recognize_pos_question_button),
+div[data-testid="stHorizontalBlock"]:has(.st-key-recognize_declension_question_button) {
+    min-height: 92px;
+    align-items: flex-start !important;
+    flex-wrap: nowrap !important;
+}
+
+div[data-testid="stForm"]:has(.st-key-answer_input) {
+    min-height: 154px;
+}
+</style>
+""")
+
+## PAGE ##
 choose_page.run()
 
 ## PAGE FOOTER ##
@@ -356,10 +337,6 @@ menu_nav_row.page_link("faq.py", label="FAQ")
 menu_nav_row.page_link("data.py", label="Stats & Data")
 menu_nav_row.page_link("vocab_list.py", label="Vocab")
 
-
-# st.multiselect("test_select", options=["a","b","c"], default=["a","b","c"], key="test_select", on_change=)
-
-
 st.markdown(
     body='''<div style="position:relative;height:5em;width:100%;">
         <p style="font-size:smaller;text-align:right;position:absolute;bottom:0;right:-3em;">
@@ -368,9 +345,3 @@ st.markdown(
         </div>''',
     width="stretch", unsafe_allow_html=True
     )
-
-# if st.user.is_logged_in:
-#     email = st.user.email
-#     st.sidebar.html(f"""<div style="position:fixed;top:1em;left:50em;">
-#             <p>You are logged in as <b>{email}</b></p>
-#             </div>""")
