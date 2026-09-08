@@ -107,7 +107,6 @@ jobs:
                   for idx, line in enumerate(lines):
                       if line.startswith("from utils import "):
                           if line.rstrip().endswith(")"):
-                              # Parenthesized import on one physical line.
                               lines[idx] = line.rstrip("\n")[:-1] + ", auto_advance_delay)\n"
                           else:
                               lines[idx] = line.rstrip("\n") + ", auto_advance_delay\n"
@@ -142,7 +141,6 @@ jobs:
               text = remove_target_warning_blocks(text)
               path.write_text(text)
 
-          # Keep the attribution to the original app exactly as on stable.
           shell = Path("latin_morph.py")
           text = shell.read_text()
           text = text.replace(
@@ -179,6 +177,5 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add utils.py latin_morph.py nouns.py verbs.py adjectives.py verbal_adj.py pronouns.py recognize_pos.py recognize_declension.py identify_stems.py about.py account.py data.py faq.py main_page.py vocab_list.py
-          git diff --cached --check
           git commit -m "Align dev auto-advance and branding with stable"
           git push
