@@ -728,6 +728,13 @@ else:
         return f"{noun} {gender}."
 
 
+    def display_noun_stem(noun):
+        stem = noun_vocab[noun]["stem"]
+        if str(noun_vocab[noun].get("decl", "")).startswith("5"):
+            stem += "e"
+        return stem
+
+
     def normalize_noun_surface(form, preserve_macrons):
         normalized = unicodedata.normalize("NFC", form)
         return normalized if preserve_macrons else remove_macrons(normalized)
@@ -851,21 +858,25 @@ else:
                     decl = key
 
         supplementary = []
+        stem_html = f'<strong><em>{html.escape(display_noun_stem(noun))}-</em></strong>'
 
         if exercise_type == "inflect":
             question_html = (
                 f'Add meg a <strong><em>{html.escape(noun_prompt)}</em></strong> szó '
                 f'<strong>{noun_options["number"][number]} {noun_options["case"][case]}</strong>át!'
             )
-            if show_declension:
-                decl_text = f"{DECLENSION_LABELS[decl]} declinatio"
+            if show_declension and show_stem:
+                decl_text = f"Ez egy {DECLENSION_LABELS[decl]} declinatiós"
                 if third_logic:
                     decl_text += f", {third_logic}"
-                supplementary.append(decl_text)
-            if show_stem:
-                supplementary.append(
-                    f'Tő: <strong><em>{html.escape(noun_vocab[noun]["stem"])}-</em></strong>'
-                )
+                supplementary.append(f"{decl_text} szó, a töve {stem_html}.")
+            elif show_declension:
+                decl_text = f"Ez egy {DECLENSION_LABELS[decl]} declinatiós"
+                if third_logic:
+                    decl_text += f", {third_logic}"
+                supplementary.append(f"{decl_text} szó.")
+            elif show_stem:
+                supplementary.append(f"A szó töve {stem_html}.")
         else:
             displayed_form = st.session_state.get("nouns_recognition_displayed_form")
             if not displayed_form:
@@ -881,19 +892,19 @@ else:
                 f'<strong><em>{html.escape(displayed_form)}</em></strong>?'
             )
             if show_dictionary_entry:
-                question_html += (
-                    f' <em>({html.escape(build_dictionary_entry(noun))})</em>'
-                )
-            if show_declension:
+                question_html += f' <em>({html.escape(build_dictionary_entry(noun))})</em>'
+            if show_declension and show_stem:
                 decl_text = f"Ez egy {DECLENSION_LABELS[decl]} declinatiós"
                 if third_logic:
                     decl_text += f", {third_logic}"
-                decl_text += " szó."
-                supplementary.append(decl_text)
-            if show_stem:
-                supplementary.append(
-                    f'Tő: <strong><em>{html.escape(noun_vocab[noun]["stem"])}-</em></strong>'
-                )
+                supplementary.append(f"{decl_text} szó, a töve {stem_html}.")
+            elif show_declension:
+                decl_text = f"Ez egy {DECLENSION_LABELS[decl]} declinatiós"
+                if third_logic:
+                    decl_text += f", {third_logic}"
+                supplementary.append(f"{decl_text} szó.")
+            elif show_stem:
+                supplementary.append(f"A szó töve {stem_html}.")
 
             print_macrons = st.session_state[widget_key(page_id, "print_macrons")]
             comparable_displayed_form = normalize_noun_surface(displayed_form, print_macrons)
