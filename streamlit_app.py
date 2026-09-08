@@ -82,6 +82,22 @@ if not getattr(st, "_bevlat_noun_form_input_handling", False):
     st._bevlat_noun_form_input_handling = True
 
 
+if not getattr(st, "_bevlat_noun_multiple_answer_inline", False):
+    _original_markdown = st.markdown
+
+    def _bevlat_markdown(body, *args, **kwargs):
+        if isinstance(body, str) and "Több helyes válaszlehetőség" in body:
+            body = body.replace(
+                '<br><span style="color:#7c3aed;">Több helyes válaszlehetőség van.</span>',
+                '<span style="color:#7c3aed;">Több helyes válaszlehetőség van.</span>',
+            )
+            body = body.replace("<br>Több helyes válaszlehetőség is lehet.", "Több helyes válaszlehetőség is lehet.")
+        return _original_markdown(body, *args, **kwargs)
+
+    st.markdown = _bevlat_markdown
+    st._bevlat_noun_multiple_answer_inline = True
+
+
 if not getattr(utils, "_bevlat_noun_single_number_token_order", False):
     _original_tokenize_morphology_answer = utils.tokenize_morphology_answer
     _noun_number_tokens = {
