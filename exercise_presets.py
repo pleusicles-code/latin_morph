@@ -173,6 +173,7 @@ def exercise_link_popover(page_id, schema, current_settings, *, label="Beállít
     with st.popover(
         label,
         width="stretch",
+        type="primary",
         help=("Hozz létre egy hivatkozást, amely megőrzi a feladat jelenlegi beállításait. "
               "A hivatkozás nem tartalmaz személyes beállításokat, például a hosszú magánhangzók ellenőrzését vagy az automatikus továbblépést."),
     ):
