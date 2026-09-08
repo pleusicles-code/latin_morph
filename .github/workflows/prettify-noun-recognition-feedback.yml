@@ -1,0 +1,49 @@
+name: Prettify noun recognition feedback
+
+on:
+  push:
+    branches:
+      - exercise-url-presets
+    paths:
+      - tools/prettify_noun_recognition_feedback.py
+      - .github/workflows/prettify-noun-recognition-feedback.yml
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: exercise-url-presets
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Apply patch
+        run: python tools/prettify_noun_recognition_feedback.py
+      - name: Syntax check
+        run: python -m py_compile nouns.py
+      - name: Verify feedback formatting
+        run: |
+          python - <<'PY'
+          text = open('nouns.py').read()
+          required = [
+              'def format_noun_analysis(analysis):',
+              'return f"{number}. {case}."',
+              ':yellow-background[Take note, however, that other analyses are possible!]',
+              ':blue-background[Missing:',
+              'st.session_state.nouns_recognition_extra_delay = 5',
+              'advance_delay + st.session_state.get("nouns_recognition_extra_delay", 0)',
+          ]
+          for item in required:
+              assert item in text, item
+          PY
+      - name: Commit change
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add nouns.py
+          git commit -m "Improve noun recognition feedback"
+          git push
