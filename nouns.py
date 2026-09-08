@@ -778,6 +778,27 @@ else:
             return f"{noun}, {genitive} {gender}."
         return f"{noun} {gender}."
 
+    def recognition_cases_for_noun(noun, number):
+        """Return cases used in noun recognition, with vocative only when distinctive."""
+        cases = [case for case in noun_options["case"] if case != "voc"]
+        if number != "sg":
+            return cases
+
+        noun_data = noun_vocab[noun]
+        if not str(noun_data.get("decl", "")).startswith("2") or noun_data.get("gender") != "m":
+            return cases
+
+        nominative = build_noun([noun, "nom", "sg"])
+        vocative = build_noun([noun, "voc", "sg"])
+        if vocative is None:
+            return cases
+
+        nominative_forms = set(nominative if isinstance(nominative, list) else [nominative])
+        vocative_forms = set(vocative if isinstance(vocative, list) else [vocative])
+        if vocative_forms != nominative_forms:
+            cases.append("voc")
+        return cases
+
     def recognition_gen_question():
         # Use the ordinary random generator to choose the noun, but do not let
         # the sampled case/number determine which surface form is asked about.
@@ -786,7 +807,7 @@ else:
         form_analyses = {}
 
         for possible_number in noun_options["number"]:
-            for possible_case in noun_options["case"]:
+            for possible_case in recognition_cases_for_noun(noun, possible_number):
                 possible_form = build_noun([noun, possible_case, possible_number])
                 if possible_form is None:
                     continue
@@ -859,7 +880,7 @@ else:
             comparable_displayed_form = displayed_form if print_macrons else remove_macrons(displayed_form)
             matching_analyses = set()
             for possible_number in noun_options["number"]:
-                for possible_case in noun_options["case"]:
+                for possible_case in recognition_cases_for_noun(noun, possible_number):
                     possible_form = build_noun([noun, possible_case, possible_number])
                     if possible_form is None:
                         continue
