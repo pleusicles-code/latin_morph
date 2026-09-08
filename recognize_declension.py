@@ -29,27 +29,11 @@ adjective_vocab = import_adjectives()
 DECLENSIONS = ["1st", "2nd", "3rd", "4th", "5th"]
 PARTS_OF_SPEECH = ["noun", "adjective"]
 ANSWER_OPTIONS = ["1", "2", "3", "4", "5", "1–2"]
-ANSWER_CHECK_DELAY = 0.0  # Set back to 1.0 to restore the former one-second pause.
+ANSWER_CHECK_DELAY = 0.0
 
-DECLENSION_LABELS = {
-    "1st": "1.",
-    "2nd": "2.",
-    "3rd": "3.",
-    "4th": "4.",
-    "5th": "5.",
-}
-PART_OF_SPEECH_LABELS = {
-    "noun": "főnév",
-    "adjective": "melléknév",
-}
-ANSWER_LABELS = {
-    "1": "1.",
-    "2": "2.",
-    "3": "3.",
-    "4": "4.",
-    "5": "5.",
-    "1–2": "1–2.",
-}
+DECLENSION_LABELS = {"1st": "1.", "2nd": "2.", "3rd": "3.", "4th": "4.", "5th": "5."}
+PART_OF_SPEECH_LABELS = {"noun": "főnév", "adjective": "melléknév"}
+ANSWER_LABELS = {"1": "1.", "2": "2.", "3": "3.", "4": "4.", "5": "5.", "1–2": "1–2."}
 
 LATIN_VOWELS = set("aeiouy")
 LATIN_DIPHTHONGS = {"ae", "au", "oe", "ei", "eu", "ui"}
@@ -78,12 +62,9 @@ preset_active = url_preset_active(page_id)
 st.markdown("# Declinatio felismerése")
 
 
-# --- Dictionary-entry builders -------------------------------------------------
-
 def noun_dictionary_entry(noun):
     data = noun_vocab[noun]
     irreg_gen = data.get("irreg", {}).get("sg", {}).get("gen", "__regular__")
-
     if irreg_gen == "__regular__":
         decl = data["decl"]
         stem = data["stem"]
@@ -103,10 +84,8 @@ def noun_dictionary_entry(noun):
             genitive = None
     else:
         genitive = irreg_gen
-
     if isinstance(genitive, list):
         genitive = "/".join(genitive)
-
     if genitive:
         return f"{noun}, {genitive} {data['gender']}."
     return f"{noun} {data['gender']}."
@@ -116,17 +95,13 @@ def adjective_dictionary_entry(adjective):
     data = adjective_vocab[adjective]
     decl = data.get("decl")
     noms = data.get("noms")
-
     if decl == (1, 2) and adjective.endswith("er") and adjective != "pauper":
         stem = data["stem"]
         return f"{adjective}, {stem}a, {stem}um"
-
     if noms and len(noms) == 3 and str(noms[0]).endswith("er"):
         return ", ".join(noms)
-
     if decl == (1, 2):
         return f"{adjective} 3"
-
     if decl == 3:
         if noms:
             if len(noms) == 3:
@@ -136,7 +111,6 @@ def adjective_dictionary_entry(adjective):
             if len(noms) == 1:
                 return f"{adjective} 1"
         return f"{adjective} 1"
-
     return adjective
 
 
@@ -171,11 +145,9 @@ def noun_has_dictionary_entry(data):
 def adjective_is_eligible(data):
     if data.get("cardinal") is True:
         return False
-
     if data.get("decl") == 3:
         noms = data.get("noms")
         return bool(noms and len(noms) >= 2)
-
     return adjective_declension(data) is not None
 
 
@@ -183,12 +155,9 @@ NOUNS = {word: data for word, data in noun_vocab.items() if noun_has_dictionary_
 ADJECTIVES = {word: data for word, data in adjective_vocab.items() if adjective_is_eligible(data)}
 
 
-# --- Settings ------------------------------------------------------------------
-
 option_expander = st.expander("Beállítások", expanded=True)
 with option_expander:
     col_declension, col_pos = st.columns(2)
-
     with col_declension:
         declension = st.multiselect(
             "Válaszd ki, mely declinatiókat szeretnéd gyakorolni (alapértelmezés szerint mindegyik ki van választva):",
@@ -196,7 +165,6 @@ with option_expander:
             format_func=lambda x: DECLENSION_LABELS[x],
             key=widget_key(page_id, "declension"),
         )
-
     with col_pos:
         selected_pos = st.multiselect(
             "Válaszd ki, mely szófajokat szeretnéd gyakorolni (alapértelmezés szerint mindegyik ki van választva):",
@@ -204,54 +172,34 @@ with option_expander:
             format_func=lambda x: PART_OF_SPEECH_LABELS[x],
             key=widget_key(page_id, "selected_pos"),
         )
-
-    current_settings = {
-        "declension": declension,
-        "selected_pos": selected_pos,
-    }
-
+    current_settings = {"declension": declension, "selected_pos": selected_pos}
     if st.user.is_logged_in:
         set_defaults_col, clear_defaults_col, link_col = st.columns(3)
         with set_defaults_col:
             st.button(
-                "Beállítások mentése",
-                type="primary",
-                width="stretch",
+                "Beállítások mentése", type="primary", width="stretch",
                 help="A declinatiók és szófajok jelenlegi kiválasztásának mentése alapértelmezett beállításként.",
-                on_click=save_defaults,
-                args=(page_id, defaults),
-                kwargs=current_settings,
+                on_click=save_defaults, args=(page_id, defaults), kwargs=current_settings,
                 disabled=preset_active,
             )
-
         with clear_defaults_col:
-            generic_settings = {
-                "declension": DECLENSIONS,
-                "selected_pos": PARTS_OF_SPEECH,
-            }
+            generic_settings = {"declension": DECLENSIONS, "selected_pos": PARTS_OF_SPEECH}
             settings_changed = current_settings != generic_settings
-
             def reset_recognition_defaults():
                 clear_defaults(page_id)
                 st.session_state[widget_key(page_id, "declension")] = list(DECLENSIONS)
                 st.session_state[widget_key(page_id, "selected_pos")] = list(PARTS_OF_SPEECH)
-
             st.button(
-                "Alapbeállítások",
-                type="primary",
-                width="stretch",
+                "Alapbeállítások", type="primary", width="stretch",
                 help="A BevLat általános alapértelmezett beállításainak visszaállítása ehhez a gyakorlathoz.",
                 on_click=reset_recognition_defaults,
                 disabled=preset_active or (not defaults and not settings_changed),
             )
-
         with link_col:
             exercise_link_popover(page_id, exercise_schema, current_settings)
     else:
         exercise_link_popover(page_id, exercise_schema, current_settings)
 
-
-# --- Question generation and checking -----------------------------------------
 
 def selected_declension_numbers():
     return {str(DECLENSIONS.index(label) + 1) for label in declension}
@@ -260,14 +208,12 @@ def selected_declension_numbers():
 def available_questions_by_category():
     selected = selected_declension_numbers()
     pools = {}
-
     if "noun" in selected_pos:
         for word, data in NOUNS.items():
             answer = noun_declension(data)
             if answer in selected:
                 category = ("noun", answer)
                 pools.setdefault(category, []).append(("noun", word, answer))
-
     if "adjective" in selected_pos:
         for word, data in ADJECTIVES.items():
             answer = adjective_declension(data)
@@ -277,7 +223,6 @@ def available_questions_by_category():
             elif answer == "1–2" and ({"1", "2"} & selected):
                 category = ("adjective", "1–2")
                 pools.setdefault(category, []).append(("adjective", word, answer))
-
     return pools
 
 
@@ -285,38 +230,23 @@ def gen_question():
     pools = available_questions_by_category()
     if not pools:
         return None
-
     active_categories = list(pools.keys())
-
     recent_categories = st.session_state.recognize_declension_recent_categories[-9:]
-    missing_categories = [
-        category for category in active_categories
-        if category not in recent_categories
-    ]
+    missing_categories = [category for category in active_categories if category not in recent_categories]
     category = random.choice(missing_categories or active_categories)
-
     pool = pools[category]
     pos, word, answer = random.choice(pool)
-
     if st.session_state.current_question:
         previous = st.session_state.current_question
         attempts = 0
         while previous and previous.get("pos") == pos and previous.get("word") == word and attempts < 20:
             pos, word, answer = random.choice(pool)
             attempts += 1
-
     st.session_state.recognize_declension_recent_categories = (
         st.session_state.recognize_declension_recent_categories + [category]
     )[-10:]
-
     entry = noun_dictionary_entry(word) if pos == "noun" else adjective_dictionary_entry(word)
-    return {
-        "pos": pos,
-        "word": word,
-        "entry": entry,
-        "declension": answer,
-        "qid": random.getrandbits(64),
-    }
+    return {"pos": pos, "word": word, "entry": entry, "declension": answer, "qid": random.getrandbits(64)}
 
 
 def start_new_question():
@@ -328,41 +258,31 @@ def check_recognition_answer(answer_key):
     answer = st.session_state.get(answer_key)
     if not answer or st.session_state.answer_checked:
         return
-
     st.session_state.pop("recognize_declension_pending_answer_key", None)
     st.session_state.pop("recognize_declension_check_after", None)
-
     correct_answer = st.session_state.current_question["declension"]
     correct = answer == correct_answer
-
     st.session_state.answer_checked = True
     st.session_state.button_disable = True
     st.session_state.total_questions += 1
     if correct:
         st.session_state.current_score += 1
-        st.session_state.result_message = "**Helyes!**"
-        st.session_state.answer_display_message = (
-            f":green-background[A helyes válasz: {ANSWER_LABELS[correct_answer]}]"
-        )
+        st.session_state.result_message = ""
+        st.session_state.answer_display_message = ""
     else:
         st.session_state.result_message = "**Helytelen. Próbáld meg a következőt!**"
         st.session_state.answer_display_message = (
             f":red-background[A válaszod: {ANSWER_LABELS[answer]}]  \n"
             f":red-background[A helyes válasz: {ANSWER_LABELS[correct_answer]}]"
         )
-
     record = {
         "pos": "recognize_declension",
         "word": st.session_state.current_question["word"],
         "answer": answer,
         "correct": correct,
-        "id": {
-            "target_declension": correct_answer,
-            "word_pos": st.session_state.current_question["pos"],
-        },
+        "id": {"target_declension": correct_answer, "word_pos": st.session_state.current_question["pos"]},
     }
     questions_asked.append(record)
-
     if st.user.is_logged_in:
         insert_dict = {
             "user_id": str(st.session_state.user_id),
@@ -370,19 +290,16 @@ def check_recognition_answer(answer_key):
             "answer": record,
         }
         st.session_state.supabase_connection.table("answer").insert(insert_dict).execute()
-
     st.session_state.auto_advance_trigger = bool(st.session_state.auto_advance)
 
 
 def choose_recognition_answer(answer_key, answer, answer_index):
     if st.session_state.answer_checked:
         return
-
     st.session_state[answer_key] = answer
     st.session_state.recognize_declension_selected_answer = answer_index
     st.session_state.recognize_declension_pending_answer_key = answer_key
     st.session_state.recognize_declension_check_after = time.monotonic() + ANSWER_CHECK_DELAY
-
     if ANSWER_CHECK_DELAY <= 0:
         check_recognition_answer(answer_key)
 
@@ -402,44 +319,35 @@ if st.session_state.current_question:
     question = st.session_state.current_question
     answer_key = f"recognize_declension_answer_{question['qid']}"
     selected_answer_index = st.session_state.recognize_declension_selected_answer
-
     st.markdown("### Aktuális kérdés")
-
-    # Keep the prompt area the same height even for longer dictionary entries.
     prompt_space = st.container(height=52, border=False)
     with prompt_space:
         article = hungarian_article(question["word"])
         st.markdown(f"Melyik declinatióhoz tartozik {article} ***{question['entry']}***?")
-
-    # Inject styling without creating an extra layout block. This keeps the
-    # answer buttons at exactly the same vertical position before and after a click.
     if selected_answer_index is not None:
-        st.html(
-            f"""
+        st.html(f"""
             <style>
             .st-key-{answer_key}_option_{selected_answer_index} button {{
                 background-color: rgba(128, 128, 128, 0.25) !important;
             }}
             </style>
-            """
-        )
-
+            """)
     answer_columns = st.columns(len(ANSWER_OPTIONS), gap="small")
     for answer_index, (answer_column, answer_option) in enumerate(zip(answer_columns, ANSWER_OPTIONS)):
         with answer_column:
             st.button(
-                ANSWER_LABELS[answer_option],
-                key=f"{answer_key}_option_{answer_index}",
-                on_click=choose_recognition_answer,
-                args=(answer_key, answer_option, answer_index),
-                disabled=st.session_state.answer_checked,
-                width="stretch",
+                ANSWER_LABELS[answer_option], key=f"{answer_key}_option_{answer_index}",
+                on_click=choose_recognition_answer, args=(answer_key, answer_option, answer_index),
+                disabled=st.session_state.answer_checked, width="stretch",
             )
-
-    # Reserve the full feedback area even before an answer is given.
     feedback_space = st.container(height=72, border=False)
     with feedback_space:
-        st.markdown(st.session_state.answer_display_message)
+        if st.session_state.answer_checked and st.session_state.get(answer_key) == question["declension"]:
+            left, center, right = st.columns([1, 1, 1])
+            with center:
+                st.markdown(":green-background[**Helyes válasz!**]")
+        else:
+            st.markdown(st.session_state.answer_display_message)
 
 pending_answer_key = st.session_state.get("recognize_declension_pending_answer_key")
 check_after = st.session_state.get("recognize_declension_check_after")
@@ -457,28 +365,20 @@ def recognition_check_timer():
 
 recognition_check_timer()
 
-# Keep the action/result/score controls in a permanently fixed-height row.
 control_row = st.container(height=92, border=False)
 with control_row:
     new_question_col, results_col, score_col = st.columns(3, gap="medium", vertical_alignment="top")
-
     with new_question_col:
         button_text = "Új kérdés" if st.session_state.question_list else "Kattints ide az első kérdéshez!"
         button_type = "secondary" if st.session_state.question_list else "primary"
         st.button(
-            button_text,
-            on_click=start_new_question,
-            key="recognize_declension_question_button",
-            width="stretch",
-            disabled=not pool_available,
-            type=button_type,
+            button_text, on_click=start_new_question, key="recognize_declension_question_button",
+            width="stretch", disabled=not pool_available, type=button_type,
         )
-
     with results_col:
         result_space = st.container(height=48, border=False)
         with result_space:
             st.markdown(st.session_state.result_message)
-
     with score_col:
         st.button("Pontszám törlése", "recognize_declension_reset", on_click=reset_recognition_score, width="stretch")
         st.markdown(f"Jelenlegi pontszám: **{st.session_state.current_score}** / **{st.session_state.total_questions}**")
