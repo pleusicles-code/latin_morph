@@ -977,7 +977,6 @@ def import_nouns():
             "decl": "2_us",
             "stem": "de",
             "irreg": {
-                "irreg": True,
                 "sg": {
                     "voc": ["deus", "dīve"]
                 },

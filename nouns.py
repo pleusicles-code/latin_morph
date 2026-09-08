@@ -212,7 +212,7 @@ with col_options:
                 "show_declension": False,
                 "show_stem": False,
                 "declension": list(declension_dict.keys()),
-                "irregs_include": ["deus"],
+                "irregs_include": [],
                 "irregs_only": "No",
             }
             current_noun_settings = {
@@ -239,7 +239,7 @@ with col_options:
                 st.session_state.nouns_show_declension = False
                 st.session_state.nouns_show_stem = False
                 st.session_state.nouns_declension = list(declension_dict.keys())
-                st.session_state.nouns_irregs_include = ["deus"]
+                st.session_state.nouns_irregs_include = []
                 st.session_state.nouns_irregs_only = "No"
 
             st.button("Reset defaults",
@@ -429,15 +429,16 @@ def format_noun_analysis_list(analyses):
     )
 
 
-def evaluate_noun_recognition_answer(user_analyses, possible_analyses):
-    """Return correct / partial / incorrect using complete-analysis semantics."""
+def evaluate_noun_recognition_answer(user_analyses, required_analyses, optional_analyses=None):
+    """Return correct / partial / incorrect, allowing accepted optional analyses."""
     user_analyses = set(user_analyses)
-    possible_analyses = set(possible_analyses)
-    correct_supplied = user_analyses & possible_analyses
+    required_analyses = set(required_analyses)
+    optional_analyses = set(optional_analyses or ())
+    valid_analyses = required_analyses | optional_analyses
 
-    if user_analyses == possible_analyses:
+    if required_analyses.issubset(user_analyses) and user_analyses.issubset(valid_analyses):
         return "correct"
-    if correct_supplied:
+    if user_analyses & valid_analyses:
         return "partial"
     return "incorrect"
 
@@ -810,6 +811,16 @@ else:
         normalized = unicodedata.normalize("NFC", form)
         return normalized if preserve_macrons else remove_macrons(normalized)
 
+    def optional_noun_recognition_analyses(noun, displayed_form, preserve_macrons):
+        """Return valid analyses accepted in recognition but never required."""
+        if (
+            noun == "deus"
+            and normalize_noun_surface(displayed_form, preserve_macrons)
+            == normalize_noun_surface("deum", preserve_macrons)
+        ):
+            return {("pl", "gen")}
+        return set()
+
     def recognition_cases_for_noun(noun, number):
         """Return cases used in noun recognition, with vocative only when distinctive."""
         cases = [case for case in noun_options["case"] if case != "voc"]
@@ -881,7 +892,16 @@ else:
             for form in displayed_forms
         ]
         displayed_form = random.choices(displayed_forms, weights=form_weights, k=1)[0]
-        case, number = random.choice(list(form_analyses[displayed_form]))
+        displayed_analyses = set(form_analyses[displayed_form])
+        if (
+            noun == "deus"
+            and normalize_noun_surface(displayed_form, print_macrons)
+            == normalize_noun_surface("deum", print_macrons)
+            and ("acc", "sg") in displayed_analyses
+        ):
+            case, number = ("acc", "sg")
+        else:
+            case, number = random.choice(list(displayed_analyses))
         st.session_state.nouns_recognition_displayed_form = displayed_form
         return [noun, case, number]
 
@@ -955,10 +975,16 @@ else:
                             matching_analyses.add((possible_number, possible_case))
                             break
 
+            optional_analyses = (
+                optional_noun_recognition_analyses(noun, displayed_form, print_macrons)
+                & matching_analyses
+            )
+            required_analyses = matching_analyses - optional_analyses
+
             vowel_phrase = "are" if print_macrons else "are not"
             question += f"  \nVowel lengths {vowel_phrase} indicated"
             if st.session_state[widget_key(page_id, "indicate_multiple_answers")]:
-                if len(matching_analyses) > 1:
+                if len(required_analyses) > 1:
                     question += " and multiple correct answers are possible."
                 else:
                     question += "."
@@ -986,7 +1012,8 @@ else:
                         if parsed_answer["valid"]:
                             evaluation = evaluate_noun_recognition_answer(
                                 parsed_answer["analyses"],
-                                matching_analyses,
+                                required_analyses,
+                                optional_analyses,
                             )
                             # Let the shared checker perform score/history/logging. It only
                             # understands binary correctness, so partial answers are logged
@@ -1025,11 +1052,13 @@ else:
                             return
 
                         user_analyses = set(parsed_answer["analyses"])
-                        possible_analyses = set(matching_analyses)
-                        correct_supplied = user_analyses & possible_analyses
-                        incorrect_supplied = user_analyses - possible_analyses
-                        missing_analyses = possible_analyses - user_analyses
-                        all_possible_text = format_noun_analysis_list(possible_analyses)
+                        required_analyses_set = set(required_analyses)
+                        optional_analyses_set = set(optional_analyses)
+                        valid_analyses = required_analyses_set | optional_analyses_set
+                        correct_supplied = user_analyses & valid_analyses
+                        incorrect_supplied = user_analyses - valid_analyses
+                        missing_analyses = required_analyses_set - user_analyses
+                        all_possible_text = format_noun_analysis_list(required_analyses_set)
                         st.session_state.nouns_recognition_extra_delay = 0
 
                         if evaluation == "correct":
