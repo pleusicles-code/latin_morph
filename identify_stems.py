@@ -422,10 +422,12 @@ if st.session_state.current_question:
     answer_key = f"identify_stems_answer_{question['qid']}"
 
     st.markdown("### Current question")
-    if question["target_pos"] == "verb":
-        st.markdown(f"What are the stems of *{question['entry']}*?")
-    else:
-        st.markdown(f"What is the stem of *{question['entry']}*?")
+    prompt_space = st.container(height=52, border=False)
+    with prompt_space:
+        if question["target_pos"] == "verb":
+            st.markdown(f"What are the stems of *{question['entry']}*?")
+        else:
+            st.markdown(f"What is the stem of *{question['entry']}*?")
 
     with st.form(key=f"identify_stems_form_{question['qid']}"):
         st.text_input(
@@ -455,31 +457,37 @@ if st.session_state.current_question:
             height=0,
         )
 
-    if st.session_state.answer_display_message.startswith("<div"):
-        st.markdown(st.session_state.answer_display_message, unsafe_allow_html=True)
-    else:
-        st.markdown(st.session_state.answer_display_message)
+    feedback_space = st.container(height=90, border=False)
+    with feedback_space:
+        if st.session_state.answer_display_message.startswith("<div"):
+            st.markdown(st.session_state.answer_display_message, unsafe_allow_html=True)
+        else:
+            st.markdown(st.session_state.answer_display_message)
 
-new_question_col, results_col, score_col = st.columns(3)
+control_row = st.container(height=92, border=False)
+with control_row:
+    new_question_col, results_col, score_col = st.columns(3, gap="medium", vertical_alignment="top")
 
-with new_question_col:
-    button_text = "New Question" if st.session_state.question_list else "Click here for your first question!"
-    button_type = "secondary" if st.session_state.question_list else "primary"
-    st.button(
-        button_text,
-        on_click=start_new_question,
-        key="identify_stems_question_button",
-        width="stretch",
-        disabled=not selected_pos,
-        type=button_type,
-    )
+    with new_question_col:
+        button_text = "New Question" if st.session_state.question_list else "Click here for your first question!"
+        button_type = "secondary" if st.session_state.question_list else "primary"
+        st.button(
+            button_text,
+            on_click=start_new_question,
+            key="identify_stems_question_button",
+            width="stretch",
+            disabled=not selected_pos,
+            type=button_type,
+        )
 
-with results_col:
-    st.markdown(st.session_state.result_message)
+    with results_col:
+        result_space = st.container(height=48, border=False)
+        with result_space:
+            st.markdown(st.session_state.result_message)
 
-with score_col:
-    st.button("Reset Score", "identify_stems_reset", on_click=reset, width="stretch")
-    st.markdown(f"Current score: **{st.session_state.current_score}** out of **{st.session_state.total_questions}**")
+    with score_col:
+        st.button("Reset Score", "identify_stems_reset", on_click=reset, width="stretch")
+        st.markdown(f"Current score: **{st.session_state.current_score}** out of **{st.session_state.total_questions}**")
 
 if not st.session_state.auto_advance:
     st.session_state.auto_advance_trigger = False
@@ -487,5 +495,5 @@ if not st.session_state.auto_advance:
 if st.session_state.auto_advance and st.session_state.auto_advance_trigger and st.session_state.answer_checked:
     import time
     time.sleep(st.session_state.auto_advance)
-    new_question(gen_question)
+    start_new_question()
     st.rerun()
