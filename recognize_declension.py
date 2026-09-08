@@ -285,7 +285,7 @@ def check_recognition_answer(answer_key):
     else:
         st.session_state.result_message = "**Helytelen. Próbáld meg a következőt!**"
         st.session_state.answer_display_message = feedback_box(
-            f"<strong>Helytelen válasz. A helyes válasz: {ANSWER_LABELS[correct_answer]}</strong>",
+            f'<strong>Helytelen válasz. A helyes válasz: <span style="font-weight:900;">{ANSWER_LABELS[correct_answer]}</span></strong>',
             "incorrect",
         )
     record = {
