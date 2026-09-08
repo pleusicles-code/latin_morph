@@ -1,5 +1,5 @@
-import html
 import random
+import time
 import unicodedata
 from datetime import datetime as dt, timezone
 
@@ -12,7 +12,7 @@ from exercise_presets import (list_setting, resolve_exercise_settings, initializ
 from vocab import import_nouns, import_adjectives, import_verbs
 
 
-st.set_page_config("BevLat Identify Stems", layout="centered")
+st.set_page_config("BevLat – Tövek felismerése", layout="centered")
 
 page_id = "identify_stems"
 clear_page(page_id)
@@ -24,6 +24,27 @@ adjective_vocab = import_adjectives()
 verb_vocab = import_verbs()
 
 PARTS_OF_SPEECH = ["noun", "adjective", "verb"]
+POS_LABELS = {
+    "noun": "főnév",
+    "adjective": "melléknév",
+    "verb": "ige",
+}
+
+LATIN_VOWELS = set("aeiouy")
+LATIN_DIPHTHONGS = {"ae", "au", "oe", "ei", "eu", "ui"}
+
+
+def hungarian_article(word):
+    normalized = "".join(
+        char for char in unicodedata.normalize("NFD", word.lower())
+        if unicodedata.category(char) != "Mn"
+    )
+    if not normalized or normalized[0] not in LATIN_VOWELS:
+        return "a"
+    if len(normalized) > 1 and normalized[1] in LATIN_VOWELS:
+        return "az" if normalized[:2] in LATIN_DIPHTHONGS else "a"
+    return "az"
+
 
 exercise_schema = {
     "selected_pos": list_setting(PARTS_OF_SPEECH, PARTS_OF_SPEECH),
@@ -32,7 +53,7 @@ exercise_settings = resolve_exercise_settings(page_id, exercise_schema, defaults
 initialize_widget_state(page_id, exercise_settings)
 preset_active = url_preset_active(page_id)
 
-st.markdown("# Identify Stems")
+st.markdown("# Tövek felismerése")
 
 
 # --- Dictionary-entry builders -------------------------------------------------
@@ -123,8 +144,6 @@ ENTRY_BUILDERS = {
 # --- Beginner-level vocabulary filters ----------------------------------------
 
 def noun_has_beginner_dictionary_entry(word, data):
-    # Keep deus, but otherwise exclude irregular nouns. Also exclude any noun
-    # whose singular genitive is unavailable (e.g. vīs).
     if word != "deus" and data.get("irreg"):
         return False
     return data.get("irreg", {}).get("sg", {}).get("gen", "__regular__") is not None
@@ -144,7 +163,6 @@ def verb_has_beginner_dictionary_entry(data):
         return False
     if data.get("voice") in ["dep", "semidep"]:
         return False
-    # Every verb question requires all three stems.
     return bool(data.get("pres") and data.get("perf") and data.get("ppp"))
 
 
@@ -157,11 +175,12 @@ VOCABULARIES = {
 
 # --- Settings ------------------------------------------------------------------
 
-option_expander = st.expander("Settings", expanded=True)
+option_expander = st.expander("Beállítások", expanded=True)
 with option_expander:
     selected_pos = st.multiselect(
-        "Choose which parts of speech to practice (they are all selected by default):",
+        "Válaszd ki, mely szófajokat szeretnéd gyakorolni (alapértelmezés szerint mindegyik ki van választva):",
         options=PARTS_OF_SPEECH,
+        format_func=lambda x: POS_LABELS[x],
         key=widget_key(page_id, "selected_pos"),
     )
 
@@ -171,10 +190,10 @@ with option_expander:
         set_defaults_col, clear_defaults_col, link_col = st.columns(3)
         with set_defaults_col:
             st.button(
-                "Save settings",
+                "Beállítások mentése",
                 type="primary",
                 width="stretch",
-                help="Save your current part-of-speech selection as your default.",
+                help="A jelenlegi szófajválasztás mentése alapértelmezett beállításként.",
                 on_click=save_defaults,
                 args=(page_id, defaults),
                 kwargs=current_settings,
@@ -190,10 +209,10 @@ with option_expander:
                 st.session_state.identify_stems_selected_pos = list(PARTS_OF_SPEECH)
 
             st.button(
-                "Reset defaults",
+                "Alapbeállítások",
                 type="primary",
                 width="stretch",
-                help="Restore the generic BevLat default settings for this exercise.",
+                help="A BevLat általános alapértelmezett beállításainak visszaállítása ehhez a feladathoz.",
                 on_click=reset_stem_defaults,
                 disabled=preset_active or (not defaults and not settings_changed),
             )
@@ -215,8 +234,6 @@ def parse_stem_answer(answer, expected_count):
     if expected_count == 1:
         return [canonical_stem(normalized)] if normalized else []
 
-    # Commas and whitespace are both accepted as separators; trailing dashes
-    # are optional. Canonical display always uses comma + space, without dashes.
     parts = [canonical_stem(part) for part in normalized.replace(",", " ").split()]
     return [part for part in parts if part]
 
@@ -232,53 +249,6 @@ def stems_equal(user_stem, correct_stem):
 
 def canonical_display(parts):
     return ", ".join(parts)
-
-
-def verb_feedback(user_parts, correct_parts, part_results, state):
-    display_parts = list(user_parts[:len(correct_parts)])
-    while len(display_parts) < len(correct_parts):
-        display_parts.append("—")
-
-    if state == "partial":
-        background = "#fff4d6"
-        border = "#e2c66d"
-        label = "Your answers are partially correct:"
-    else:
-        background = "#f7dddd"
-        border = "#d9a0a0"
-        label = "Your answers are:"
-
-    user_cells = []
-    for i, part in enumerate(display_parts):
-        if state == "partial":
-            color = "#137333" if part_results[i] else "#b3261e"
-        else:
-            color = "#b3261e"
-        user_cells.append(
-            '<td style="padding:0 0.35rem;color:{color};font-weight:600;">{part}</td>'.format(
-                color=color, part=html.escape(part)
-            )
-        )
-
-    correct_cells = [
-        '<td style="padding:0 0.35rem;">{}</td>'.format(html.escape(part))
-        for part in correct_parts
-    ]
-
-    return (
-        '<div style="background:{background};border:1px solid {border};border-radius:0.5rem;'
-        'padding:0.55rem 0.75rem;line-height:1.6;">'
-        '<table style="border-collapse:collapse;border:none;">'
-        '<tr><td style="padding:0 0.6rem 0 0;white-space:nowrap;">{label}</td>{user}</tr>'
-        '<tr><td style="padding:0 0.6rem 0 0;white-space:nowrap;">The correct answers are:</td>{correct}</tr>'
-        '</table></div>'
-    ).format(
-        background=background,
-        border=border,
-        label=label,
-        user="".join(user_cells),
-        correct="".join(correct_cells),
-    )
 
 
 # --- Question generation and checking -----------------------------------------
@@ -337,7 +307,7 @@ def start_new_question():
 def check_stem_answer(answer_key):
     raw_answer = st.session_state.get(answer_key, "")
     if not raw_answer.strip():
-        st.session_state.answer_display_message = "Your answer was blank! Enter a stem and hit 'Check Answer', or click 'New Question' if you want to skip this one."
+        st.session_state.answer_display_message = "A válaszmező üres. Írj be egy tövet, majd kattints a **Válasz ellenőrzése** gombra, vagy az **Új kérdés** gombbal ugord át a kérdést."
         st.session_state.button_disable = False
         return
     if st.session_state.answer_checked:
@@ -358,8 +328,10 @@ def check_stem_answer(answer_key):
     st.session_state.answer_checked = True
     st.session_state.button_disable = True
     st.session_state.total_questions += 1
+
     if fully_correct:
         st.session_state.current_score += 1
+        # Keep the internal success marker for the shared auto-advance timing.
         st.session_state.result_message = "**Good job!**"
     elif partially_correct:
         st.session_state.result_message = "**Partially correct.**"
@@ -370,18 +342,14 @@ def check_stem_answer(answer_key):
     correct_display = canonical_display(correct_parts)
 
     if fully_correct:
+        st.session_state.answer_display_message = ":green-background[**Helyes válasz!**]"
+    elif partially_correct:
         st.session_state.answer_display_message = (
-            f":green-background[The correct answer is: {correct_display}]"
-        )
-    elif target_pos == "verb":
-        feedback_state = "partial" if partially_correct else "incorrect"
-        st.session_state.answer_display_message = verb_feedback(
-            user_parts, correct_parts, part_results, feedback_state
+            f":orange-background[**Részben helyes válasz. A helyes válasz: {correct_display}.**]"
         )
     else:
         st.session_state.answer_display_message = (
-            f":red-background[Your answer is: {normalized_user_display}]  \n"
-            f":red-background[The correct answer is: {correct_display}]"
+            f":red-background[**Helytelen válasz. A helyes válasz: {correct_display}.**]"
         )
 
     answer_id = {"target_pos": target_pos}
@@ -415,42 +383,41 @@ def check_stem_answer(answer_key):
 st.session_state.gen_func = gen_question
 
 if not selected_pos and not st.session_state.current_question:
-    st.write("You need to choose at least one part of speech.")
+    st.write("Legalább egy szófajt ki kell választanod.")
 
 if st.session_state.current_question:
     question = st.session_state.current_question
     answer_key = f"identify_stems_answer_{question['qid']}"
 
-    st.markdown("### Current question")
+    st.markdown("### Aktuális kérdés")
     prompt_space = st.container(height=52, border=False)
     with prompt_space:
+        article = hungarian_article(question["word"])
         if question["target_pos"] == "verb":
-            st.markdown(f"What are the stems of *{question['entry']}*?")
+            st.markdown(f"Melyek {article} ***{question['entry']}*** tövei?")
         else:
-            st.markdown(f"What is the stem of *{question['entry']}*?")
+            st.markdown(f"Mi {article} ***{question['entry']}*** töve?")
 
     with st.form(key=f"identify_stems_form_{question['qid']}"):
         st.text_input(
-            "Your answer:",
+            "Válaszod:",
             key=answer_key,
             disabled=st.session_state.answer_checked,
         )
         st.form_submit_button(
-            "Check Answer",
+            "Válasz ellenőrzése",
             on_click=check_stem_answer,
             args=(answer_key,),
             disabled=st.session_state.answer_checked,
             width="stretch",
         )
 
-    # Keep this zero-height component present both before and after checking so
-    # its wrapper cannot subtly change the vertical position of the lower controls.
     components.html(
         f"""
         <span style="display:none">{question['qid']}</span>
         <script>
             setTimeout(() => {{
-                const input = window.parent.document.querySelector('input[aria-label="Your answer:"]');
+                const input = window.parent.document.querySelector('input[aria-label="Válaszod:"]');
                 if (input && !input.disabled) input.focus();
             }}, 50);
         </script>
@@ -460,17 +427,14 @@ if st.session_state.current_question:
 
     feedback_space = st.container(height=90, border=False)
     with feedback_space:
-        if st.session_state.answer_display_message.startswith("<div"):
-            st.markdown(st.session_state.answer_display_message, unsafe_allow_html=True)
-        else:
-            st.markdown(st.session_state.answer_display_message)
+        st.markdown(st.session_state.answer_display_message)
 
 control_row = st.container(height=92, border=False)
 with control_row:
     new_question_col, results_col, score_col = st.columns(3, gap="medium", vertical_alignment="top")
 
     with new_question_col:
-        button_text = "New Question" if st.session_state.question_list else "Click here for your first question!"
+        button_text = "Új kérdés" if st.session_state.question_list else "Kattints ide az első kérdéshez!"
         button_type = "secondary" if st.session_state.question_list else "primary"
         st.button(
             button_text,
@@ -481,20 +445,18 @@ with control_row:
             type=button_type,
         )
 
+    # The middle column is intentionally left blank: feedback appears only above.
     with results_col:
-        result_space = st.container(height=48, border=False)
-        with result_space:
-            st.markdown(st.session_state.result_message)
+        st.container(height=48, border=False)
 
     with score_col:
-        st.button("Reset Score", "identify_stems_reset", on_click=reset, width="stretch")
-        st.markdown(f"Current score: **{st.session_state.current_score}** out of **{st.session_state.total_questions}**")
+        st.button("Pontszám nullázása", "identify_stems_reset", on_click=reset, width="stretch")
+        st.markdown(f"Jelenlegi pontszám: **{st.session_state.current_score}** / **{st.session_state.total_questions}**")
 
 if not st.session_state.auto_advance:
     st.session_state.auto_advance_trigger = False
 
 if st.session_state.auto_advance and st.session_state.auto_advance_trigger and st.session_state.answer_checked:
-    import time
     time.sleep(auto_advance_delay())
     start_new_question()
     st.rerun()
