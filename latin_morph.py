@@ -192,24 +192,24 @@ if st.user.is_logged_in and st.session_state.user_token_expiry is not None and t
 
 ## NAVIGATION MENU SIDE-BAR ##
 
-main_page = st.Page("main_page.py", title="Main Page")
-about_page = st.Page("about.py", title="About")
-faq_page = st.Page("faq.py", title="FAQ")
-recognize_pos_page = st.Page("recognize_pos.py", title="Recognize Part of Speech")
-recognize_declension_page = st.Page("recognize_declension.py", title="Recognize Declension")
-identify_stems_page = st.Page("identify_stems.py", title="Identify Stems")
-nouns_page = st.Page("nouns.py", title="Nouns")
-verbs_page = st.Page("verbs.py", title="Verbs")
-pronouns_page = st.Page("pronouns.py", title="Pronouns")
-adj_page = st.Page("adjectives.py", title="Adjectives and Adverbs")
-verbal_adj_page = st.Page("verbal_adj.py", title="Verbal Adjectives")
-data_page = st.Page("data.py", title="Your Statistics & Data")
-test_page = st.Page("button_test.py", title="Test page") if st.context.headers.get("host","").startswith("localhost") else ""
-account_page = st.Page("account.py", title=("User Account" if st.user.is_logged_in else "User Account (login)"))
-vocab_page = st.Page("vocab_list.py", title="Vocabulary List")
+main_page = st.Page("main_page.py", title="Kezdőlap")
+about_page = st.Page("about.py", title="A programról")
+faq_page = st.Page("faq.py", title="Gyakori kérdések")
+recognize_pos_page = st.Page("recognize_pos.py", title="Szófaj felismerése")
+recognize_declension_page = st.Page("recognize_declension.py", title="Declinatio felismerése")
+identify_stems_page = st.Page("identify_stems.py", title="Tövek felismerése")
+nouns_page = st.Page("nouns.py", title="Főnevek")
+verbs_page = st.Page("verbs.py", title="Igék")
+pronouns_page = st.Page("pronouns.py", title="Névmások")
+adj_page = st.Page("adjectives.py", title="Melléknevek és határozószók")
+verbal_adj_page = st.Page("verbal_adj.py", title="Igenevek")
+data_page = st.Page("data.py", title="Statisztikáid és adataid")
+test_page = st.Page("button_test.py", title="Tesztoldal") if st.context.headers.get("host","").startswith("localhost") else ""
+account_page = st.Page("account.py", title=("Felhasználói fiók" if st.user.is_logged_in else "Felhasználói fiók (bejelentkezés)"))
+vocab_page = st.Page("vocab_list.py", title="Szójegyzék")
 
 nav_dict = {"**BevLat**": [main_page, account_page, about_page, faq_page], 
-                            "Practice": [
+                            "Gyakorlás": [
                                 recognize_pos_page,
                                 recognize_declension_page,
                                 identify_stems_page,
@@ -219,25 +219,25 @@ nav_dict = {"**BevLat**": [main_page, account_page, about_page, faq_page],
                                 verbal_adj_page, 
                                 pronouns_page, 
                             ],
-                            "Tools": [data_page,
+                            "Eszközök": [data_page,
                                       vocab_page]
                             } 
 
 if st.context.headers.get("host","").startswith("localhost"):
-    nav_dict["Testing"] = [test_page]
+    nav_dict["Tesztelés"] = [test_page]
 
 st.logo("bevlat_logo.svg", size="large")
 choose_page = st.navigation(nav_dict, position="hidden")
 
 st.sidebar.caption(
-    "This app is a custom version of [Latin Morph!](https://latin-morph.streamlit.app/), originally developed by Darcy Krasne."
+    "Ez az alkalmazás a Darcy Krasne által fejlesztett [Latin Morph!](https://latin-morph.streamlit.app/) egyedi változata."
 )
 st.sidebar.markdown("**BevLat**")
 st.sidebar.page_link(main_page)
 st.sidebar.page_link(account_page)
 st.sidebar.page_link(about_page)
 st.sidebar.page_link(faq_page)
-st.sidebar.markdown("**Practice**")
+st.sidebar.markdown("**Gyakorlás**")
 st.sidebar.page_link(recognize_pos_page)
 st.sidebar.page_link(recognize_declension_page)
 st.sidebar.page_link(identify_stems_page)
@@ -246,18 +246,18 @@ st.sidebar.page_link(verbs_page)
 st.sidebar.page_link(adj_page)
 st.sidebar.page_link(verbal_adj_page)
 st.sidebar.page_link(pronouns_page)
-st.sidebar.markdown("**Tools**")
+st.sidebar.markdown("**Eszközök**")
 st.sidebar.page_link(data_page)
 st.sidebar.page_link(vocab_page)
 if st.context.headers.get("host", "").startswith("localhost"):
-    st.sidebar.markdown("**Testing**")
+    st.sidebar.markdown("**Tesztelés**")
     st.sidebar.page_link(test_page)
 
-st.sidebar.select_slider("Auto-advance to next question?", 
+st.sidebar.select_slider("Automatikus továbblépés a következő kérdésre?", 
                          options=[False, 3] + list(range(5,61)), 
-                         format_func=lambda x: "No" if x is False else str(x)+" sec", 
+                         format_func=lambda x: "Nem" if x is False else str(x)+" mp", 
                          key="auto_advance", 
-                         help="If you want to automatically advance to the next question after answering, rather than having to click **New Question**, set this to the number of seconds you want to wait before advancing (between 3 and 60 seconds). In case of wrong or partially correct answers, 5 seconds will be added to review your answer. (You can still use **New Question** to advance or skip a question if you want.)",
+                         help="Ha azt szeretnéd, hogy a válaszadás után automatikusan megjelenjen a következő kérdés, és ne kelljen az **Új kérdés** gombra kattintanod, itt állíthatod be, hány másodperc múlva lépjen tovább a program (3–60 másodperc). Hibás vagy részben helyes válasz esetén 5 másodperccel több időt kapsz a válasz áttekintésére. (Az **Új kérdés** gombbal továbbra is bármikor továbbléphetsz vagy átugorhatsz egy kérdést.)",
                          on_change=send_setting,
                          kwargs={"streamlit_page":"latin_morph.py","setting_name":"auto_advance"}
                          )
