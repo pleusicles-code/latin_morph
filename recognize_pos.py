@@ -405,7 +405,7 @@ if st.session_state.current_question:
     prompt_space = st.container(height=52, border=False)
     with prompt_space:
         article = hungarian_article(question["word"])
-        st.markdown(f"Milyen szófajú szó {article} *{question['entry']}*?")
+        st.markdown(f"Milyen szófajú szó {article} ***{question['entry']}***?")
 
     if selected_answer_index is not None:
         st.html(
