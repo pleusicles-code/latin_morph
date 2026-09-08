@@ -865,9 +865,14 @@ else:
                                 f"tokens={parsed_answer['tokens']}; analyses={analyses_display}]"
                             )
                         else:
+                            st.session_state.button_disable = False
+                            st.session_state.answer_checked = False
+                            st.session_state.total_questions = max(0, st.session_state.total_questions - 1)
+                            st.session_state.append_answer = True
+                            st.session_state.result_message = ""
                             st.session_state.answer_display_message = (
-                                f":green-background[Your answer is temporarily accepted. "
-                                f"tokens={parsed_answer['tokens']}; parser error: {parsed_answer['error']}]"
+                                f"Please check your answer and try again. "
+                                f"tokens={parsed_answer['tokens']}; parser error: {parsed_answer['error']}"
                             )
 
                 st.form_submit_button(
