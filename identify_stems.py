@@ -379,7 +379,6 @@ def check_stem_answer(answer_key):
 
     if fully_correct:
         st.session_state.current_score += 1
-        # Keep the internal success marker for the shared auto-advance timing.
         st.session_state.result_message = "**Good job!**"
     elif partially_correct:
         st.session_state.result_message = "**Partially correct.**"
@@ -438,7 +437,7 @@ if st.session_state.current_question:
     question = st.session_state.current_question
     answer_key = f"identify_stems_answer_{question['qid']}"
 
-    prompt_space = st.container(height=58, border=False)
+    prompt_space = st.container(height=72, border=False)
     with prompt_space:
         article = hungarian_article(question["word"])
         if question["target_pos"] == "verb":
@@ -446,7 +445,7 @@ if st.session_state.current_question:
         else:
             prompt_text = f"Mi {article} <strong><em>{question['entry']}</em></strong> töve?"
         st.markdown(
-            f'<div style="font-size:1.75rem;line-height:1.25;">{prompt_text}</div>',
+            f'<div style="margin-top:0.75rem;font-size:1.75rem;line-height:1.25;">{prompt_text}</div>',
             unsafe_allow_html=True,
         )
 
@@ -497,7 +496,6 @@ with control_row:
             type=button_type,
         )
 
-    # The middle column is intentionally left blank: feedback appears only above.
     with results_col:
         st.container(height=48, border=False)
 
