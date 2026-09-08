@@ -10,7 +10,7 @@ from exercise_presets import (list_setting, resolve_exercise_settings, initializ
 from vocab import import_nouns, import_adjectives, import_verbs
 
 
-st.set_page_config("BevLat Recognize Part of Speech", layout="centered")
+st.set_page_config("BevLat – Szófaj felismerése", layout="centered")
 
 page_id = "recognize_pos"
 new_run = st.session_state.curr_page_id != page_id
@@ -25,6 +25,11 @@ adjective_vocab = import_adjectives()
 verb_vocab = import_verbs()
 
 PARTS_OF_SPEECH = ["noun", "adjective", "verb"]
+POS_LABELS = {
+    "noun": "főnév",
+    "adjective": "melléknév",
+    "verb": "ige",
+}
 ANSWER_CHECK_DELAY = 0.0  # Set back to 1.0 to restore the former one-second pause.
 
 exercise_schema = {
@@ -34,7 +39,7 @@ exercise_settings = resolve_exercise_settings(page_id, exercise_schema, defaults
 initialize_widget_state(page_id, exercise_settings)
 preset_active = url_preset_active(page_id)
 
-st.markdown("# Recognize Part of Speech")
+st.markdown("# Szófaj felismerése")
 
 
 # --- Dictionary-entry builders -------------------------------------------------
@@ -229,11 +234,12 @@ VOCABULARIES = {
 
 # --- Settings ------------------------------------------------------------------
 
-option_expander = st.expander("Settings", expanded=True)
+option_expander = st.expander("Beállítások", expanded=True)
 with option_expander:
     selected_pos = st.multiselect(
-        "Choose which parts of speech to practice (they are all selected by default):",
+        "Válaszd ki, mely szófajokat szeretnéd gyakorolni (alapértelmezés szerint mindegyik ki van választva):",
         options=PARTS_OF_SPEECH,
+        format_func=lambda x: POS_LABELS[x],
         key=widget_key(page_id, "selected_pos"),
     )
 
@@ -243,10 +249,10 @@ with option_expander:
         set_defaults_col, clear_defaults_col, link_col = st.columns(3)
         with set_defaults_col:
             st.button(
-                "Save settings",
+                "Beállítások mentése",
                 type="primary",
                 width="stretch",
-                help="Save your current part-of-speech selection as your default.",
+                help="A jelenlegi szófajválasztás mentése alapértelmezett beállításként.",
                 on_click=save_defaults,
                 args=(page_id, defaults),
                 kwargs=current_settings,
@@ -262,10 +268,10 @@ with option_expander:
                 st.session_state.recognize_pos_selected_pos = list(PARTS_OF_SPEECH)
 
             st.button(
-                "Reset defaults",
+                "Alapbeállítások",
                 type="primary",
                 width="stretch",
-                help="Restore the generic BevLat default settings for this exercise.",
+                help="A BevLat általános alapértelmezett beállításainak visszaállítása ehhez a feladathoz.",
                 on_click=reset_recognition_defaults,
                 disabled=preset_active or (not defaults and not settings_changed),
             )
@@ -315,21 +321,23 @@ def check_recognition_answer(answer_key):
 
     correct_answer = st.session_state.current_question["pos"]
     correct = answer == correct_answer
+    answer_label = POS_LABELS[answer]
+    correct_answer_label = POS_LABELS[correct_answer]
 
     st.session_state.answer_checked = True
     st.session_state.button_disable = True
     st.session_state.total_questions += 1
     if correct:
         st.session_state.current_score += 1
-        st.session_state.result_message = "**Good job!**"
+        st.session_state.result_message = "**Helyes!**"
         st.session_state.answer_display_message = (
-            f":green-background[The correct answer is: {correct_answer}]"
+            f":green-background[A helyes válasz: {correct_answer_label}]"
         )
     else:
-        st.session_state.result_message = "**Incorrect. Better luck next time!**"
+        st.session_state.result_message = "**Helytelen. Próbáld meg a következőt!**"
         st.session_state.answer_display_message = (
-            f":red-background[Your answer is: {answer}]  \n"
-            f":red-background[The correct answer is: {correct_answer}]"
+            f":red-background[A válaszod: {answer_label}]  \n"
+            f":red-background[A helyes válasz: {correct_answer_label}]"
         )
 
     record = {
@@ -368,18 +376,18 @@ def choose_recognition_answer(answer_key, answer, answer_index):
 st.session_state.gen_func = gen_question
 
 if not selected_pos and not st.session_state.current_question:
-    st.write("You need to choose at least one part of speech.")
+    st.write("Legalább egy szófajt ki kell választanod.")
 
 if st.session_state.current_question:
     question = st.session_state.current_question
     answer_key = f"recognize_pos_answer_{question['qid']}"
     selected_answer_index = st.session_state.recognize_pos_selected_answer
 
-    st.markdown("### Current question")
+    st.markdown("### Aktuális kérdés")
 
     prompt_space = st.container(height=52, border=False)
     with prompt_space:
-        st.markdown(f"Which part of speech is *{question['entry']}*?")
+        st.markdown(f"Milyen szófajú szó a *{question['entry']}*?")
 
     if selected_answer_index is not None:
         st.html(
@@ -396,7 +404,7 @@ if st.session_state.current_question:
     for answer_index, (answer_column, answer_option) in enumerate(zip(answer_columns, PARTS_OF_SPEECH)):
         with answer_column:
             st.button(
-                answer_option,
+                POS_LABELS[answer_option],
                 key=f"{answer_key}_option_{answer_index}",
                 on_click=choose_recognition_answer,
                 args=(answer_key, answer_option, answer_index),
@@ -429,7 +437,7 @@ with control_row:
     new_question_col, results_col, score_col = st.columns(3, gap="medium", vertical_alignment="top")
 
     with new_question_col:
-        button_text = "New Question" if st.session_state.question_list else "Click here for your first question!"
+        button_text = "Új kérdés" if st.session_state.question_list else "Kattints ide az első kérdéshez!"
         button_type = "secondary" if st.session_state.question_list else "primary"
         st.button(
             button_text,
@@ -446,8 +454,8 @@ with control_row:
             st.markdown(st.session_state.result_message)
 
     with score_col:
-        st.button("Reset Score", "recognize_pos_reset", on_click=reset, width="stretch")
-        st.markdown(f"Current score: **{st.session_state.current_score}** out of **{st.session_state.total_questions}**")
+        st.button("Pontszám nullázása", "recognize_pos_reset", on_click=reset, width="stretch")
+        st.markdown(f"Jelenlegi pontszám: **{st.session_state.current_score}** / **{st.session_state.total_questions}**")
 
 if not st.session_state.auto_advance:
     st.session_state.auto_advance_trigger = False
