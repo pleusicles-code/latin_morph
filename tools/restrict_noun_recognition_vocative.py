@@ -58,8 +58,20 @@ new_loop = '''        for possible_number in noun_options["number"]:
             for possible_case in recognition_cases_for_noun(noun, possible_number):
                 possible_form = build_noun([noun, possible_case, possible_number])
 '''
-if text.count(old_loop) != 2:
-    raise RuntimeError(f"Expected two recognition paradigm loops, found {text.count(old_loop)}")
-text = text.replace(old_loop, new_loop)
+if text.count(old_loop) != 1:
+    raise RuntimeError(f"Expected generator recognition loop once, found {text.count(old_loop)}")
+text = text.replace(old_loop, new_loop, 1)
+
+old_match_loop = '''            for possible_number in noun_options["number"]:
+                for possible_case in noun_options["case"]:
+                    possible_form = build_noun([noun, possible_case, possible_number])
+'''
+new_match_loop = '''            for possible_number in noun_options["number"]:
+                for possible_case in recognition_cases_for_noun(noun, possible_number):
+                    possible_form = build_noun([noun, possible_case, possible_number])
+'''
+if text.count(old_match_loop) != 1:
+    raise RuntimeError(f"Expected matching-analysis loop once, found {text.count(old_match_loop)}")
+text = text.replace(old_match_loop, new_match_loop, 1)
 
 path.write_text(text)
