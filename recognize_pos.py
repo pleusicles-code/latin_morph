@@ -31,7 +31,7 @@ POS_LABELS = {
     "adjective": "melléknév",
     "verb": "ige",
 }
-ANSWER_CHECK_DELAY = 0.0  # Set back to 1.0 to restore the former one-second pause.
+ANSWER_CHECK_DELAY = 0.0
 
 LATIN_VOWELS = set("aeiouy")
 LATIN_DIPHTHONGS = {"ae", "au", "oe", "ei", "eu", "ui"}
@@ -59,12 +59,9 @@ preset_active = url_preset_active(page_id)
 st.markdown("# Szófaj felismerése")
 
 
-# --- Dictionary-entry builders -------------------------------------------------
-
 def noun_dictionary_entry(noun):
     data = noun_vocab[noun]
     irreg_gen = data.get("irreg", {}).get("sg", {}).get("gen", "__regular__")
-
     if irreg_gen == "__regular__":
         decl = data["decl"]
         stem = data["stem"]
@@ -84,10 +81,8 @@ def noun_dictionary_entry(noun):
             genitive = None
     else:
         genitive = irreg_gen
-
     if isinstance(genitive, list):
         genitive = "/".join(genitive)
-
     if genitive:
         return f"{noun}, {genitive} {data['gender']}."
     return f"{noun} {data['gender']}."
@@ -97,20 +92,13 @@ def adjective_dictionary_entry(adjective):
     data = adjective_vocab[adjective]
     decl = data.get("decl")
     noms = data.get("noms")
-
-    # -er adjectives need their full nominative set to reveal the stem.
-    # 1st/2nd-declension entries store only lemma + stem in vocab.py.
     if decl == (1, 2) and adjective.endswith("er") and adjective != "pauper":
         stem = data["stem"]
         return f"{adjective}, {stem}a, {stem}um"
-
-    # 3rd-declension -er adjectives already store all three nominatives.
     if noms and len(noms) == 3 and str(noms[0]).endswith("er"):
         return ", ".join(noms)
-
     if decl == (1, 2):
         return f"{adjective} 3"
-
     if decl == 3:
         if noms:
             if len(noms) == 3:
@@ -120,8 +108,6 @@ def adjective_dictionary_entry(adjective):
             if len(noms) == 1:
                 return f"{adjective} 1"
         return f"{adjective} 1"
-
-    # Defensive fallback for any future adjective subtype.
     return adjective
 
 
@@ -131,7 +117,6 @@ def regular_present_infinitive(verb, data):
     voice = data.get("voice")
     if not stem or conj is None:
         return None
-
     if voice == "dep":
         if conj == 1:
             return stem + "ārī"
@@ -170,13 +155,11 @@ def verb_dictionary_entry(verb):
     conj_label = 3 if conj == "3io" else conj
     genuinely_irregular = data.get("irreg", {}).get("irreg") is True
     voice = data.get("voice")
-
     if genuinely_irregular:
         infinitive = irregular_present_infinitive(data) or regular_present_infinitive(verb, data)
         parts = [verb]
         if infinitive:
             parts.append(infinitive)
-
         if voice == "act":
             if data.get("perf"):
                 parts.append(data["perf"] + "ī")
@@ -184,13 +167,9 @@ def verb_dictionary_entry(verb):
                 parts.append(data["ppp"] + "um")
         elif data.get("ppp"):
             parts.append(data["ppp"] + "us sum")
-
         return ", ".join(parts)
-
-    # Regular first-conjugation active verbs are deliberately abbreviated.
     if conj == 1 and voice == "act":
         return f"{verb} 1"
-
     if voice == "act":
         parts = [f"{verb} {conj_label}"]
         if data.get("perf"):
@@ -198,10 +177,8 @@ def verb_dictionary_entry(verb):
         if data.get("ppp"):
             parts.append(data["ppp"] + "um")
         return parts[0] + (" " + ", ".join(parts[1:]) if len(parts) > 1 else "")
-
     if data.get("ppp"):
         return f"{verb} {conj_label} {data['ppp']}us sum"
-
     return f"{verb} {conj_label}"
 
 
@@ -213,19 +190,12 @@ ENTRY_BUILDERS = {
 
 
 def noun_has_beginner_dictionary_entry(data):
-    # Exclude nouns whose singular genitive is explicitly unavailable
-    # (e.g. vīs), since this exercise teaches the standard dictionary-entry pattern.
     return data.get("irreg", {}).get("sg", {}).get("gen", "__regular__") is not None
 
 
 def adjective_has_beginner_dictionary_entry(data):
-    # Cardinal numbers are not treated as ordinary adjectives in this beginner exercise.
     if data.get("cardinal") is True:
         return False
-
-    # Exclude one-termination 3rd-declension adjectives (e.g. vetus, ingēns).
-    # This beginner exercise uses only adjective entries that visibly distinguish
-    # at least the neuter nominative from the masculine/feminine form.
     if data.get("decl") == 3:
         noms = data.get("noms")
         return bool(noms and len(noms) >= 2)
@@ -233,12 +203,8 @@ def adjective_has_beginner_dictionary_entry(data):
 
 
 def verb_has_beginner_dictionary_entry(data):
-    # Exclude genuinely irregular verbs such as sum, possum, ferō, etc.
-    # Verbs with only isolated irregular forms (e.g. dīcō, dūcō) remain eligible.
     if data.get("irreg", {}).get("irreg") is True:
         return False
-
-    # Deponent and semi-deponent verbs are beyond the intended beginner level.
     return data.get("voice") not in ["dep", "semidep"]
 
 
@@ -249,8 +215,6 @@ VOCABULARIES = {
 }
 
 
-# --- Settings ------------------------------------------------------------------
-
 option_expander = st.expander("Beállítások", expanded=True)
 with option_expander:
     selected_pos = st.multiselect(
@@ -259,68 +223,46 @@ with option_expander:
         format_func=lambda x: POS_LABELS[x],
         key=widget_key(page_id, "selected_pos"),
     )
-
     current_settings = {"selected_pos": selected_pos}
-
     if st.user.is_logged_in:
         set_defaults_col, clear_defaults_col, link_col = st.columns(3)
         with set_defaults_col:
             st.button(
-                "Beállítások mentése",
-                type="primary",
-                width="stretch",
+                "Beállítások mentése", type="primary", width="stretch",
                 help="A jelenlegi szófajválasztás mentése alapértelmezett beállításként.",
-                on_click=save_defaults,
-                args=(page_id, defaults),
-                kwargs=current_settings,
+                on_click=save_defaults, args=(page_id, defaults), kwargs=current_settings,
                 disabled=preset_active,
             )
-
         with clear_defaults_col:
             generic_settings = {"selected_pos": PARTS_OF_SPEECH}
             settings_changed = current_settings != generic_settings
-
             def reset_recognition_defaults():
                 clear_defaults(page_id)
                 st.session_state.recognize_pos_selected_pos = list(PARTS_OF_SPEECH)
-
             st.button(
-                "Alapbeállítások",
-                type="primary",
-                width="stretch",
+                "Alapbeállítások", type="primary", width="stretch",
                 help="A BevLat általános alapértelmezett beállításainak visszaállítása ehhez a feladathoz.",
                 on_click=reset_recognition_defaults,
                 disabled=preset_active or (not defaults and not settings_changed),
             )
-
         with link_col:
             exercise_link_popover(page_id, exercise_schema, current_settings)
     else:
         exercise_link_popover(page_id, exercise_schema, current_settings)
 
 
-# --- Question generation and checking -----------------------------------------
-
 def gen_question():
     if not selected_pos:
         return None
-
     pos = random.choice(selected_pos)
     word = random.choice(list(VOCABULARIES[pos].keys()))
-
     if st.session_state.current_question:
         previous = st.session_state.current_question
         attempts = 0
         while previous and previous.get("pos") == pos and previous.get("word") == word and attempts < 20:
             word = random.choice(list(VOCABULARIES[pos].keys()))
             attempts += 1
-
-    return {
-        "pos": pos,
-        "word": word,
-        "entry": ENTRY_BUILDERS[pos](word),
-        "qid": random.getrandbits(64),
-    }
+    return {"pos": pos, "word": word, "entry": ENTRY_BUILDERS[pos](word), "qid": random.getrandbits(64)}
 
 
 def start_new_question():
@@ -332,60 +274,46 @@ def check_recognition_answer(answer_key):
     answer = st.session_state.get(answer_key)
     if not answer or st.session_state.answer_checked:
         return
-
     st.session_state.pop("recognize_pos_pending_answer_key", None)
     st.session_state.pop("recognize_pos_check_after", None)
-
     correct_answer = st.session_state.current_question["pos"]
     correct = answer == correct_answer
     answer_label = POS_LABELS[answer]
     correct_answer_label = POS_LABELS[correct_answer]
-
     st.session_state.answer_checked = True
     st.session_state.button_disable = True
     st.session_state.total_questions += 1
     if correct:
         st.session_state.current_score += 1
-        st.session_state.result_message = "**Helyes!**"
-        st.session_state.answer_display_message = (
-            f":green-background[A helyes válasz: {correct_answer_label}]"
-        )
+        st.session_state.result_message = ""
+        st.session_state.answer_display_message = ""
     else:
         st.session_state.result_message = "**Helytelen. Próbáld meg a következőt!**"
         st.session_state.answer_display_message = (
             f":red-background[A válaszod: {answer_label}]  \n"
             f":red-background[A helyes válasz: {correct_answer_label}]"
         )
-
     record = {
-        "pos": "recognize_pos",
-        "word": st.session_state.current_question["word"],
-        "answer": answer,
-        "correct": correct,
-        "id": {"target_pos": correct_answer},
+        "pos": "recognize_pos", "word": st.session_state.current_question["word"],
+        "answer": answer, "correct": correct, "id": {"target_pos": correct_answer},
     }
     questions_asked.append(record)
-
     if st.user.is_logged_in:
         insert_dict = {
             "user_id": str(st.session_state.user_id),
-            "time_answered": dt.now(timezone.utc).isoformat(),
-            "answer": record,
+            "time_answered": dt.now(timezone.utc).isoformat(), "answer": record,
         }
         st.session_state.supabase_connection.table("answer").insert(insert_dict).execute()
-
     st.session_state.auto_advance_trigger = bool(st.session_state.auto_advance)
 
 
 def choose_recognition_answer(answer_key, answer, answer_index):
     if st.session_state.answer_checked:
         return
-
     st.session_state[answer_key] = answer
     st.session_state.recognize_pos_selected_answer = answer_index
     st.session_state.recognize_pos_pending_answer_key = answer_key
     st.session_state.recognize_pos_check_after = time.monotonic() + ANSWER_CHECK_DELAY
-
     if ANSWER_CHECK_DELAY <= 0:
         check_recognition_answer(answer_key)
 
@@ -399,40 +327,35 @@ if st.session_state.current_question:
     question = st.session_state.current_question
     answer_key = f"recognize_pos_answer_{question['qid']}"
     selected_answer_index = st.session_state.recognize_pos_selected_answer
-
     st.markdown("### Aktuális kérdés")
-
     prompt_space = st.container(height=52, border=False)
     with prompt_space:
         article = hungarian_article(question["word"])
         st.markdown(f"Milyen szófajú szó {article} ***{question['entry']}***?")
-
     if selected_answer_index is not None:
-        st.html(
-            f"""
+        st.html(f"""
             <style>
             .st-key-{answer_key}_option_{selected_answer_index} button {{
                 background-color: rgba(128, 128, 128, 0.25) !important;
             }}
             </style>
-            """
-        )
-
+            """)
     answer_columns = st.columns(len(PARTS_OF_SPEECH), gap="small")
     for answer_index, (answer_column, answer_option) in enumerate(zip(answer_columns, PARTS_OF_SPEECH)):
         with answer_column:
             st.button(
-                POS_LABELS[answer_option],
-                key=f"{answer_key}_option_{answer_index}",
-                on_click=choose_recognition_answer,
-                args=(answer_key, answer_option, answer_index),
-                disabled=st.session_state.answer_checked,
-                width="stretch",
+                POS_LABELS[answer_option], key=f"{answer_key}_option_{answer_index}",
+                on_click=choose_recognition_answer, args=(answer_key, answer_option, answer_index),
+                disabled=st.session_state.answer_checked, width="stretch",
             )
-
     feedback_space = st.container(height=72, border=False)
     with feedback_space:
-        st.markdown(st.session_state.answer_display_message)
+        if st.session_state.answer_checked and st.session_state.get(answer_key) == question["pos"]:
+            left, center, right = st.columns([1, 1, 1])
+            with center:
+                st.markdown(":green-background[**Helyes válasz!**]")
+        else:
+            st.markdown(st.session_state.answer_display_message)
 
 pending_answer_key = st.session_state.get("recognize_pos_pending_answer_key")
 check_after = st.session_state.get("recognize_pos_check_after")
@@ -453,24 +376,17 @@ recognition_check_timer()
 control_row = st.container(height=92, border=False)
 with control_row:
     new_question_col, results_col, score_col = st.columns(3, gap="medium", vertical_alignment="top")
-
     with new_question_col:
         button_text = "Új kérdés" if st.session_state.question_list else "Kattints ide az első kérdéshez!"
         button_type = "secondary" if st.session_state.question_list else "primary"
         st.button(
-            button_text,
-            on_click=start_new_question,
-            key="recognize_pos_question_button",
-            width="stretch",
-            disabled=not selected_pos,
-            type=button_type,
+            button_text, on_click=start_new_question, key="recognize_pos_question_button",
+            width="stretch", disabled=not selected_pos, type=button_type,
         )
-
     with results_col:
         result_space = st.container(height=48, border=False)
         with result_space:
             st.markdown(st.session_state.result_message)
-
     with score_col:
         st.button("Pontszám nullázása", "recognize_pos_reset", on_click=reset, width="stretch")
         st.markdown(f"Jelenlegi pontszám: **{st.session_state.current_score}** / **{st.session_state.total_questions}**")
