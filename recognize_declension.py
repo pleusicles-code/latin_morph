@@ -13,7 +13,10 @@ from vocab import import_nouns, import_adjectives
 st.set_page_config("Latin Morph! Recognize Declension", layout="centered")
 
 page_id = "recognize_declension"
+new_run = st.session_state.curr_page_id != page_id
 clear_page(page_id)
+if new_run or "recognize_declension_recent_categories" not in st.session_state:
+    st.session_state.recognize_declension_recent_categories = []
 questions_asked = st.session_state.question_list
 defaults = st.session_state.default_settings.get(f"{page_id}.py", {})
 
@@ -205,43 +208,49 @@ def selected_declension_numbers():
     return {str(DECLENSIONS.index(label) + 1) for label in declension}
 
 
-def available_questions_by_pos():
+def available_questions_by_category():
     selected = selected_declension_numbers()
-    pools = {"noun": [], "adjective": []}
+    pools = {}
 
     if "noun" in selected_pos:
         for word, data in NOUNS.items():
             answer = noun_declension(data)
             if answer in selected:
-                pools["noun"].append(("noun", word, answer))
+                category = ("noun", answer)
+                pools.setdefault(category, []).append(("noun", word, answer))
 
     if "adjective" in selected_pos:
         for word, data in ADJECTIVES.items():
             answer = adjective_declension(data)
             if answer == "3" and "3" in selected:
-                pools["adjective"].append(("adjective", word, answer))
+                category = ("adjective", "3")
+                pools.setdefault(category, []).append(("adjective", word, answer))
             elif answer == "1–2" and ({"1", "2"} & selected):
-                pools["adjective"].append(("adjective", word, answer))
+                category = ("adjective", "1–2")
+                pools.setdefault(category, []).append(("adjective", word, answer))
 
-    return {pos: pool for pos, pool in pools.items() if pool}
+    return pools
 
 
 def gen_question():
-    pools = available_questions_by_pos()
+    pools = available_questions_by_category()
     if not pools:
         return None
 
-    available_pos = list(pools.keys())
-    if len(available_pos) == 1:
-        pos = available_pos[0]
-    else:
-        pos = random.choices(
-            ["noun", "adjective"],
-            weights=[0.7, 0.3],
-            k=1,
-        )[0]
+    active_categories = list(pools.keys())
 
-    pool = pools[pos]
+    # Look at the previous nine generated questions so that the new question
+    # completes a ten-question window containing every active category whenever
+    # possible. During the initial fill, this also forces each active category
+    # to appear once before any category is repeated.
+    recent_categories = st.session_state.recognize_declension_recent_categories[-9:]
+    missing_categories = [
+        category for category in active_categories
+        if category not in recent_categories
+    ]
+    category = random.choice(missing_categories or active_categories)
+
+    pool = pools[category]
     pos, word, answer = random.choice(pool)
 
     if st.session_state.current_question:
@@ -250,6 +259,10 @@ def gen_question():
         while previous and previous.get("pos") == pos and previous.get("word") == word and attempts < 20:
             pos, word, answer = random.choice(pool)
             attempts += 1
+
+    st.session_state.recognize_declension_recent_categories = (
+        st.session_state.recognize_declension_recent_categories + [category]
+    )[-10:]
 
     entry = noun_dictionary_entry(word) if pos == "noun" else adjective_dictionary_entry(word)
     return {
@@ -320,9 +333,14 @@ def choose_recognition_answer(answer_key):
         st.session_state.recognize_declension_check_after = time.monotonic() + 1.0
 
 
+def reset_recognition_score():
+    reset()
+    st.session_state.recognize_declension_recent_categories = []
+
+
 st.session_state.gen_func = gen_question
 
-pool_available = bool(available_questions_by_pos())
+pool_available = bool(available_questions_by_category())
 if not pool_available and not st.session_state.current_question:
     st.write("You need to choose at least one compatible declension and part of speech.")
 
@@ -388,7 +406,7 @@ with results_col:
     st.markdown(st.session_state.result_message)
 
 with score_col:
-    st.button("Reset Score", "recognize_declension_reset", on_click=reset, width="stretch")
+    st.button("Reset Score", "recognize_declension_reset", on_click=reset_recognition_score, width="stretch")
     st.markdown(f"Current score: **{st.session_state.current_score}** out of **{st.session_state.total_questions}**")
 
 if not st.session_state.auto_advance:
