@@ -1001,7 +1001,7 @@ else:
                         if evaluation == "correct":
                             st.session_state.result_message = "**Good job!**"
                             st.session_state.answer_display_message = (
-                                f":green-background[{all_possible_text}]"
+                                f":green-background[The correct answer is: {all_possible_text}]"
                             )
                             if (
                                 not st.session_state[widget_key(page_id, "expect_all_answers")]
