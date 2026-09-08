@@ -635,7 +635,29 @@ else:
             return f"{noun}, {genitive} {gender}."
         return f"{noun} {gender}."
 
-    st.session_state.gen_func = adap_gen_question
+    def recognition_gen_question():
+        # Use the ordinary random generator to choose the noun, but do not let
+        # the sampled case/number determine which surface form is asked about.
+        noun, _, _ = gen_question()
+        print_macrons = st.session_state[widget_key(page_id, "print_macrons")]
+        form_analyses = {}
+
+        for possible_number in noun_options["number"]:
+            for possible_case in noun_options["case"]:
+                possible_form = build_noun([noun, possible_case, possible_number])
+                if possible_form is None:
+                    continue
+                possible_forms = possible_form if isinstance(possible_form, list) else [possible_form]
+                for form in possible_forms:
+                    displayed = form if print_macrons else remove_macrons(form)
+                    form_analyses.setdefault(displayed, set()).add((possible_case, possible_number))
+
+        displayed_form = random.choice(list(form_analyses))
+        case, number = random.choice(list(form_analyses[displayed_form]))
+        st.session_state.nouns_recognition_displayed_form = displayed_form
+        return [noun, case, number]
+
+    st.session_state.gen_func = recognition_gen_question if exercise_type == "recognize" else adap_gen_question
 
     if st.session_state.current_question:
         noun, case, number = st.session_state.current_question
@@ -670,11 +692,15 @@ else:
             if show_stem:
                 question += f' (The base is: {noun_vocab[noun]["stem"]}-)'
         else:
-            displayed_form = correct_answer
-            if isinstance(displayed_form, list):
-                displayed_form = random.choice(displayed_form)
-            if not st.session_state[widget_key(page_id, "print_macrons")]:
-                displayed_form = remove_macrons(displayed_form)
+            displayed_form = st.session_state.get("nouns_recognition_displayed_form")
+            if not displayed_form:
+                # Fallback for any pre-existing session question created before
+                # the recognition-specific generator was introduced.
+                displayed_form = correct_answer
+                if isinstance(displayed_form, list):
+                    displayed_form = random.choice(displayed_form)
+                if not st.session_state[widget_key(page_id, "print_macrons")]:
+                    displayed_form = remove_macrons(displayed_form)
 
             question = f"Which number and case can *{displayed_form}* represent?"
             if show_dictionary_entry:
@@ -768,7 +794,7 @@ else:
     new_q_button_text = "New Question" if st.session_state.question_list else "Click here for your first question!"
     new_q_button_type = "secondary" if st.session_state.question_list else "primary"
     with new_question_col:
-        st.button(new_q_button_text, on_click=new_question, args=(adap_gen_question,), key="question_button", width="stretch",
+        st.button(new_q_button_text, on_click=new_question, args=(st.session_state.gen_func,), key="question_button", width="stretch",
                   disabled=True if len(declension) == 0 else False, type=new_q_button_type
                   )
 
