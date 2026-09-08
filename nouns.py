@@ -669,7 +669,15 @@ else:
                 elif noun_decl_cat in noun_vocab:
                     noun = noun_decl_cat
                 else:
-                    decl = next(val for key, val in declension_dict.items() if key.startswith(noun_decl_cat))
+                    decl = []
+                    for selected_decl in declension:
+                        selected_values = declension_dict[selected_decl]
+                        if not isinstance(selected_values, list):
+                            selected_values = [selected_values]
+                        decl.extend(
+                            value for value in selected_values
+                            if str(value).startswith(noun_decl_cat)
+                        )
                 if not noun:
                     if noun_decl_cat == "5":
                         avail_nouns = {
