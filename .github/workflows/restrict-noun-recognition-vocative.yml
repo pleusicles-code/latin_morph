@@ -1,0 +1,44 @@
+name: Restrict noun recognition vocative
+
+on:
+  push:
+    branches:
+      - exercise-url-presets
+    paths:
+      - tools/restrict_noun_recognition_vocative.py
+      - .github/workflows/restrict-noun-recognition-vocative.yml
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: exercise-url-presets
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Apply patch
+        run: python tools/restrict_noun_recognition_vocative.py
+      - name: Syntax check
+        run: python -m py_compile nouns.py
+      - name: Verify vocative restriction
+        run: |
+          python - <<'PY'
+          text = open('nouns.py').read()
+          assert 'def recognition_cases_for_noun(noun, number):' in text
+          assert text.count('for possible_case in recognition_cases_for_noun(noun, possible_number):') == 2
+          assert 'if number != "sg":' in text
+          assert 'noun_data.get("gender") != "m"' in text
+          assert 'vocative_forms != nominative_forms' in text
+          PY
+      - name: Commit change
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add nouns.py
+          git commit -m "Restrict vocative in noun recognition"
+          git push
