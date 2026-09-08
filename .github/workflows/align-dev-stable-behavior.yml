@@ -1,0 +1,184 @@
+name: Align dev with stable behavior
+
+on:
+  push:
+    branches:
+      - exercise-url-presets
+    paths:
+      - .github/workflows/align-dev-stable-behavior.yml
+
+permissions:
+  contents: write
+
+jobs:
+  align:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: exercise-url-presets
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Align smart auto-advance and BevLat branding
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import re
+
+          exercise_files = [
+              "nouns.py",
+              "verbs.py",
+              "adjectives.py",
+              "verbal_adj.py",
+              "pronouns.py",
+              "recognize_pos.py",
+              "recognize_declension.py",
+              "identify_stems.py",
+          ]
+
+          branding_files = [
+              "about.py",
+              "account.py",
+              "adjectives.py",
+              "data.py",
+              "faq.py",
+              "identify_stems.py",
+              "latin_morph.py",
+              "main_page.py",
+              "nouns.py",
+              "pronouns.py",
+              "recognize_pos.py",
+              "recognize_declension.py",
+              "verbal_adj.py",
+              "verbs.py",
+              "vocab_list.py",
+          ]
+
+          def remove_target_warning_blocks(text):
+              lines = text.splitlines(keepends=True)
+              out = []
+              i = 0
+              while i < len(lines):
+                  if "st.warning(" not in lines[i]:
+                      out.append(lines[i])
+                      i += 1
+                      continue
+
+                  block = [lines[i]]
+                  balance = lines[i].count("(") - lines[i].count(")")
+                  i += 1
+                  while balance > 0 and i < len(lines):
+                      block.append(lines[i])
+                      balance += lines[i].count("(") - lines[i].count(")")
+                      i += 1
+
+                  block_text = "".join(block)
+                  if (
+                      "incorrectly generated forms" in block_text
+                      or "If you encounter any errors" in block_text
+                  ):
+                      continue
+                  out.extend(block)
+              return "".join(out)
+
+          # 1. Smart auto-advance: use the same explicit helper calls as stable.
+          utils = Path("utils.py")
+          text = utils.read_text()
+          text = text.replace("import time as _time\n", "")
+          text, n = re.subn(
+              r"\n# Existing exercise pages call time\.sleep\(st\.session_state\.auto_advance\) directly\..*?\n\ndef new_question",
+              "\n\ndef new_question",
+              text,
+              flags=re.S,
+          )
+          if n != 1:
+              raise RuntimeError(f"Expected to remove one auto-advance sleep wrapper block, removed {n}")
+          utils.write_text(text)
+
+          for filename in exercise_files:
+              path = Path(filename)
+              text = path.read_text()
+
+              if "auto_advance_delay" not in text:
+                  lines = text.splitlines(keepends=True)
+                  for idx, line in enumerate(lines):
+                      if line.startswith("from utils import "):
+                          if line.rstrip().endswith(")"):
+                              # Parenthesized import on one physical line.
+                              lines[idx] = line.rstrip("\n")[:-1] + ", auto_advance_delay)\n"
+                          else:
+                              lines[idx] = line.rstrip("\n") + ", auto_advance_delay\n"
+                          break
+                  else:
+                      raise RuntimeError(f"No utils import found in {filename}")
+                  text = "".join(lines)
+
+              count = text.count("time.sleep(st.session_state.auto_advance)")
+              if count != 1:
+                  raise RuntimeError(f"Expected one direct auto-advance sleep in {filename}, found {count}")
+              text = text.replace(
+                  "time.sleep(st.session_state.auto_advance)",
+                  "time.sleep(auto_advance_delay())",
+                  1,
+              )
+              path.write_text(text)
+
+          # 2. BevLat branding: use direct source text, not global Streamlit wrappers.
+          shell = Path("latin_morph.py")
+          text = shell.read_text()
+          start = text.find("# Apply the BevLat branding consistently")
+          end = text.find("# if st.user.is_logged_in:")
+          if start == -1 or end == -1 or end <= start:
+              raise RuntimeError("Could not locate the dev branding wrapper block")
+          text = text[:start] + text[end:]
+          shell.write_text(text)
+
+          for filename in branding_files:
+              path = Path(filename)
+              text = path.read_text().replace("Latin Morph!", "BevLat")
+              text = remove_target_warning_blocks(text)
+              path.write_text(text)
+
+          # Keep the attribution to the original app exactly as on stable.
+          shell = Path("latin_morph.py")
+          text = shell.read_text()
+          text = text.replace(
+              "This app is a custom version of [BevLat](https://latin-morph.streamlit.app/), originally developed by Darcy Krasne.",
+              "This app is a custom version of [Latin Morph!](https://latin-morph.streamlit.app/), originally developed by Darcy Krasne.",
+          )
+          shell.write_text(text)
+
+          # Sanity checks.
+          utils_text = Path("utils.py").read_text()
+          if "_latin_morph_auto_advance_wrapper" in utils_text or "_time.sleep" in utils_text:
+              raise RuntimeError("Global sleep wrapper still present")
+
+          for filename in exercise_files:
+              text = Path(filename).read_text()
+              if "time.sleep(st.session_state.auto_advance)" in text:
+                  raise RuntimeError(f"Old auto-advance call remains in {filename}")
+              if "time.sleep(auto_advance_delay())" not in text:
+                  raise RuntimeError(f"Explicit helper call missing in {filename}")
+
+          shell_text = Path("latin_morph.py").read_text()
+          if "_bevlat_original_markdown" in shell_text or "st.markdown = _bevlat_markdown" in shell_text:
+              raise RuntimeError("Branding monkey-patches still present")
+          if "[Latin Morph!](https://latin-morph.streamlit.app/)" not in shell_text:
+              raise RuntimeError("Original-app attribution was not preserved")
+          PY
+
+      - name: Syntax check
+        run: |
+          python -m py_compile utils.py latin_morph.py nouns.py verbs.py adjectives.py verbal_adj.py pronouns.py recognize_pos.py recognize_declension.py identify_stems.py about.py account.py data.py faq.py main_page.py vocab_list.py
+
+      - name: Commit aligned behavior
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add utils.py latin_morph.py nouns.py verbs.py adjectives.py verbal_adj.py pronouns.py recognize_pos.py recognize_declension.py identify_stems.py about.py account.py data.py faq.py main_page.py vocab_list.py
+          git diff --cached --check
+          git commit -m "Align dev auto-advance and branding with stable"
+          git push
