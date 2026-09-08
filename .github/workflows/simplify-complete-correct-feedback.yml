@@ -1,0 +1,42 @@
+name: Simplify complete correct noun feedback
+
+on:
+  push:
+    branches:
+      - exercise-url-presets
+    paths:
+      - tools/simplify_complete_correct_feedback.py
+      - .github/workflows/simplify-complete-correct-feedback.yml
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: exercise-url-presets
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Apply patch
+        run: python tools/simplify_complete_correct_feedback.py
+      - name: Syntax check
+        run: python -m py_compile nouns.py
+      - name: Verify feedback logic
+        run: |
+          python - <<'PY'
+          text = open('nouns.py').read()
+          assert ':green-background[**Correct answer!**]' in text
+          assert 'if missing_analyses:' in text
+          assert ':yellow-background[Take note, however, that other analyses are possible!]' in text
+          PY
+      - name: Commit change
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add nouns.py
+          git commit -m "Simplify complete correct noun feedback"
+          git push
