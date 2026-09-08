@@ -20,10 +20,10 @@ for announcement in [announce["text"] for announce in temp_announcements if anno
 
 st.markdown("""
             A **BevLat** a latin szóalakok (morfológia) gyakorlására szolgáló oldal. 
-            A cél a véletlenszerűen kért alakok helyes létrehozása, 
+            A cél a véletlenszerűen adott alakok helyes létrehozása, illetve felismerése, 
             így egyszerre erősítheted meg meglévő tudásodat, 
             és a hibás válaszaidból azt is felismerheted, mely alakokban bizonytalanabb a tudásod. 
-            Gyakorolhatod a főneveket, igéket, mellékneveket és határozószókat, igeneveket (jelenleg participiumokat és gerundivumokat), valamint a névmásokat.
+            Gyakorolhatod a főneveket, igéket, mellékneveket és határozószókat, igeneveket (jelenleg participiumokat és gerundivumokat), valamint a névmásokat; gyakorolhatod továbbá szófajok és tövek felismerését szótári alakok alapján.
             """)
 
 st.markdown("""
@@ -36,7 +36,7 @@ st.markdown("""
 st.markdown("""
             A BevLat emellett nagymértékben **testreszabható**: 
             pontosan megadhatod, hogy egy adott szófajon belül mit szeretnél gyakorolni,
-            és beállíthatod személyes preferenciáidat többek között a hosszú magánhangzók jelölésére, az esetek sorrendjére, 
+            és beállíthatod személyes preferenciáidat többek között a hosszú magánhangzók jelölésére, 
             valamint arra vonatkozóan, milyen információkat kapsz egy-egy szóról.
             """)
 
@@ -68,7 +68,7 @@ st.markdown("""
 
             Minden szófajhoz számos testreszabható beállítás tartozik, így a BevLat a tudásszintedhez és preferenciáidhoz igazíthatja a feladatokat.
             Ha például még nem tanultad meg egy adott szófaj összes alakját
-            (például az igék közül csak a praesens indicativust, vagy a főnevek közül csak az első és második declinatiót ismered),
+            (például az igék közül csak a praesens perfectumot, vagy a főnevek közül csak az első és második declinatiót ismered),
             a gyakorlást leszűkítheted az általad már ismert alakokra. 
             Ugyanígy, ha bizonyos alakokat vagy rendhagyó szavakat különösen szeretnél gyakorolni, célzottan kiválaszthatod őket.
             Azt javaslom, hogy amikor egy új alakrendszert tanulsz, kezdetben kevesebb lehetőséget válassz ki, 
@@ -103,9 +103,6 @@ st.markdown("""
             (A BevLat offline nem használható, de ha be vagy jelentkezve, a kapcsolat helyreállásakor a válaszaid is helyreállnak.)
             A fiók lehetővé teszi a személyes beállításaid (például a gyakorolni kívánt declinatiók) mentését is, 
             így ezeket nem kell minden alkalommal újra beállítanod, amikor másik szófajra váltasz.
-
-            Ha még maradt kérdésed, a **Gyakori kérdések** oldalon találhatsz hasznos válaszokat; 
-            ha pedig ezek után is kérdésed van, nyugodtan [írj nekem](https://forms.gle/xT8hQ27sjposeXPc9).
             </details>
 
             <p></p>
