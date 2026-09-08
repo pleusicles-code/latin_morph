@@ -299,7 +299,10 @@ def learner_present_stem(data):
 
 def correct_stems_for(pos, word):
     data = VOCABULARIES[pos][word]
-    if pos in ["noun", "adjective"]:
+    if pos == "noun":
+        stem = data["stem"] + ("e" if data.get("decl") in ["5_vowel", "5_consonant"] else "")
+        return [canonical_stem(stem)]
+    if pos == "adjective":
         return [canonical_stem(data["stem"])]
     return [learner_present_stem(data), canonical_stem(data["perf"]), canonical_stem(data["ppp"])]
 
