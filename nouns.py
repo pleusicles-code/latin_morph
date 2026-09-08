@@ -99,6 +99,9 @@ preset_active = url_preset_active(page_id)
 option_expander = st.expander("Beállítások", expanded=True)
 
 with option_expander:
+    col_declension, col_options = st.columns([3, 2])
+
+with col_declension:
     exercise_type = st.radio(
         "Feladattípus:",
         options=["inflect", "recognize"],
@@ -110,7 +113,6 @@ with option_expander:
         key=widget_key(page_id, "exercise_type"),
         on_change=radio_change,
     )
-    col_declension, col_options = st.columns([3, 2])
 
 with col_options:
     def switch_noun_macrons():
