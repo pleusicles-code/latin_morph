@@ -147,13 +147,17 @@ def submit_and_check_answer():
             else:
                 st.session_state.result_message = "**Incorrect. Better luck next time!**"
 
-            # Highlight detailed answer feedback consistently across all exercises
-            # using Streamlit's rounded background-color Markdown treatment.
-            feedback_color = "green" if correct_flag else "red"
-            st.session_state.answer_display_message = (
-                f":{feedback_color}-background[Your answer is: {user_answer}]  \n"
-                f":{feedback_color}-background[{st.session_state['answer_phrase']}]"
-            )
+            # Correct responses need only the canonical answer. Incorrect responses
+            # retain the fuller user-answer/correct-answer comparison.
+            if correct_flag:
+                st.session_state.answer_display_message = (
+                    f":green-background[{st.session_state['answer_phrase']}]"
+                )
+            else:
+                st.session_state.answer_display_message = (
+                    f":red-background[Your answer is: {user_answer}]  \n"
+                    f":red-background[{st.session_state['answer_phrase']}]"
+                )
 
 #            st.write(st.session_state.append_answer)
             if st.session_state.append_answer is False:
