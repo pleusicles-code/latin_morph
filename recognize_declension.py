@@ -409,7 +409,7 @@ if st.session_state.current_question:
     prompt_space = st.container(height=52, border=False)
     with prompt_space:
         article = hungarian_article(question["word"])
-        st.markdown(f"Melyik declinatióhoz tartozik {article} *{question['entry']}*?")
+        st.markdown(f"Melyik declinatióhoz tartozik {article} ***{question['entry']}***?")
 
     # Inject styling without creating an extra layout block. This keeps the
     # answer buttons at exactly the same vertical position before and after a click.
