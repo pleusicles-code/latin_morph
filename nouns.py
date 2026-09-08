@@ -702,7 +702,7 @@ else:
                             break
 
             vowel_phrase = "are" if print_macrons else "are not"
-            question += f" Vowel lengths {vowel_phrase} indicated"
+            question += f"  \nVowel lengths {vowel_phrase} indicated"
             if st.session_state[widget_key(page_id, "indicate_multiple_answers")]:
                 if len(matching_analyses) > 1:
                     question += " and multiple correct answers are possible."
