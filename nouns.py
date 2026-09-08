@@ -638,7 +638,7 @@ else:
     def recognition_gen_question():
         # Use the ordinary random generator to choose the noun, but do not let
         # the sampled case/number determine which surface form is asked about.
-        noun, _, _ = gen_question()
+        noun, _, _ = adap_gen_question()
         print_macrons = st.session_state[widget_key(page_id, "print_macrons")]
         form_analyses = {}
 
