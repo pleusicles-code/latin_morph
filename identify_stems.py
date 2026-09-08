@@ -438,14 +438,17 @@ if st.session_state.current_question:
     question = st.session_state.current_question
     answer_key = f"identify_stems_answer_{question['qid']}"
 
-    st.markdown("### Aktuális kérdés")
-    prompt_space = st.container(height=52, border=False)
+    prompt_space = st.container(height=58, border=False)
     with prompt_space:
         article = hungarian_article(question["word"])
         if question["target_pos"] == "verb":
-            st.markdown(f"Melyek {article} ***{question['entry']}*** tövei?")
+            prompt_text = f"Melyek {article} <strong><em>{question['entry']}</em></strong> tövei?"
         else:
-            st.markdown(f"Mi {article} ***{question['entry']}*** töve?")
+            prompt_text = f"Mi {article} <strong><em>{question['entry']}</em></strong> töve?"
+        st.markdown(
+            f'<div style="font-size:1.75rem;line-height:1.25;">{prompt_text}</div>',
+            unsafe_allow_html=True,
+        )
 
     with st.form(key=f"identify_stems_form_{question['qid']}"):
         st.text_input(
