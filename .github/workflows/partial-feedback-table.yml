@@ -1,0 +1,50 @@
+name: Partial feedback table
+
+on:
+  push:
+    branches:
+      - exercise-url-presets
+    paths:
+      - tools/partial_feedback_table.py
+      - .github/workflows/partial-feedback-table.yml
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: exercise-url-presets
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Apply patch
+        run: python tools/partial_feedback_table.py
+      - name: Syntax check
+        run: python -m py_compile nouns.py
+      - name: Verify partial feedback table
+        run: |
+          python - <<'PY'
+          text = open('nouns.py').read()
+          required = [
+              '<table style="border-collapse:collapse;border:none;background:#fff3cd;width:100%;">',
+              '<strong>Partially correct answer:</strong>',
+              'vertical-align:middle',
+              'background:#d9f2df',
+              'background:#f7d7d9',
+              'background:#dbeafe',
+              'st.html(st.session_state.answer_display_message)',
+          ]
+          for item in required:
+              assert item in text, item
+          PY
+      - name: Commit change
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add nouns.py
+          git commit -m "Format partial noun feedback as table"
+          git push
