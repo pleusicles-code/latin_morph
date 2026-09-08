@@ -390,7 +390,9 @@ if st.session_state.current_question:
                 width="stretch",
             )
 
-    st.markdown(st.session_state.answer_display_message)
+    feedback_space = st.container(height=72, border=False)
+    with feedback_space:
+        st.markdown(st.session_state.answer_display_message)
 
 pending_answer_key = st.session_state.get("recognize_declension_pending_answer_key")
 check_after = st.session_state.get("recognize_declension_check_after")
