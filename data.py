@@ -4,7 +4,7 @@ import unicodedata
 from utils import remove_macrons
 from vocab import import_verbs
 
-st.set_page_config(page_title="Latin Morph! Data")
+st.set_page_config(page_title="BevLat Data")
 
 question_list = st.session_state.question_list
 verb_vocab = import_verbs()

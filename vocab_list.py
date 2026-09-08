@@ -4,7 +4,7 @@ from vocab import *
 
 st.title("Vocabulary List")
 
-st.markdown("These are the words that are currently available in Latin Morph!")
+st.markdown("These are the words that are currently available in BevLat")
 
 adj_vocab = import_adjectives()
 adj_vocab = list(adj_vocab)

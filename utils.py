@@ -1,7 +1,6 @@
 import streamlit as st
 # import random
 import unicodedata
-import time as _time
 import os
 import sys
 # from st_supabase_connection import SupabaseConnection
@@ -50,38 +49,6 @@ def auto_advance_delay():
         return min(60, base_delay + 5)
     return base_delay
 
-
-# Existing exercise pages call time.sleep(st.session_state.auto_advance) directly.
-# Route only those direct exercise-page sleeps through the shared delay helper.
-# Streamlit and dependencies also use time.sleep from background workers, so we
-# must not touch st.session_state unless the caller is one of our exercise files.
-_AUTO_ADVANCE_EXERCISE_FILES = {
-    "recognize_pos.py",
-    "recognize_declension.py",
-    "identify_stems.py",
-    "nouns.py",
-    "verbs.py",
-    "adjectives.py",
-    "verbal_adj.py",
-    "pronouns.py",
-}
-
-if not getattr(_time.sleep, "_latin_morph_auto_advance_wrapper", False):
-    _original_sleep = _time.sleep
-
-    def _auto_advance_aware_sleep(seconds):
-        caller_file = os.path.basename(sys._getframe(1).f_code.co_filename)
-        if caller_file in _AUTO_ADVANCE_EXERCISE_FILES:
-            if (
-                st.session_state.get("auto_advance_trigger")
-                and st.session_state.get("answer_checked")
-                and seconds == st.session_state.get("auto_advance")
-            ):
-                seconds = auto_advance_delay()
-        return _original_sleep(seconds)
-
-    _auto_advance_aware_sleep._latin_morph_auto_advance_wrapper = True
-    _time.sleep = _auto_advance_aware_sleep
 
 
 def new_question(gen_question):

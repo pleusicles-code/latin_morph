@@ -1,17 +1,17 @@
 import streamlit as st
 
-st.set_page_config("About Latin Morph!", layout="centered")
+st.set_page_config("About BevLat", layout="centered")
 
 st.markdown("""
-            # About Latin Morph!
+            # About BevLat
                         
-            Latin Morph! is intended for use by Latin learners of all levels.
+            BevLat is intended for use by Latin learners of all levels.
             It takes its original inspiration from <a href="https://hcmc.uvic.ca/project/latin/killer/index.htm" target="_BLANK">the Latin Driller Killer</a> 
             but is not aligned with any particular textbook, 
             and unlike the Latin Driller Killer, it has all five noun declensions 
             and all four verb moods (indicative, subjunctive, imperative, and infinitive).
 
-            Latin Morph! is developed by <a href="https://www.darcykrasne.com/" target="_BLANK">Darcy Krasne</a>. 
+            BevLat is developed by <a href="https://www.darcykrasne.com/" target="_BLANK">Darcy Krasne</a>. 
             If you have any questions or feedback, feel free to fill out <a href="https://forms.gle/xT8hQ27sjposeXPc9" target="_BLANK">this Google Form</a> (or contact her directly). 
             You can also subscribe there to find out about major site updates.
             
@@ -20,7 +20,7 @@ st.markdown("""
 st.markdown(f"""
             ### About the Adaptive Learning Algorithm
 
-            Latin Morph! implements adaptive learning so that words and/or forms you struggle with are more likely to recur.
+            BevLat implements adaptive learning so that words and/or forms you struggle with are more likely to recur.
             There is a 1 in {st.session_state["adap_learning_frequency"]+1} chance that instead of being asked for a completely random form, 
             you'll be asked for a word or form that you have previously gotten wrong more than a 
             (proportionally) small number of times during the current session 

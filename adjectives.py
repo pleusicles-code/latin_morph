@@ -3,12 +3,12 @@ import random
 import time
 import pandas as pd
 import ast
-from utils import reset, new_question, submit_and_check_answer, clear_page, remove_macrons, send_setting, save_defaults, clear_defaults
+from utils import reset, new_question, submit_and_check_answer, clear_page, remove_macrons, send_setting, save_defaults, clear_defaults, auto_advance_delay
 from exercise_presets import (bool_setting, choice_setting, list_setting, resolve_exercise_settings,
                               initialize_widget_state, widget_key, url_preset_active, exercise_link_popover)
 from vocab import import_adjectives
 
-st.set_page_config("Latin Morph! Adjectives and Adverbs", layout="centered")
+st.set_page_config("BevLat Adjectives and Adverbs", layout="centered")
 
 st.session_state.adjectives_enforce_macrons = st.session_state.enforce_macrons["adjectives_enforce_macrons"]
 
@@ -29,7 +29,6 @@ l_stems = ["facilis","difficilis","similis","dissimilis","gracilis","humilis"]
 
 st.markdown("# Adjectives and Adverbs")
 
-st.warning('If you come across any incorrectly generated forms, please fill out the "Latin mistake" part of [this Google form](https://forms.gle/xT8hQ27sjposeXPc9).')
 
 ## SET OPTIONS ##
 
@@ -204,7 +203,7 @@ with options_col:
             st.button("Reset defaults",
                         type="primary",
                         width="stretch",
-                        help="Restore the generic Latin Morph! default settings for adjectives.",
+                        help="Restore the generic BevLat default settings for adjectives.",
                         on_click=clear_defaults,
                         args=(page_id,),
                         disabled=preset_active or not defaults
@@ -1144,6 +1143,6 @@ else:
 #st.write(st.session_state.auto_advance)
 #st.write(st.session_state.gen_func)
 if st.session_state.auto_advance_trigger and st.session_state.answer_checked:
-    time.sleep(st.session_state.auto_advance)
+    time.sleep(auto_advance_delay())
     new_question(st.session_state.gen_func)
     st.rerun()

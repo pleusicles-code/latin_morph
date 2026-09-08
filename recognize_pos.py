@@ -4,13 +4,13 @@ from datetime import datetime as dt, timezone
 
 import streamlit as st
 
-from utils import clear_page, new_question, reset, save_defaults, clear_defaults
+from utils import clear_page, new_question, reset, save_defaults, clear_defaults, auto_advance_delay
 from exercise_presets import (list_setting, resolve_exercise_settings, initialize_widget_state,
                               widget_key, url_preset_active, exercise_link_popover)
 from vocab import import_nouns, import_adjectives, import_verbs
 
 
-st.set_page_config("Latin Morph! Recognize Part of Speech", layout="centered")
+st.set_page_config("BevLat Recognize Part of Speech", layout="centered")
 
 page_id = "recognize_pos"
 new_run = st.session_state.curr_page_id != page_id
@@ -265,7 +265,7 @@ with option_expander:
                 "Reset defaults",
                 type="primary",
                 width="stretch",
-                help="Restore the generic Latin Morph! default settings for this exercise.",
+                help="Restore the generic BevLat default settings for this exercise.",
                 on_click=reset_recognition_defaults,
                 disabled=preset_active or (not defaults and not settings_changed),
             )
@@ -453,6 +453,6 @@ if not st.session_state.auto_advance:
     st.session_state.auto_advance_trigger = False
 
 if st.session_state.auto_advance and st.session_state.auto_advance_trigger and st.session_state.answer_checked:
-    time.sleep(st.session_state.auto_advance)
+    time.sleep(auto_advance_delay())
     start_new_question()
     st.rerun()

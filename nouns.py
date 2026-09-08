@@ -3,13 +3,13 @@ import random
 import time
 import pandas as pd
 import ast
-from utils import radio_change, reset, new_question, submit_and_check_answer, clear_page, send_setting, save_defaults, clear_defaults
+from utils import radio_change, reset, new_question, submit_and_check_answer, clear_page, send_setting, save_defaults, clear_defaults, auto_advance_delay
 from exercise_presets import (bool_setting, choice_setting, list_setting, resolve_exercise_settings,
                               initialize_widget_state, widget_key, url_preset_active, exercise_link_popover)
 from vocab import import_nouns
 
 
-st.set_page_config("Latin Morph! Nouns", layout="centered")
+st.set_page_config("BevLat Nouns", layout="centered")
 
 # if st.session_state.question_list:
 questions_asked = st.session_state.question_list
@@ -25,7 +25,6 @@ defaults = st.session_state.default_settings.get(f"{page_id}.py", {})
 
 st.markdown("# Nouns")
 
-st.warning('If you come across any incorrectly generated forms, please fill out the "Latin mistake" part of [this Google form](https://forms.gle/xT8hQ27sjposeXPc9).')
 
 declension_dict = {
     "1st": 1,
@@ -197,7 +196,7 @@ with col_options:
             st.button("Reset defaults",
                         type="primary",
                         width="stretch",
-                        help="Restore the generic Latin Morph! default settings for nouns.",
+                        help="Restore the generic BevLat default settings for nouns.",
                         on_click=reset_noun_defaults,
                         disabled=preset_active or (not defaults and not noun_settings_changed)
                         )
@@ -709,7 +708,7 @@ else:
         st.markdown(f"Current score: **{st.session_state.current_score}** out of **{st.session_state.total_questions}**")
 
     if st.session_state.auto_advance_trigger and st.session_state.answer_checked:
-        time.sleep(st.session_state.auto_advance)
+        time.sleep(auto_advance_delay())
         new_question(st.session_state.gen_func)
         st.rerun()
 

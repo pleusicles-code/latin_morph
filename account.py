@@ -6,7 +6,7 @@ import logging
 import os
 import jwt
 
-st.set_page_config("Latin Morph! Account Management", layout="centered")
+st.set_page_config("BevLat Account Management", layout="centered")
 
 # if "user_consent_box" not in st.session_state:
 #     st.session_state.user_consent_box = st.session_state.current_user_consent
@@ -56,7 +56,7 @@ if st.user.is_logged_in:
         logout_col,delete_col,_ = st.columns([1,2,2])
         with logout_col:
             logout_button = st.button(":material/logout: Log out", on_click=logout, 
-                                    help="Use this button to log out of Latin Morph! You will be sent back to the main page after logging out.",
+                                    help="Use this button to log out of BevLat You will be sent back to the main page after logging out.",
                                     type="primary")
         with delete_col:
             def delete_account():
@@ -96,12 +96,12 @@ else:
         login_button = (
             st.button(":material/login: Log in with Google", 
                     on_click=login, 
-                    help="Use this button to log in to Latin Morph! using a Google account; you will be sent back to the main page after logging in.",
+                    help="Use this button to log in to BevLat using a Google account; you will be sent back to the main page after logging in.",
                     type="primary") 
             if st.user.is_logged_in is False 
             else 
             # st.button("Log out", on_click=logout,
-            #           help="Use this button to log out of Latin Morph! You will be sent back to the main page after logging out.")
+            #           help="Use this button to log out of BevLat You will be sent back to the main page after logging out.")
             None
             )
 
@@ -142,7 +142,7 @@ if st.user.is_logged_in:
                 ### Clear Answer History
                 
                 Select the part of speech that you wish to clear your answer history for. 
-                (This can be useful if you want to reset your progress, especially if you haven't used Latin Morph! in a while.)
+                (This can be useful if you want to reset your progress, especially if you haven't used BevLat in a while.)
                 """,
                 help="""Clearing your history does not delete your answers from the database itself, 
                 but the adaptive learning algorithm and data page will not take them into consideration, 
@@ -193,12 +193,12 @@ else:
 st.markdown(f"""
             ### Data Collection and Use
 
-            - Only the name and e-mail associated with your Google account are shared with Latin Morph!, 
+            - Only the name and e-mail associated with your Google account are shared with BevLat, 
             which is necessary in order to create your account. 
             (Be aware that Google also gives me access to your profile picture, 
             which I don't ask for and don't make any use of.)
             I will never share these without your explicit permission.
-            - I will only ever use your e-mail address to contact you in direct reference to your Latin Morph! account.
+            - I will only ever use your e-mail address to contact you in direct reference to your BevLat account.
             - When logged in, your answers and preferred settings are stored in a database. 
             You have the opportunity to consent to allowing your answers to be used in academic research on Latin pedagogy; 
             this consent can be given or withdrawn at any point.

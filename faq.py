@@ -1,6 +1,6 @@
 import streamlit as st
 
-st.set_page_config("Latin Morph! FAQ", layout="centered")
+st.set_page_config("BevLat FAQ", layout="centered")
 
 st.title("Frequently Asked Questions")
 
@@ -26,10 +26,10 @@ with st.expander("""Why do I have to click "New Question" every single time?""",
                 """)
 
 i+=1
-with st.expander("Why doesn't Latin Morph! store my settings?", 
+with st.expander("Why doesn't BevLat store my settings?", 
                  expanded=st.session_state["active_expander"]==f"exp{i}", on_change=set_expanders, args=(f"exp{i}",)):
     st.markdown("""
-                This is a limitation of the framework used to build Latin Morph! However, if you log in, 
+                This is a limitation of the framework used to build BevLat However, if you log in, 
                 your settings and prior session histories will be retained. 
                 (Macron preferences, the auto-advance setting, and the use of consonantal *u* are all automatically saved across sessions if you're logged in;
                 for other settings, you can save your preferred defaults for each part of speech.)
@@ -41,7 +41,7 @@ with st.expander("Why should I make a user account?",
     st.markdown("""
                 There are two main reasons to make a user account.
                 
-                First, one of the major unique features of Latin Morph! is its adaptive learning algorithm, 
+                First, one of the major unique features of BevLat is its adaptive learning algorithm, 
                 which makes it so that you're more likely to be asked about forms that you struggle with, 
                 although still in a randomized fashion. 
                 This functions better when it has more data about your prior answers to draw on, 
@@ -75,7 +75,7 @@ i+=1
 with st.expander("I don't know all these words, how am I supposed to give their forms?", 
                  expanded=st.session_state["active_expander"]==f"exp{i}", on_change=set_expanders, args=(f"exp{i}",)):
     st.markdown("""
-                The idea of Latin Morph! is that it can help you develop your comfort with word *forms* even without knowing all of the words, 
+                The idea of BevLat is that it can help you develop your comfort with word *forms* even without knowing all of the words, 
                 which is a really important skill for when you read literature! 
                 By using the checkboxes in the "Options" column, you always have the option to display as much information as you'll need to produce a given word, 
                 assuming that the form is not irregular 
@@ -143,13 +143,13 @@ with st.expander("How are words with variant forms or endings handled?",
                 """)
 
 i+=1
-with st.expander("Why can't I use Latin Morph! offline?", 
+with st.expander("Why can't I use BevLat offline?", 
                  expanded=st.session_state["active_expander"]==f"exp{i}", on_change=set_expanders, args=(f"exp{i}",)):
     st.markdown("""
-                This is a limitation of the framework used to build Latin Morph! 
+                This is a limitation of the framework used to build BevLat 
                 I truly hope to be able to produce an offline app version in the future.
                 
-                If you are logged in, Latin Morph! will not lose your session history during disconnects,
+                If you are logged in, BevLat will not lose your session history during disconnects,
                 so although this isn't an actual solution, it can serve as a temporary bandaid for some of the issues.
                 """)
 
@@ -163,7 +163,7 @@ with st.expander("I'm getting a red error notification on one of the pages.",
                 """, unsafe_allow_html=True)
 
 i+=1
-with st.expander("What data does Latin Morph! store about me?", 
+with st.expander("What data does BevLat store about me?", 
                  expanded=st.session_state["active_expander"]==f"exp{i}", on_change=set_expanders, args=(f"exp{i}",)):
     st.markdown("""
                 If you are not logged in, nothing: I can see anonymized names (such as 'Climbing Pie' or 'Masked Dirigible') for the most recent 20 users 

@@ -18,82 +18,6 @@ st.set_page_config("BevLat",
                     page_icon="bevlat_logo.svg"
                     )
 
-# Apply the BevLat branding consistently to older page source without having to
-# duplicate simple branding-only edits across every exercise module. The sidebar
-# attribution deliberately uses its own bound method below, so its reference to
-# the original Latin Morph! app is preserved. Store the unwrapped Streamlit
-# methods once so repeated Streamlit reruns do not build nested wrappers.
-if not hasattr(st, "_bevlat_original_set_page_config"):
-    st._bevlat_original_set_page_config = st.set_page_config
-    st._bevlat_original_markdown = st.markdown
-    st._bevlat_original_title = st.title
-    st._bevlat_original_caption = st.caption
-    st._bevlat_original_expander = st.expander
-    st._bevlat_original_button = st.button
-    st._bevlat_original_warning = st.warning
-
-_original_set_page_config = st._bevlat_original_set_page_config
-_original_markdown = st._bevlat_original_markdown
-_original_title = st._bevlat_original_title
-_original_caption = st._bevlat_original_caption
-_original_expander = st._bevlat_original_expander
-_original_button = st._bevlat_original_button
-_original_warning = st._bevlat_original_warning
-
-
-def _bevlat_text(value):
-    return value.replace("Latin Morph!", "BevLat") if isinstance(value, str) else value
-
-
-def _bevlat_set_page_config(*args, **kwargs):
-    args = list(args)
-    if args:
-        args[0] = _bevlat_text(args[0])
-    if "page_title" in kwargs:
-        kwargs["page_title"] = _bevlat_text(kwargs["page_title"])
-    return _original_set_page_config(*args, **kwargs)
-
-
-def _bevlat_markdown(body, *args, **kwargs):
-    return _original_markdown(_bevlat_text(body), *args, **kwargs)
-
-
-def _bevlat_title(body, *args, **kwargs):
-    return _original_title(_bevlat_text(body), *args, **kwargs)
-
-
-def _bevlat_caption(body, *args, **kwargs):
-    return _original_caption(_bevlat_text(body), *args, **kwargs)
-
-
-def _bevlat_expander(label, *args, **kwargs):
-    return _original_expander(_bevlat_text(label), *args, **kwargs)
-
-
-def _bevlat_button(label, *args, **kwargs):
-    if "help" in kwargs:
-        kwargs["help"] = _bevlat_text(kwargs["help"])
-    return _original_button(_bevlat_text(label), *args, **kwargs)
-
-
-def _bevlat_warning(body, *args, **kwargs):
-    text = str(body)
-    if (
-        ("incorrectly generated forms" in text and "Google form" in text)
-        or ("If you encounter any errors" in text and "report them" in text)
-    ):
-        return None
-    return _original_warning(_bevlat_text(body), *args, **kwargs)
-
-
-st.set_page_config = _bevlat_set_page_config
-st.markdown = _bevlat_markdown
-st.title = _bevlat_title
-st.caption = _bevlat_caption
-st.expander = _bevlat_expander
-st.button = _bevlat_button
-st.warning = _bevlat_warning
-
 # if st.user.is_logged_in:
 #     st.logout()
 
@@ -244,9 +168,9 @@ if st.session_state.supabase_connection is not None and st.session_state.current
     def show_consent_dialog():
         sb_conn: Client = st.session_state.supabase_connection
         st.markdown("""Please indicate if you consent for your answers to be used, in pseudonymized form, 
-            as part of a future academic study on the efficacy of Latin Morph! or approaches to Latin pedagogy more generally. 
+            as part of a future academic study on the efficacy of BevLat or approaches to Latin pedagogy more generally. 
             You may change your consent at any time. If you do not give consent, 
-            you will still have full access to all features of a Latin Morph! account.""")
+            you will still have full access to all features of a BevLat account.""")
         st.warning("You *should* only see this screen once; if you see it more than once, please let me know ASAP and I'll investigate the cause.")
         def consent_display(x):
             if x is True:

@@ -6,13 +6,13 @@ from datetime import datetime as dt, timezone
 import streamlit as st
 import streamlit.components.v1 as components
 
-from utils import clear_page, new_question, remove_macrons, reset, save_defaults, clear_defaults
+from utils import clear_page, new_question, remove_macrons, reset, save_defaults, clear_defaults, auto_advance_delay
 from exercise_presets import (list_setting, resolve_exercise_settings, initialize_widget_state,
                               widget_key, url_preset_active, exercise_link_popover)
 from vocab import import_nouns, import_adjectives, import_verbs
 
 
-st.set_page_config("Latin Morph! Identify Stems", layout="centered")
+st.set_page_config("BevLat Identify Stems", layout="centered")
 
 page_id = "identify_stems"
 clear_page(page_id)
@@ -193,7 +193,7 @@ with option_expander:
                 "Reset defaults",
                 type="primary",
                 width="stretch",
-                help="Restore the generic Latin Morph! default settings for this exercise.",
+                help="Restore the generic BevLat default settings for this exercise.",
                 on_click=reset_stem_defaults,
                 disabled=preset_active or (not defaults and not settings_changed),
             )
@@ -495,6 +495,6 @@ if not st.session_state.auto_advance:
 
 if st.session_state.auto_advance and st.session_state.auto_advance_trigger and st.session_state.answer_checked:
     import time
-    time.sleep(st.session_state.auto_advance)
+    time.sleep(auto_advance_delay())
     start_new_question()
     st.rerun()

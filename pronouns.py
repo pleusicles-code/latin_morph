@@ -3,12 +3,12 @@ import random
 import time
 import pandas as pd
 import ast
-from utils import radio_change, reset, new_question, submit_and_check_answer, clear_page, send_setting, save_defaults, clear_defaults
+from utils import radio_change, reset, new_question, submit_and_check_answer, clear_page, send_setting, save_defaults, clear_defaults, auto_advance_delay
 from exercise_presets import (bool_setting, list_setting, resolve_exercise_settings, initialize_widget_state,
                               widget_key, url_preset_active, exercise_link_popover)
 from vocab import import_pronouns
 
-st.set_page_config("Latin Morph! Pronouns", layout="centered")
+st.set_page_config("BevLat Pronouns", layout="centered")
 
 # if st.session_state.question_list :
 questions_asked = st.session_state.question_list
@@ -38,7 +38,6 @@ defaults = st.session_state.default_settings.get(f"{page_id}.py", {})
 
 st.markdown("# Pronouns")
 
-st.warning('''If you come across any incorrectly generated forms, please fill out the "Latin mistake" part of [this Google form](https://forms.gle/xT8hQ27sjposeXPc9).''')
 
 ## IMPORT PRONOUNS ##
 
@@ -134,7 +133,7 @@ with options_col:
             st.button("Reset defaults",
                         type="primary",
                         width="stretch",
-                        help="Restore the generic Latin Morph! default settings for pronouns.",
+                        help="Restore the generic BevLat default settings for pronouns.",
                         on_click=clear_defaults,
                         args=(page_id,),
                         disabled=preset_active or not defaults
@@ -528,6 +527,6 @@ else:
         st.markdown(f"Current score: **{st.session_state.current_score}** out of **{st.session_state.total_questions}**")
 
 if st.session_state.auto_advance_trigger and st.session_state.answer_checked:
-    time.sleep(st.session_state.auto_advance)
+    time.sleep(auto_advance_delay())
     new_question(st.session_state.gen_func)
     st.rerun()

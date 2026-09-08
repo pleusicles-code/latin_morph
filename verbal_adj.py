@@ -3,12 +3,12 @@ import random
 import time
 import pandas as pd
 import ast
-from utils import reset, new_question, submit_and_check_answer, clear_page, remove_macrons, send_setting, save_defaults, clear_defaults
+from utils import reset, new_question, submit_and_check_answer, clear_page, remove_macrons, send_setting, save_defaults, clear_defaults, auto_advance_delay
 from exercise_presets import (bool_setting, list_setting, resolve_exercise_settings, initialize_widget_state,
                               widget_key, url_preset_active, exercise_link_popover)
 from vocab import import_verbs
 
-st.set_page_config("Latin Morph! Verbal Adjectives", layout="centered")
+st.set_page_config("BevLat Verbal Adjectives", layout="centered")
 
 st.session_state.verbal_adj_enforce_macrons = st.session_state.enforce_macrons["verbal_adj_enforce_macrons"]
 
@@ -25,7 +25,6 @@ complete_verb_vocab = import_verbs()
 st.title("""Verbal Adjectives""")
 st.html('<h1 style="margin-top: -0.3em; margin-bottom: -0.2em;">Participles and Gerundives</h1>')
 
-st.warning('If you come across any incorrectly generated forms, please fill out the "Latin mistake" part of [this Google form](https://forms.gle/xT8hQ27sjposeXPc9).')
 
 ## SET OPTIONS ##
 
@@ -303,7 +302,7 @@ with options_col:
             st.button("Reset defaults",
                         type="primary",
                         width="stretch",
-                        help="Restore the generic Latin Morph! default settings for verbal adjectives.",
+                        help="Restore the generic BevLat default settings for verbal adjectives.",
                         on_click=clear_defaults,
                         args=(page_id,),
                         disabled=preset_active or not defaults
@@ -801,6 +800,6 @@ else:
         st.markdown(f"Current score: **{st.session_state.current_score}** out of **{st.session_state.total_questions}**")
 
 if st.session_state.auto_advance_trigger and st.session_state.answer_checked:
-    time.sleep(st.session_state.auto_advance)
+    time.sleep(auto_advance_delay())
     new_question(st.session_state.gen_func)
     st.rerun()

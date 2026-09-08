@@ -1,12 +1,12 @@
 import streamlit as st
 from datetime import date, timedelta
 
-st.set_page_config("Latin Morph!", layout="centered")
+st.set_page_config("BevLat", layout="centered")
 
 page_id = "main_page"
 st.session_state.curr_page_id = page_id
 
-st.title("Welcome to Latin Morph!")
+st.title("Welcome to BevLat")
 
 #### temporary announcements ####
 temp_announcements = [
@@ -19,7 +19,7 @@ for announcement in [announce["text"] for announce in temp_announcements if anno
 ##########
 
 st.markdown("""
-            **Latin Morph!** is a site for practicing your Latin word forms (morphology). 
+            **BevLat** is a site for practicing your Latin word forms (morphology). 
             The goal is to create randomly-requested forms correctly, 
             allowing you to both reinforce your existing knowledge 
             and discover from your incorrect answers where your knowledge of forms may be weak. 
@@ -27,14 +27,14 @@ st.markdown("""
             """)
 
 st.markdown("""
-            Latin Morph! is **data driven**, drawing on your response history 
+            BevLat is **data driven**, drawing on your response history 
             to test you more frequently on forms you struggle with, 
             based on a fine-grained analysis of sub-categories within each part of speech. 
             You can also see on the Statistics & Data page which larger categories you may most need to review.
             """)
 
 st.markdown("""
-            Latin Morph! is also highly **customizable**: 
+            BevLat is also highly **customizable**: 
             you can specify exactly what you want to practice within a given part of speech,
             and you can set your personal preferences for things like macrons (long-marks), case order, 
             and what information you're given about a word.
@@ -67,7 +67,7 @@ st.markdown("""
             (if it's not currently open, click on the :material/keyboard_double_arrow_right: at the top left of your screen)
             or in the menu at the bottom of each page.
 
-            Each part of speech has many customizable options so that Latin Morph! tests you at your level of knowledge and preferences.
+            Each part of speech has many customizable options so that BevLat tests you at your level of knowledge and preferences.
             For instance, if you haven't learned all the forms of a given part of speech yet
             (e.g., if you only know present indicative verbs, or you only know first and second declension nouns),
             you can limit your practice to just the forms you know. 
@@ -95,13 +95,13 @@ st.markdown("""
             *and also* suggested categories to review within a given part of speech, 
             based on your correct and incorrect answers.
 
-            You can use all the features of Latin Morph! without an account. 
+            You can use all the features of BevLat without an account. 
             However, creating an account (by simply logging in with Google) will improve your user experience. 
             In particular, your answer history will be saved across sessions, 
             meaning that the adaptive learning algorithm will be more functional, 
             the Stats & Data page will have a more accurate assessment of your weak spots, 
             and you won't lose your progress if you lose your internet connection. 
-            (Latin Morph! can't be used offline, but if you're signed in, your answers will be restored when your connection is restored.)
+            (BevLat can't be used offline, but if you're signed in, your answers will be restored when your connection is restored.)
             An account also allows you to save your preferred settings (such as which declensions you want to practice) 
             so that you don't have to reset them each time you change between parts of speech.
 
@@ -114,11 +114,6 @@ st.markdown("""
             To automatically advance to the next question, set the auto-advance option in the navigation menu.
             """, unsafe_allow_html=True)
 
-st.warning("""
-            :warning:
-            If you encounter any errors, please [report them](https://forms.gle/xT8hQ27sjposeXPc9). 
-            (I also welcome feedback, using the same form!)
-            """,)
 
 announcements_all = [
     {"date": date(2026, 6, 21),
