@@ -49,6 +49,19 @@ def hungarian_article(word):
     return "az"
 
 
+def feedback_box(content, state):
+    colors = {
+        "correct": ("#e3f3e7", "#7aa682"),
+        "incorrect": ("#f7dddd", "#c48282"),
+        "partial": ("#fff4d6", "#e2c66d"),
+    }
+    background, border = colors[state]
+    return (
+        f'<div style="background:{background};border:1px solid {border};border-radius:0.5rem;'
+        f'padding:0.55rem 0.75rem;line-height:1.7;">{content}</div>'
+    )
+
+
 exercise_schema = {
     "selected_pos": list_setting(PARTS_OF_SPEECH, PARTS_OF_SPEECH),
 }
@@ -285,11 +298,12 @@ def check_recognition_answer(answer_key):
     if correct:
         st.session_state.current_score += 1
         st.session_state.result_message = "**Helyes!**"
-        st.session_state.answer_display_message = ":green-background[**Helyes válasz!**]"
+        st.session_state.answer_display_message = feedback_box("<strong>Helyes válasz!</strong>", "correct")
     else:
         st.session_state.result_message = "**Helytelen. Próbáld meg a következőt!**"
-        st.session_state.answer_display_message = (
-            f":red-background[**Helytelen válasz. A helyes válasz: {correct_answer_label}.**]"
+        st.session_state.answer_display_message = feedback_box(
+            f"<strong>Helytelen válasz. A helyes válasz: {correct_answer_label}.</strong>",
+            "incorrect",
         )
     record = {
         "pos": "recognize_pos", "word": st.session_state.current_question["word"],
@@ -346,9 +360,9 @@ if st.session_state.current_question:
                 on_click=choose_recognition_answer, args=(answer_key, answer_option, answer_index),
                 disabled=st.session_state.answer_checked, width="stretch",
             )
-    feedback_space = st.container(height=72, border=False)
+    feedback_space = st.container(height=90, border=False)
     with feedback_space:
-        st.markdown(st.session_state.answer_display_message)
+        st.markdown(st.session_state.answer_display_message, unsafe_allow_html=True)
 
 pending_answer_key = st.session_state.get("recognize_pos_pending_answer_key")
 check_after = st.session_state.get("recognize_pos_check_after")
