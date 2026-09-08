@@ -13,7 +13,10 @@ from vocab import import_nouns, import_adjectives, import_verbs
 st.set_page_config("Latin Morph! Recognize Part of Speech", layout="centered")
 
 page_id = "recognize_pos"
+new_run = st.session_state.curr_page_id != page_id
 clear_page(page_id)
+if new_run or "recognize_pos_selected_answer" not in st.session_state:
+    st.session_state.recognize_pos_selected_answer = None
 questions_asked = st.session_state.question_list
 defaults = st.session_state.default_settings.get(f"{page_id}.py", {})
 
@@ -22,6 +25,7 @@ adjective_vocab = import_adjectives()
 verb_vocab = import_verbs()
 
 PARTS_OF_SPEECH = ["noun", "adjective", "verb"]
+ANSWER_CHECK_DELAY = 0.0  # Set back to 1.0 to restore the former one-second pause.
 
 exercise_schema = {
     "selected_pos": list_setting(PARTS_OF_SPEECH, PARTS_OF_SPEECH),
@@ -297,6 +301,7 @@ def gen_question():
 
 
 def start_new_question():
+    st.session_state.recognize_pos_selected_answer = None
     new_question(gen_question)
 
 
@@ -346,12 +351,17 @@ def check_recognition_answer(answer_key):
     st.session_state.auto_advance_trigger = bool(st.session_state.auto_advance)
 
 
-def choose_recognition_answer(answer_key):
-    # Schedule the same check used by the explicit button without blocking
-    # Streamlit for the one-second delay.
-    if not st.session_state.answer_checked:
-        st.session_state.recognize_pos_pending_answer_key = answer_key
-        st.session_state.recognize_pos_check_after = time.monotonic() + 1.0
+def choose_recognition_answer(answer_key, answer, answer_index):
+    if st.session_state.answer_checked:
+        return
+
+    st.session_state[answer_key] = answer
+    st.session_state.recognize_pos_selected_answer = answer_index
+    st.session_state.recognize_pos_pending_answer_key = answer_key
+    st.session_state.recognize_pos_check_after = time.monotonic() + ANSWER_CHECK_DELAY
+
+    if ANSWER_CHECK_DELAY <= 0:
+        check_recognition_answer(answer_key)
 
 
 st.session_state.gen_func = gen_question
@@ -362,36 +372,46 @@ if not selected_pos and not st.session_state.current_question:
 if st.session_state.current_question:
     question = st.session_state.current_question
     answer_key = f"recognize_pos_answer_{question['qid']}"
+    selected_answer_index = st.session_state.recognize_pos_selected_answer
 
     st.markdown("### Current question")
-    st.markdown(f"Which part of speech is *{question['entry']}*?")
 
-    st.radio(
-        "Choose one:",
-        options=PARTS_OF_SPEECH,
-        index=None,
-        key=answer_key,
-        horizontal=True,
-        disabled=st.session_state.answer_checked,
-        on_change=choose_recognition_answer,
-        args=(answer_key,),
-    )
+    prompt_space = st.container(height=52, border=False)
+    with prompt_space:
+        st.markdown(f"Which part of speech is *{question['entry']}*?")
 
-    submit_col, feedback_col = st.columns([1, 2])
-    with submit_col:
-        st.button(
-            "Check Answer",
-            on_click=check_recognition_answer,
-            args=(answer_key,),
-            disabled=st.session_state.answer_checked,
-            width="stretch",
+    if selected_answer_index is not None:
+        st.html(
+            f"""
+            <style>
+            .st-key-{answer_key}_option_{selected_answer_index} button {{
+                background-color: rgba(128, 128, 128, 0.25) !important;
+            }}
+            </style>
+            """
         )
-    with feedback_col:
+
+    answer_columns = st.columns(len(PARTS_OF_SPEECH), gap="small")
+    for answer_index, (answer_column, answer_option) in enumerate(zip(answer_columns, PARTS_OF_SPEECH)):
+        with answer_column:
+            st.button(
+                answer_option,
+                key=f"{answer_key}_option_{answer_index}",
+                on_click=choose_recognition_answer,
+                args=(answer_key, answer_option, answer_index),
+                disabled=st.session_state.answer_checked,
+                width="stretch",
+            )
+
+    feedback_space = st.container(height=72, border=False)
+    with feedback_space:
         st.markdown(st.session_state.answer_display_message)
 
 pending_answer_key = st.session_state.get("recognize_pos_pending_answer_key")
 check_after = st.session_state.get("recognize_pos_check_after")
-recognition_timer_interval = 0.2 if pending_answer_key and not st.session_state.answer_checked else None
+recognition_timer_interval = 0.2 if (
+    ANSWER_CHECK_DELAY > 0 and pending_answer_key and not st.session_state.answer_checked
+) else None
 
 @st.fragment(run_every=recognition_timer_interval)
 def recognition_check_timer():
@@ -403,31 +423,35 @@ def recognition_check_timer():
 
 recognition_check_timer()
 
-new_question_col, results_col, score_col = st.columns(3)
+control_row = st.container(height=92, border=False)
+with control_row:
+    new_question_col, results_col, score_col = st.columns(3, gap="medium", vertical_alignment="top")
 
-with new_question_col:
-    button_text = "New Question" if st.session_state.question_list else "Click here for your first question!"
-    button_type = "secondary" if st.session_state.question_list else "primary"
-    st.button(
-        button_text,
-        on_click=start_new_question,
-        key="recognize_pos_question_button",
-        width="stretch",
-        disabled=not selected_pos,
-        type=button_type,
-    )
+    with new_question_col:
+        button_text = "New Question" if st.session_state.question_list else "Click here for your first question!"
+        button_type = "secondary" if st.session_state.question_list else "primary"
+        st.button(
+            button_text,
+            on_click=start_new_question,
+            key="recognize_pos_question_button",
+            width="stretch",
+            disabled=not selected_pos,
+            type=button_type,
+        )
 
-with results_col:
-    st.markdown(st.session_state.result_message)
+    with results_col:
+        result_space = st.container(height=48, border=False)
+        with result_space:
+            st.markdown(st.session_state.result_message)
 
-with score_col:
-    st.button("Reset Score", "recognize_pos_reset", on_click=reset, width="stretch")
-    st.markdown(f"Current score: **{st.session_state.current_score}** out of **{st.session_state.total_questions}**")
+    with score_col:
+        st.button("Reset Score", "recognize_pos_reset", on_click=reset, width="stretch")
+        st.markdown(f"Current score: **{st.session_state.current_score}** out of **{st.session_state.total_questions}**")
 
 if not st.session_state.auto_advance:
     st.session_state.auto_advance_trigger = False
 
 if st.session_state.auto_advance and st.session_state.auto_advance_trigger and st.session_state.answer_checked:
     time.sleep(st.session_state.auto_advance)
-    new_question(gen_question)
+    start_new_question()
     st.rerun()
