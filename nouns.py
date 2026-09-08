@@ -337,6 +337,11 @@ def parse_noun_analysis_answer(text):
             "error": "no grammatical tokens found",
         }
 
+    # A distinctive noun vocative can only be singular, so allow the
+    # pedagogically natural shorthand "voc" / "voc." and normalize it.
+    if normalized_tokens == ["voc"]:
+        normalized_tokens = ["sg", "voc"]
+
     analyses = set()
     current_number = None
     current_number_has_case = False
