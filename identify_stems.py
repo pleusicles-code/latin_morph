@@ -1,3 +1,4 @@
+import html
 import random
 import time
 import unicodedata
@@ -251,6 +252,40 @@ def canonical_display(parts):
     return ", ".join(parts)
 
 
+def partial_verb_feedback(user_parts, correct_parts, part_results):
+    display_parts = list(user_parts[:len(correct_parts)])
+    while len(display_parts) < len(correct_parts):
+        display_parts.append("—")
+
+    highlighted_parts = []
+    for i, part in enumerate(display_parts):
+        background = "#d7f2df" if part_results[i] else "#f7dddd"
+        highlighted_parts.append(
+            '<span style="display:inline-block;background:{background};border-radius:0.3rem;'
+            'padding:0.08rem 0.35rem;margin-right:0.25rem;font-weight:700;">{part}</span>'.format(
+                background=background,
+                part=html.escape(part),
+            )
+        )
+
+    correct_html = ", ".join(
+        f"<strong><em>{html.escape(part)}</em></strong>"
+        for part in correct_parts
+    )
+
+    return (
+        '<div style="background:#fff4d6;border:1px solid #e2c66d;border-radius:0.5rem;'
+        'padding:0.55rem 0.75rem;line-height:1.7;">'
+        '<strong>Részben helyes válasz.</strong> '
+        '<span>Válaszod: {user}</span> '
+        '<strong>A helyes válasz:</strong> {correct}.'
+        '</div>'
+    ).format(
+        user="".join(highlighted_parts),
+        correct=correct_html,
+    )
+
+
 # --- Question generation and checking -----------------------------------------
 
 def learner_present_stem(data):
@@ -344,12 +379,12 @@ def check_stem_answer(answer_key):
     if fully_correct:
         st.session_state.answer_display_message = ":green-background[**Helyes válasz!**]"
     elif partially_correct:
-        st.session_state.answer_display_message = (
-            f":orange-background[**Részben helyes válasz. A helyes válasz: {correct_display}.**]"
+        st.session_state.answer_display_message = partial_verb_feedback(
+            user_parts, correct_parts, part_results
         )
     else:
         st.session_state.answer_display_message = (
-            f":red-background[**Helytelen válasz. A helyes válasz: {correct_display}.**]"
+            f":red-background[**Helytelen válasz. A helyes válasz: ***{correct_display}***.**]"
         )
 
     answer_id = {"target_pos": target_pos}
@@ -427,7 +462,10 @@ if st.session_state.current_question:
 
     feedback_space = st.container(height=90, border=False)
     with feedback_space:
-        st.markdown(st.session_state.answer_display_message)
+        if st.session_state.answer_display_message.startswith("<div"):
+            st.markdown(st.session_state.answer_display_message, unsafe_allow_html=True)
+        else:
+            st.markdown(st.session_state.answer_display_message)
 
 control_row = st.container(height=92, border=False)
 with control_row:
