@@ -1,0 +1,47 @@
+name: Normalize noun recognition forms
+
+on:
+  push:
+    branches:
+      - exercise-url-presets
+    paths:
+      - tools/normalize_noun_recognition_forms.py
+      - .github/workflows/normalize-noun-recognition-forms.yml
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: exercise-url-presets
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Apply patch
+        run: python tools/normalize_noun_recognition_forms.py
+      - name: Syntax check
+        run: python -m py_compile nouns.py
+      - name: Verify Unicode normalization
+        run: |
+          python - <<'PY'
+          text = open('nouns.py').read()
+          assert 'import unicodedata' in text
+          assert 'def normalize_noun_surface(form, preserve_macrons):' in text
+          assert 'unicodedata.normalize("NFC", form)' in text
+          assert 'normalize_noun_surface(form, print_macrons)' in text
+          assert 'normalize_noun_surface(displayed_form, print_macrons)' in text
+          # Demonstrate the underlying equivalence we need to enforce.
+          import unicodedata
+          assert unicodedata.normalize('NFC', 'genu\u0304') == 'genū'
+          PY
+      - name: Commit change
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add nouns.py
+          git commit -m "Normalize noun recognition forms"
+          git push
