@@ -235,11 +235,49 @@ current_exercise_settings = {
     "irregs_only": irregs_only,
 }
 
-with col_options:
+if st.user.is_logged_in:
+    generic_noun_settings = {
+        "exercise_type": "inflect",
+        "print_macrons": False,
+        "indicate_multiple_answers": False,
+        "award_partial_credit": False,
+        "show_dictionary_entry": True,
+        "show_declension": False,
+        "show_stem": False,
+        "declension": list(declension_dict.keys()),
+        "irregs_include": [],
+        "irregs_only": "No",
+    }
+    current_noun_settings = {
+        "exercise_type": exercise_type,
+        "print_macrons": st.session_state[widget_key(page_id, "print_macrons")],
+        "indicate_multiple_answers": st.session_state[widget_key(page_id, "indicate_multiple_answers")],
+        "award_partial_credit": st.session_state[widget_key(page_id, "award_partial_credit")],
+        "show_dictionary_entry": show_dictionary_entry,
+        "show_declension": show_declension,
+        "show_stem": show_stem,
+        "declension": declension,
+        "irregs_include": irregs_include,
+        "irregs_only": irregs_only,
+    }
+    noun_settings_changed = current_noun_settings != generic_noun_settings
+
+    def reset_noun_defaults():
+        clear_defaults(page_id)
+        st.session_state.nouns_exercise_type = "inflect"
+        st.session_state.nouns_print_macrons = False
+        st.session_state.nouns_indicate_multiple_answers = False
+        st.session_state.nouns_award_partial_credit = False
+        st.session_state.nouns_show_dictionary_entry = True
+        st.session_state.nouns_show_declension = False
+        st.session_state.nouns_show_stem = False
+        st.session_state.nouns_declension = list(declension_dict.keys())
+        st.session_state.nouns_irregs_include = []
+        st.session_state.nouns_irregs_only = "No"
+
+with option_expander:
     if st.user.is_logged_in:
-        set_defaults_col, clear_defaults_col, link_col = st.container(
-            vertical_alignment="bottom", height="stretch"
-        ).columns(3, vertical_alignment="center")
+        set_defaults_col, clear_defaults_col, link_col = st.columns(3)
         with set_defaults_col:
             st.button(
                 "Beállítások mentése",
@@ -252,45 +290,6 @@ with col_options:
                 disabled=preset_active,
             )
         with clear_defaults_col:
-            generic_noun_settings = {
-                "exercise_type": "inflect",
-                "print_macrons": False,
-                "indicate_multiple_answers": False,
-                "award_partial_credit": False,
-                "show_dictionary_entry": True,
-                "show_declension": False,
-                "show_stem": False,
-                "declension": list(declension_dict.keys()),
-                "irregs_include": [],
-                "irregs_only": "No",
-            }
-            current_noun_settings = {
-                "exercise_type": exercise_type,
-                "print_macrons": st.session_state[widget_key(page_id, "print_macrons")],
-                "indicate_multiple_answers": st.session_state[widget_key(page_id, "indicate_multiple_answers")],
-                "award_partial_credit": st.session_state[widget_key(page_id, "award_partial_credit")],
-                "show_dictionary_entry": show_dictionary_entry,
-                "show_declension": show_declension,
-                "show_stem": show_stem,
-                "declension": declension,
-                "irregs_include": irregs_include,
-                "irregs_only": irregs_only,
-            }
-            noun_settings_changed = current_noun_settings != generic_noun_settings
-
-            def reset_noun_defaults():
-                clear_defaults(page_id)
-                st.session_state.nouns_exercise_type = "inflect"
-                st.session_state.nouns_print_macrons = False
-                st.session_state.nouns_indicate_multiple_answers = False
-                st.session_state.nouns_award_partial_credit = False
-                st.session_state.nouns_show_dictionary_entry = True
-                st.session_state.nouns_show_declension = False
-                st.session_state.nouns_show_stem = False
-                st.session_state.nouns_declension = list(declension_dict.keys())
-                st.session_state.nouns_irregs_include = []
-                st.session_state.nouns_irregs_only = "No"
-
             st.button(
                 "Alapbeállítások",
                 type="primary",
