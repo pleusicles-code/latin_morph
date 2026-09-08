@@ -26,6 +26,7 @@ adjective_vocab = import_adjectives()
 DECLENSIONS = ["1st", "2nd", "3rd", "4th", "5th"]
 PARTS_OF_SPEECH = ["noun", "adjective"]
 ANSWER_OPTIONS = ["1", "2", "3", "4", "5", "1–2"]
+ANSWER_CHECK_DELAY = 0.0  # Set back to 1.0 to restore the former one-second pause.
 
 exercise_schema = {
     "declension": list_setting(DECLENSIONS, DECLENSIONS),
@@ -330,10 +331,16 @@ def check_recognition_answer(answer_key):
     st.session_state.auto_advance_trigger = bool(st.session_state.auto_advance)
 
 
-def choose_recognition_answer(answer_key):
-    if not st.session_state.answer_checked:
-        st.session_state.recognize_declension_pending_answer_key = answer_key
-        st.session_state.recognize_declension_check_after = time.monotonic() + 1.0
+def choose_recognition_answer(answer_key, answer):
+    if st.session_state.answer_checked:
+        return
+
+    st.session_state[answer_key] = answer
+    st.session_state.recognize_declension_pending_answer_key = answer_key
+    st.session_state.recognize_declension_check_after = time.monotonic() + ANSWER_CHECK_DELAY
+
+    if ANSWER_CHECK_DELAY <= 0:
+        check_recognition_answer(answer_key)
 
 
 def reset_recognition_score():
@@ -354,32 +361,25 @@ if st.session_state.current_question:
     st.markdown("### Current question")
     st.markdown(f"Which declension does *{question['entry']}* belong to?")
 
-    st.radio(
-        "Choose one:",
-        options=ANSWER_OPTIONS,
-        index=None,
-        key=answer_key,
-        horizontal=True,
-        disabled=st.session_state.answer_checked,
-        on_change=choose_recognition_answer,
-        args=(answer_key,),
-    )
+    answer_columns = st.columns(len(ANSWER_OPTIONS))
+    for answer_column, answer_option in zip(answer_columns, ANSWER_OPTIONS):
+        with answer_column:
+            st.button(
+                answer_option,
+                key=f"{answer_key}_{answer_option}",
+                on_click=choose_recognition_answer,
+                args=(answer_key, answer_option),
+                disabled=st.session_state.answer_checked,
+                width="stretch",
+            )
 
-    submit_col, feedback_col = st.columns([1, 2])
-    with submit_col:
-        st.button(
-            "Check Answer",
-            on_click=check_recognition_answer,
-            args=(answer_key,),
-            disabled=st.session_state.answer_checked,
-            width="stretch",
-        )
-    with feedback_col:
-        st.markdown(st.session_state.answer_display_message)
+    st.markdown(st.session_state.answer_display_message)
 
 pending_answer_key = st.session_state.get("recognize_declension_pending_answer_key")
 check_after = st.session_state.get("recognize_declension_check_after")
-recognition_timer_interval = 0.2 if pending_answer_key and not st.session_state.answer_checked else None
+recognition_timer_interval = 0.2 if (
+    ANSWER_CHECK_DELAY > 0 and pending_answer_key and not st.session_state.answer_checked
+) else None
 
 @st.fragment(run_every=recognition_timer_interval)
 def recognition_check_timer():
