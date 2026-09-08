@@ -3,7 +3,7 @@ import random
 import time
 import pandas as pd
 import ast
-from utils import radio_change, reset, new_question, submit_and_check_answer, clear_page, send_setting, save_defaults, clear_defaults, auto_advance_delay, remove_macrons
+from utils import radio_change, reset, new_question, submit_and_check_answer, clear_page, send_setting, save_defaults, clear_defaults, auto_advance_delay, remove_macrons, tokenize_morphology_answer
 from exercise_presets import (bool_setting, choice_setting, list_setting, resolve_exercise_settings,
                               initialize_widget_state, widget_key, url_preset_active, exercise_link_popover)
 from vocab import import_nouns
@@ -721,9 +721,16 @@ else:
                         st.session_state.button_disable = True
 
                 def submit_noun_answer():
+                    recognition_answer = None
                     if exercise_type == "recognize" and st.session_state.get("answer_input"):
-                        st.session_state.correct_answer = st.session_state.answer_input
+                        recognition_answer = st.session_state.answer_input
+                        st.session_state.correct_answer = recognition_answer
                     submit_and_check_answer()
+                    if recognition_answer:
+                        tokens = tokenize_morphology_answer(recognition_answer)
+                        st.session_state.answer_display_message = (
+                            f":green-background[Your answer is correct: {tokens}]"
+                        )
 
                 st.form_submit_button(
                     "Check Answer",
