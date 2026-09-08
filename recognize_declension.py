@@ -364,21 +364,26 @@ if st.session_state.current_question:
     selected_answer_index = st.session_state.recognize_declension_selected_answer
 
     st.markdown("### Current question")
-    st.markdown(f"Which declension does *{question['entry']}* belong to?")
 
+    # Keep the prompt area the same height even for longer dictionary entries.
+    prompt_space = st.container(height=52, border=False)
+    with prompt_space:
+        st.markdown(f"Which declension does *{question['entry']}* belong to?")
+
+    # Inject styling without creating an extra layout block. This keeps the
+    # answer buttons at exactly the same vertical position before and after a click.
     if selected_answer_index is not None:
-        st.markdown(
+        st.html(
             f"""
             <style>
             .st-key-{answer_key}_option_{selected_answer_index} button {{
                 background-color: rgba(128, 128, 128, 0.25) !important;
             }}
             </style>
-            """,
-            unsafe_allow_html=True,
+            """
         )
 
-    answer_columns = st.columns(len(ANSWER_OPTIONS))
+    answer_columns = st.columns(len(ANSWER_OPTIONS), gap="small")
     for answer_index, (answer_column, answer_option) in enumerate(zip(answer_columns, ANSWER_OPTIONS)):
         with answer_column:
             st.button(
@@ -390,6 +395,7 @@ if st.session_state.current_question:
                 width="stretch",
             )
 
+    # Reserve the full feedback area even before an answer is given.
     feedback_space = st.container(height=72, border=False)
     with feedback_space:
         st.markdown(st.session_state.answer_display_message)
@@ -410,26 +416,31 @@ def recognition_check_timer():
 
 recognition_check_timer()
 
-new_question_col, results_col, score_col = st.columns(3)
+# Keep the action/result/score controls in a permanently fixed-height row.
+control_row = st.container(height=92, border=False)
+with control_row:
+    new_question_col, results_col, score_col = st.columns(3, gap="medium", vertical_alignment="top")
 
-with new_question_col:
-    button_text = "New Question" if st.session_state.question_list else "Click here for your first question!"
-    button_type = "secondary" if st.session_state.question_list else "primary"
-    st.button(
-        button_text,
-        on_click=start_new_question,
-        key="recognize_declension_question_button",
-        width="stretch",
-        disabled=not pool_available,
-        type=button_type,
-    )
+    with new_question_col:
+        button_text = "New Question" if st.session_state.question_list else "Click here for your first question!"
+        button_type = "secondary" if st.session_state.question_list else "primary"
+        st.button(
+            button_text,
+            on_click=start_new_question,
+            key="recognize_declension_question_button",
+            width="stretch",
+            disabled=not pool_available,
+            type=button_type,
+        )
 
-with results_col:
-    st.markdown(st.session_state.result_message)
+    with results_col:
+        result_space = st.container(height=48, border=False)
+        with result_space:
+            st.markdown(st.session_state.result_message)
 
-with score_col:
-    st.button("Reset Score", "recognize_declension_reset", on_click=reset_recognition_score, width="stretch")
-    st.markdown(f"Current score: **{st.session_state.current_score}** out of **{st.session_state.total_questions}**")
+    with score_col:
+        st.button("Reset Score", "recognize_declension_reset", on_click=reset_recognition_score, width="stretch")
+        st.markdown(f"Current score: **{st.session_state.current_score}** out of **{st.session_state.total_questions}**")
 
 if not st.session_state.auto_advance:
     st.session_state.auto_advance_trigger = False
