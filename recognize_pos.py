@@ -278,20 +278,18 @@ def check_recognition_answer(answer_key):
     st.session_state.pop("recognize_pos_check_after", None)
     correct_answer = st.session_state.current_question["pos"]
     correct = answer == correct_answer
-    answer_label = POS_LABELS[answer]
     correct_answer_label = POS_LABELS[correct_answer]
     st.session_state.answer_checked = True
     st.session_state.button_disable = True
     st.session_state.total_questions += 1
     if correct:
         st.session_state.current_score += 1
-        st.session_state.result_message = ""
-        st.session_state.answer_display_message = ""
+        st.session_state.result_message = "**Helyes!**"
+        st.session_state.answer_display_message = ":green-background[**Helyes válasz!**]"
     else:
         st.session_state.result_message = "**Helytelen. Próbáld meg a következőt!**"
         st.session_state.answer_display_message = (
-            f":red-background[A válaszod: {answer_label}]  \n"
-            f":red-background[A helyes válasz: {correct_answer_label}]"
+            f":red-background[**Helytelen válasz. A helyes válasz: {correct_answer_label}.**]"
         )
     record = {
         "pos": "recognize_pos", "word": st.session_state.current_question["word"],
@@ -350,12 +348,7 @@ if st.session_state.current_question:
             )
     feedback_space = st.container(height=72, border=False)
     with feedback_space:
-        if st.session_state.answer_checked and st.session_state.get(answer_key) == question["pos"]:
-            left, center, right = st.columns([1, 1, 1])
-            with center:
-                st.markdown(":green-background[**Helyes válasz!**]")
-        else:
-            st.markdown(st.session_state.answer_display_message)
+        st.markdown(st.session_state.answer_display_message)
 
 pending_answer_key = st.session_state.get("recognize_pos_pending_answer_key")
 check_after = st.session_state.get("recognize_pos_check_after")
@@ -384,9 +377,7 @@ with control_row:
             width="stretch", disabled=not selected_pos, type=button_type,
         )
     with results_col:
-        result_space = st.container(height=48, border=False)
-        with result_space:
-            st.markdown(st.session_state.result_message)
+        st.container(height=48, border=False)
     with score_col:
         st.button("Pontszám nullázása", "recognize_pos_reset", on_click=reset, width="stretch")
         st.markdown(f"Jelenlegi pontszám: **{st.session_state.current_score}** / **{st.session_state.total_questions}**")
