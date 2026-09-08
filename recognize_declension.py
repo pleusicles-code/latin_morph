@@ -1,5 +1,6 @@
 import random
 import time
+import unicodedata
 from datetime import datetime as dt, timezone
 
 import streamlit as st
@@ -49,6 +50,22 @@ ANSWER_LABELS = {
     "5": "5.",
     "1–2": "1–2.",
 }
+
+LATIN_VOWELS = set("aeiouy")
+LATIN_DIPHTHONGS = {"ae", "au", "oe", "ei", "eu", "ui"}
+
+
+def hungarian_article(word):
+    normalized = "".join(
+        char for char in unicodedata.normalize("NFD", word.lower())
+        if unicodedata.category(char) != "Mn"
+    )
+    if not normalized or normalized[0] not in LATIN_VOWELS:
+        return "a"
+    if len(normalized) > 1 and normalized[1] in LATIN_VOWELS:
+        return "az" if normalized[:2] in LATIN_DIPHTHONGS else "a"
+    return "az"
+
 
 exercise_schema = {
     "declension": list_setting(DECLENSIONS, DECLENSIONS),
@@ -391,7 +408,8 @@ if st.session_state.current_question:
     # Keep the prompt area the same height even for longer dictionary entries.
     prompt_space = st.container(height=52, border=False)
     with prompt_space:
-        st.markdown(f"Melyik declinatióhoz tartozik a(z) *{question['entry']}*?")
+        article = hungarian_article(question["word"])
+        st.markdown(f"Melyik declinatióhoz tartozik {article} *{question['entry']}*?")
 
     # Inject styling without creating an extra layout block. This keeps the
     # answer buttons at exactly the same vertical position before and after a click.
