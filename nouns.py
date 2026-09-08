@@ -1001,7 +1001,7 @@ else:
                         if evaluation == "correct":
                             st.session_state.result_message = "**Good job!**"
                             st.session_state.answer_display_message = (
-                                f":green-background[The correct answer is: {all_possible_text}]"
+                                f":green-background[**The correct answer is: {all_possible_text}**]"
                             )
                             if (
                                 not st.session_state[widget_key(page_id, "expect_all_answers")]
@@ -1033,7 +1033,7 @@ else:
                             incorrect_text = format_noun_analysis_list(user_analyses)
                             st.session_state.answer_display_message = (
                                 f":red-background[Your answer: {incorrect_text}]  \n"
-                                f":red-background[Correct: {all_possible_text}]"
+                                f":red-background[**Correct: {all_possible_text}**]"
                             )
 
                 st.form_submit_button(
