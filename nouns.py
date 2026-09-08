@@ -933,7 +933,7 @@ else:
             multiple_answer_message = None
             if st.session_state[widget_key(page_id, "indicate_multiple_answers")]:
                 if len(required_analyses) > 1:
-                    multiple_answer_message = "Több helyes válaszlehetőség van."
+                    multiple_answer_message = '<span style="color:#7c3aed;">Több helyes válaszlehetőség van.</span>'
             else:
                 multiple_answer_message = "Több helyes válaszlehetőség is lehet."
             if multiple_answer_message:
