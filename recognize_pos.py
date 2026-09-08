@@ -339,11 +339,14 @@ if st.session_state.current_question:
     question = st.session_state.current_question
     answer_key = f"recognize_pos_answer_{question['qid']}"
     selected_answer_index = st.session_state.recognize_pos_selected_answer
-    st.markdown("### Aktuális kérdés")
-    prompt_space = st.container(height=52, border=False)
+    prompt_space = st.container(height=58, border=False)
     with prompt_space:
         article = hungarian_article(question["word"])
-        st.markdown(f"Milyen szófajú szó {article} ***{question['entry']}***?")
+        st.markdown(
+            f'<div style="font-size:1.75rem;line-height:1.25;">Milyen szófajú szó {article} '
+            f'<strong><em>{question["entry"]}</em></strong>?</div>',
+            unsafe_allow_html=True,
+        )
     if selected_answer_index is not None:
         st.html(f"""
             <style>
