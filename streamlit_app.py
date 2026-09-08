@@ -101,6 +101,33 @@ if not getattr(st, "_bevlat_noun_form_input_handling", False):
     st._bevlat_noun_form_input_handling = True
 
 
+# Kept separate from the form-handling guard so this enhancement is also
+# installed in already-running Streamlit processes where the older guard was
+# set before the tooltip code existed.
+if not getattr(st, "_bevlat_noun_recognition_input_help_v2", False):
+    _previous_text_input = st.text_input
+
+    def _bevlat_noun_recognition_text_input(*args, **kwargs):
+        label = kwargs.get("label", args[0] if args else None)
+        if (
+            getattr(st, "_bevlat_current_form_key", None) == "noun_form"
+            and st.session_state.get("nouns_exercise_type") == "recognize"
+            and label == "Válaszod:"
+        ):
+            kwargs.setdefault(
+                "help",
+                "A válaszokat beírhatod rövidítés nélkül (**pluralis nominativus**) vagy rövidítve "
+                "(**sing. acc.** vagy **sg. gen.**), azonos számú eseteket egymás után (**sg. dat. abl.**) "
+                "és mindezt bármilyen központozással vagy anélkül (**sg.gen** vagy akár **sggen**). "
+                "Ha minden megadott esetet ugyanolyan számúnak veszel, akkor a sorrend sem számít "
+                "(**abl,sg** = **sg. abl.**).",
+            )
+        return _previous_text_input(*args, **kwargs)
+
+    st.text_input = _bevlat_noun_recognition_text_input
+    st._bevlat_noun_recognition_input_help_v2 = True
+
+
 if not getattr(st, "_bevlat_noun_multiple_answer_inline", False):
     _original_markdown = st.markdown
 
