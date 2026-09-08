@@ -1,0 +1,61 @@
+name: Allow short vocative answer
+
+on:
+  push:
+    branches:
+      - exercise-url-presets
+    paths:
+      - tools/allow_short_vocative_answer.py
+      - .github/workflows/allow-short-vocative-answer.yml
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: exercise-url-presets
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Apply patch
+        run: python tools/allow_short_vocative_answer.py
+      - name: Syntax check
+        run: python -m py_compile nouns.py
+      - name: Test short vocative parsing
+        run: |
+          python - <<'PY'
+          import ast, re
+          text = open('nouns.py').read()
+          tree = ast.parse(text)
+          wanted = {'segment_noun_analysis_token', 'parse_noun_analysis_answer'}
+          nodes = [
+              n for n in tree.body
+              if (isinstance(n, ast.Assign) and any(isinstance(t, ast.Name) and t.id.startswith('NOUN_ANALYSIS_') for t in n.targets))
+              or (isinstance(n, ast.FunctionDef) and n.name in wanted)
+          ]
+          ns = {
+              'tokenize_morphology_answer': lambda s: re.findall(r'[^\W\d_]+', s.casefold(), flags=re.UNICODE),
+              'noun_options': {'number': {'sg':'singular','pl':'plural'}, 'case': {'nom':'nominative','voc':'vocative','acc':'accusative','gen':'genitive','dat':'dative','abl':'ablative'}},
+          }
+          exec(compile(ast.Module(body=nodes, type_ignores=[]), '<parser>', 'exec'), ns)
+          parse = ns['parse_noun_analysis_answer']
+          for sample in ('voc', 'voc.', 'VOC', 'VOC.'):
+              result = parse(sample)
+              assert result['valid'], (sample, result)
+              assert result['tokens'] == ['sg', 'voc'], (sample, result)
+              assert result['analyses'] == {('sg', 'voc')}, (sample, result)
+          assert not parse('nom')['valid']
+          assert not parse('voc acc')['valid']
+          print('short vocative tests passed')
+          PY
+      - name: Commit change
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add nouns.py
+          git commit -m "Allow short vocative recognition answer"
+          git push
