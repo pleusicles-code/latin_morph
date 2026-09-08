@@ -205,32 +205,43 @@ def selected_declension_numbers():
     return {str(DECLENSIONS.index(label) + 1) for label in declension}
 
 
-def available_questions():
+def available_questions_by_pos():
     selected = selected_declension_numbers()
-    pool = []
+    pools = {"noun": [], "adjective": []}
 
     if "noun" in selected_pos:
         for word, data in NOUNS.items():
             answer = noun_declension(data)
             if answer in selected:
-                pool.append(("noun", word, answer))
+                pools["noun"].append(("noun", word, answer))
 
     if "adjective" in selected_pos:
         for word, data in ADJECTIVES.items():
             answer = adjective_declension(data)
             if answer == "3" and "3" in selected:
-                pool.append(("adjective", word, answer))
+                pools["adjective"].append(("adjective", word, answer))
             elif answer == "1–2" and ({"1", "2"} & selected):
-                pool.append(("adjective", word, answer))
+                pools["adjective"].append(("adjective", word, answer))
 
-    return pool
+    return {pos: pool for pos, pool in pools.items() if pool}
 
 
 def gen_question():
-    pool = available_questions()
-    if not pool:
+    pools = available_questions_by_pos()
+    if not pools:
         return None
 
+    available_pos = list(pools.keys())
+    if len(available_pos) == 1:
+        pos = available_pos[0]
+    else:
+        pos = random.choices(
+            ["noun", "adjective"],
+            weights=[0.7, 0.3],
+            k=1,
+        )[0]
+
+    pool = pools[pos]
     pos, word, answer = random.choice(pool)
 
     if st.session_state.current_question:
@@ -311,7 +322,7 @@ def choose_recognition_answer(answer_key):
 
 st.session_state.gen_func = gen_question
 
-pool_available = bool(available_questions())
+pool_available = bool(available_questions_by_pos())
 if not pool_available and not st.session_state.current_question:
     st.write("You need to choose at least one compatible declension and part of speech.")
 
