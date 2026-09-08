@@ -332,11 +332,11 @@ if st.session_state.current_question:
     question = st.session_state.current_question
     answer_key = f"recognize_declension_answer_{question['qid']}"
     selected_answer_index = st.session_state.recognize_declension_selected_answer
-    prompt_space = st.container(height=58, border=False)
+    prompt_space = st.container(height=72, border=False)
     with prompt_space:
         article = hungarian_article(question["word"])
         st.markdown(
-            f'<div style="font-size:1.75rem;line-height:1.25;">Melyik declinatióhoz tartozik {article} '
+            f'<div style="margin-top:0.75rem;font-size:1.75rem;line-height:1.25;">Melyik declinatióhoz tartozik {article} '
             f'<strong><em>{question["entry"]}</em></strong>?</div>',
             unsafe_allow_html=True,
         )
