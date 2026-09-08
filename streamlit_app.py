@@ -27,6 +27,7 @@ if not getattr(st, "_bevlat_hungarian_select_placeholders", False):
 if not getattr(st, "_bevlat_noun_form_input_handling", False):
     _original_form = st.form
     _original_form_submit_button = st.form_submit_button
+    _original_text_input = st.text_input
 
     class _BevlatFormContext:
         def __init__(self, context, key):
@@ -50,6 +51,23 @@ if not getattr(st, "_bevlat_noun_form_input_handling", False):
         if key == "noun_form":
             kwargs["clear_on_submit"] = False
         return _BevlatFormContext(_original_form(*args, **kwargs), key)
+
+    def _bevlat_text_input(*args, **kwargs):
+        label = kwargs.get("label", args[0] if args else None)
+        if (
+            getattr(st, "_bevlat_current_form_key", None) == "noun_form"
+            and st.session_state.get("nouns_exercise_type") == "recognize"
+            and label == "Válaszod:"
+        ):
+            kwargs.setdefault(
+                "help",
+                "A válaszokat beírhatod rövidítés nélkül (**pluralis nominativus**) vagy rövidítve "
+                "(**sing. acc.** vagy **sg. gen.**), azonos számú eseteket egymás után (**sg. dat. abl.**) "
+                "és mindezt bármilyen központozással vagy anélkül (**sg.gen** vagy akár **sggen**). "
+                "Ha minden megadott esetet ugyanolyan számúnak veszel, akkor a sorrend sem számít "
+                "(**abl,sg** = **sg. abl.**).",
+            )
+        return _original_text_input(*args, **kwargs)
 
     def _bevlat_form_submit_button(*args, **kwargs):
         if (
@@ -78,6 +96,7 @@ if not getattr(st, "_bevlat_noun_form_input_handling", False):
         return _original_form_submit_button(*args, **kwargs)
 
     st.form = _bevlat_form
+    st.text_input = _bevlat_text_input
     st.form_submit_button = _bevlat_form_submit_button
     st._bevlat_noun_form_input_handling = True
 
