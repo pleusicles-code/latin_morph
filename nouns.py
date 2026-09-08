@@ -1033,7 +1033,7 @@ else:
                             incorrect_text = format_noun_analysis_list(user_analyses)
                             st.session_state.answer_display_message = (
                                 f":red-background[Your answer: {incorrect_text}]  \n"
-                                f":green-background[Correct: {all_possible_text}]"
+                                f":red-background[Correct: {all_possible_text}]"
                             )
 
                 st.form_submit_button(
