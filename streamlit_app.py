@@ -7,9 +7,9 @@ import streamlit as st
 # The recognition exercises retain an optional polling fragment so the former
 # delayed answer check can be restored by setting ANSWER_CHECK_DELAY > 0.
 # With the current 0-second delay, their decorator receives run_every=None.
-# Avoid creating a Streamlit fragment in that specific idle case; otherwise
-# Streamlit can leave ThreadPoolExecutor workers emitting missing-ScriptRunContext
-# warnings. All other fragment usage is preserved unchanged.
+# In that specific idle case, do not touch Streamlit's fragment machinery at all;
+# otherwise its scheduler can initialize ThreadPoolExecutor workers that later
+# emit missing-ScriptRunContext warnings even on other pages.
 if not getattr(st.fragment, "_bevlat_idle_recognition_guard", False):
     _streamlit_fragment = st.fragment
 
@@ -17,12 +17,11 @@ if not getattr(st.fragment, "_bevlat_idle_recognition_guard", False):
         run_every = kwargs.get("run_every")
 
         if run_every is None and not (args and callable(args[0])):
-            original_decorator = _streamlit_fragment(*args, **kwargs)
-
             def decorator(func):
                 if func.__name__ == "recognition_check_timer":
                     return func
-                return original_decorator(func)
+                # Lazily create the real fragment only for non-recognition use.
+                return _streamlit_fragment(*args, **kwargs)(func)
 
             return decorator
 
