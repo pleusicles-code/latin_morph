@@ -1,7 +1,9 @@
 """Streamlit deployment entry point."""
 
+import inspect
 import runpy
 import streamlit as st
+import utils
 import vocab
 
 
@@ -78,6 +80,69 @@ if not getattr(st, "_bevlat_noun_form_input_handling", False):
     st.form = _bevlat_form
     st.form_submit_button = _bevlat_form_submit_button
     st._bevlat_noun_form_input_handling = True
+
+
+if not getattr(utils, "_bevlat_noun_single_number_token_order", False):
+    _original_tokenize_morphology_answer = utils.tokenize_morphology_answer
+    _noun_number_tokens = {
+        "sg", "sing", "singular", "singularis",
+        "pl", "plur", "plural", "pluralis",
+    }
+    _noun_case_tokens = {
+        "nom", "nominative", "nominativus",
+        "voc", "vocative", "vocativus",
+        "acc", "accusative", "accusativus",
+        "gen", "genitive", "genitivus",
+        "dat", "dative", "dativus",
+        "abl", "ablative", "ablativus",
+    }
+    _noun_analysis_tokens = tuple(
+        sorted(_noun_number_tokens | _noun_case_tokens, key=len, reverse=True)
+    )
+
+    def _segment_noun_answer_token(token):
+        memo = {}
+
+        def segment_from(index):
+            if index == len(token):
+                return []
+            if index in memo:
+                return memo[index]
+            for candidate in _noun_analysis_tokens:
+                if token.startswith(candidate, index):
+                    remainder = segment_from(index + len(candidate))
+                    if remainder is not None:
+                        memo[index] = [candidate] + remainder
+                        return memo[index]
+            memo[index] = None
+            return None
+
+        return segment_from(0)
+
+    def _bevlat_tokenize_morphology_answer(text):
+        raw_tokens = _original_tokenize_morphology_answer(text)
+
+        # This relaxation belongs only to noun recognition. Other morphology
+        # parsers retain the original tokenizer behavior.
+        if not any(frame.function == "parse_noun_analysis_answer" for frame in inspect.stack()[1:6]):
+            return raw_tokens
+
+        segmented = []
+        for raw_token in raw_tokens:
+            pieces = _segment_noun_answer_token(raw_token)
+            if pieces is None:
+                return raw_tokens
+            segmented.extend(pieces)
+
+        number_tokens = [token for token in segmented if token in _noun_number_tokens]
+        case_tokens = [token for token in segmented if token in _noun_case_tokens]
+        if len(number_tokens) == 1 and case_tokens:
+            return number_tokens + case_tokens
+
+        return raw_tokens
+
+    utils.tokenize_morphology_answer = _bevlat_tokenize_morphology_answer
+    utils._bevlat_noun_single_number_token_order = True
 
 
 if not getattr(vocab, "_bevlat_noun_data_fixes", False):
