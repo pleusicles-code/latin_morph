@@ -284,7 +284,7 @@ def partial_verb_feedback(user_parts, correct_parts, part_results):
         )
 
     correct_html = ", ".join(
-        f"<strong><em>{html.escape(part)}</em></strong>"
+        f'<span style="font-weight:900;"><em>{html.escape(part)}</em></span>'
         for part in correct_parts
     )
 
@@ -396,7 +396,7 @@ def check_stem_answer(answer_key):
         )
     else:
         st.session_state.answer_display_message = feedback_box(
-            f"<strong>Helytelen válasz. A helyes válasz: <em>{correct_display}</em>.</strong>",
+            f'<strong>Helytelen válasz. A helyes válasz: <span style="font-weight:900;"><em>{correct_display}</em></span>.</strong>',
             "incorrect",
         )
 
