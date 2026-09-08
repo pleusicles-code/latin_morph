@@ -85,8 +85,8 @@ st.markdown("""
             Ha nem vagy biztos benne, pontosan mit jelent egy adott beállítás, 
             a hozzá tartozó :material/help: ikon fölé húzva az egeret további információt kaphatsz.
 
-            Miután kiválasztottad a beállításokat, hozd létre az első kérdést a piros 
-            :color[Kattints ide az első kérdéshez!]{foreground="white" background="red"} gombra kattintva. 
+            Miután kiválasztottad a beállításokat, hozd létre az első kérdést a 
+            **Kattints ide az első kérdéshez!** gombra kattintva. 
             Miután egyszer rákattintottál, a gomb felirata a munkamenet hátralévő részében, minden szófajnál egyszerűen „Új kérdés” lesz.
 
             Miután megválaszoltál néhány kérdést, keresd fel a **Statisztikáid és adataid** oldalt, 
