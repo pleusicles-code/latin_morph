@@ -7,6 +7,29 @@ import utils
 import vocab
 
 
+if not getattr(st, "_bevlat_global_content_width", False):
+    _original_set_page_config = st.set_page_config
+
+    def _bevlat_set_page_config(*args, **kwargs):
+        result = _original_set_page_config(*args, **kwargs)
+        st.markdown(
+            """
+            <style>
+            [data-testid="stMainBlockContainer"],
+            .stMainBlockContainer,
+            .block-container {
+                max-width: 950px !important;
+            }
+            </style>
+            """,
+            unsafe_allow_html=True,
+        )
+        return result
+
+    st.set_page_config = _bevlat_set_page_config
+    st._bevlat_global_content_width = True
+
+
 if not getattr(st, "_bevlat_hungarian_select_placeholders", False):
     _original_selectbox = st.selectbox
     _original_multiselect = st.multiselect
