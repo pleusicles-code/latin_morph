@@ -348,8 +348,15 @@ if st.session_state.current_question:
             }}
             </style>
             """)
-    answer_columns = st.columns(len(ANSWER_OPTIONS), gap="small")
-    for answer_index, (answer_column, answer_option) in enumerate(zip(answer_columns, ANSWER_OPTIONS)):
+    selected_pos_set = set(selected_pos)
+    if selected_pos_set == {"noun"}:
+        visible_answer_options = ["1", "2", "3", "4", "5"]
+    elif selected_pos_set == {"adjective"}:
+        visible_answer_options = ["1–2", "3"]
+    else:
+        visible_answer_options = ANSWER_OPTIONS
+    answer_columns = st.columns(len(visible_answer_options), gap="small")
+    for answer_index, (answer_column, answer_option) in enumerate(zip(answer_columns, visible_answer_options)):
         with answer_column:
             st.button(
                 ANSWER_LABELS[answer_option], key=f"{answer_key}_option_{answer_index}",
