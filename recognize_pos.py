@@ -95,7 +95,10 @@ def noun_dictionary_entry(noun):
     else:
         genitive = irreg_gen
     if isinstance(genitive, list):
-        genitive = "/".join(genitive)
+        if str(data.get("decl", "")).startswith("2") and noun.endswith(("ius", "ium")):
+            genitive = genitive[0]
+        else:
+            genitive = "/".join(genitive)
     if genitive:
         return f"{noun}, {genitive} {data['gender']}."
     return f"{noun} {data['gender']}."
