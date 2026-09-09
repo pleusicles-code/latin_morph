@@ -778,7 +778,10 @@ else:
         genitive = build_noun([noun, "gen", "sg"])
         gender = noun_vocab[noun]["gender"]
         if isinstance(genitive, list):
-            genitive = "/".join(genitive)
+            if str(noun_vocab[noun].get("decl", "")).startswith("2") and noun.endswith(("ius", "ium")):
+                genitive = genitive[0]
+            else:
+                genitive = "/".join(genitive)
         if genitive:
             return f"{noun}, {genitive} {gender}."
         return f"{noun} {gender}."
@@ -961,8 +964,10 @@ else:
             elif show_declension:
                 decl_text = f"Ez egy {DECLENSION_NUMBER_LABELS[decl]} declinatiós"
                 if third_group:
-                    decl_text += f" {third_group}"
-                supplementary.append(f"{decl_text} szó.")
+                    decl_text += f" {third_group} szó."
+                else:
+                    decl_text += " szó."
+                supplementary.append(decl_text)
             elif show_stem:
                 supplementary.append(f"A szó töve {stem_html}")
 
