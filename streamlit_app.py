@@ -21,7 +21,13 @@ if not getattr(st, "_bevlat_global_content_width", False):
                 max-width: 950px !important;
                 padding-top: 1.5rem !important;
             }
+
+            [data-testid="stElementContainer"]:has(.bevlat-global-style-marker),
+            .element-container:has(.bevlat-global-style-marker) {
+                display: none !important;
+            }
             </style>
+            <span class="bevlat-global-style-marker"></span>
             """,
             unsafe_allow_html=True,
         )
