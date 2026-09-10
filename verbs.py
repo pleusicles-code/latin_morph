@@ -1504,7 +1504,7 @@ else:
                 f'Milyen alak lehet {form_article} <strong><em>{html.escape(displayed_form)}</em></strong>?'
             )
             if show_principal_parts:
-                question_html += f' <strong><em>{html.escape(verb_dictionary_entry(verb))}</em></strong>'
+                question_html += f' <em>({html.escape(verb_dictionary_entry(verb))})</em>'
         else:
             article = hungarian_article(verb_label)
             question_html = (
