@@ -4,8 +4,9 @@ import time
 import pandas as pd
 import ast
 import html
+import unicodedata
 from utils import radio_change, reset, new_question, remove_macrons, submit_and_check_answer, clear_page, send_setting, save_defaults, clear_defaults, auto_advance_delay
-from exercise_presets import (bool_setting, list_setting, resolve_exercise_settings, initialize_widget_state,
+from exercise_presets import (bool_setting, choice_setting, list_setting, resolve_exercise_settings, initialize_widget_state,
                               widget_key, url_preset_active, exercise_link_popover)
 from vocab import import_verbs
 
@@ -69,6 +70,22 @@ def heavy(text, italic=False):
     if italic:
         escaped = f"<em>{escaped}</em>"
     return f'<span style="font-weight:900;">{escaped}</span>'
+
+
+LATIN_VOWELS = set("aeiouy")
+LATIN_DIPHTHONGS = {"ae", "au", "oe", "ei", "eu", "ui"}
+
+
+def hungarian_article(word):
+    normalized = "".join(
+        char for char in unicodedata.normalize("NFD", str(word).lower())
+        if unicodedata.category(char) != "Mn"
+    )
+    if not normalized or normalized[0] not in LATIN_VOWELS:
+        return "a"
+    if len(normalized) > 1 and normalized[1] in LATIN_VOWELS:
+        return "az" if normalized[:2] in LATIN_DIPHTHONGS else "a"
+    return "az"
 
 
 def participial_answer_variants(answers):
@@ -178,6 +195,9 @@ if isinstance(defaults.get("mood_selector"), list):
     defaults["mood_selector"] = migrated_moods or default_mood_list
 defaults.pop("fut_impv", None)
 exercise_schema = {
+    "exercise_type": choice_setting("inflect", ["inflect", "recognize"]),
+    "indicate_multiple_answers": bool_setting(False),
+    "award_partial_credit": bool_setting(False),
     "show_principal_parts": bool_setting(False),
     "show_stems": bool_setting(False),
     "conjugation_selector": list_setting(list(conjugation_dict.keys()), list(conjugation_dict.keys())),
@@ -205,23 +225,49 @@ option_expander = st.expander("Beállítások", expanded=True)
 with option_expander:
     verb_options_col,options_col = st.columns([3,2])
 
+with verb_options_col:
+    exercise_type = st.radio(
+        "Feladattípus:",
+        options=["inflect", "recognize"],
+        format_func=lambda value: {
+            "inflect": "Ragozás",
+            "recognize": "Alakfelismerés",
+        }[value],
+        horizontal=True,
+        key=widget_key(page_id, "exercise_type"),
+        on_change=radio_change,
+    )
+
 with options_col:
     def switch_verb_macrons():
         st.session_state.enforce_macrons["verbs_enforce_macrons"] = st.session_state["verbs_enforce_macrons"]
         return
     st.markdown("Opciók:", help="Ezeket a beállításokat gyakorlás közben is bármikor módosíthatod.")
-    st.checkbox("Hosszú magánhangzók ellenőrzése?",
-                help="Ha be van jelölve, a hosszú magánhangzók hibás jelölése hibás válasznak számít. Ha nincs bejelölve, a hosszúságjelek használhatók, de a program nem értékeli őket.",
-                key="verbs_enforce_macrons",
-                on_change=send_setting,
-                args=(switch_verb_macrons,),
-                kwargs={"streamlit_page":"verbs.py","setting_name":"verbs_enforce_macrons"},
-                # value=st.session_state.enforce_macrons["verbs_enforce_macrons"]
-                )
-    macrons = st.session_state.verbs_enforce_macrons
-    if macrons:
-        st.markdown("A hosszú magánhangzók innen másolhatók:")
-        st.code("āēīōū", language=None)
+    indicate_multiple_answers = False
+    award_partial_credit = False
+    if exercise_type == "inflect":
+        st.checkbox("Hosszú magánhangzók ellenőrzése?",
+                    help="Ha be van jelölve, a hosszú magánhangzók hibás jelölése hibás válasznak számít. Ha nincs bejelölve, a hosszúságjelek használhatók, de a program nem értékeli őket.",
+                    key="verbs_enforce_macrons",
+                    on_change=send_setting,
+                    args=(switch_verb_macrons,),
+                    kwargs={"streamlit_page":"verbs.py","setting_name":"verbs_enforce_macrons"},
+                    )
+        macrons = st.session_state.verbs_enforce_macrons
+        if macrons:
+            st.markdown("A hosszú magánhangzók innen másolhatók:")
+            st.code("āēīōū", language=None)
+    else:
+        indicate_multiple_answers = st.checkbox(
+            "Több helyes válaszlehetőség jelzése?",
+            help="Ha be van kapcsolva, a kérdés külön jelzi, ha az adott alaknak több helyes elemzése van.",
+            key=widget_key(page_id, "indicate_multiple_answers"),
+        )
+        award_partial_credit = st.checkbox(
+            "Részpont adása?",
+            help="Ha be van kapcsolva, a részben helyes válasz fél pontot ér; különben csak a teljesen helyes válaszért jár pont.",
+            key=widget_key(page_id, "award_partial_credit"),
+        )
 
     st.html('<hr style="border-top: 1px dotted; border-bottom: none;">')
 
@@ -303,6 +349,9 @@ with verb_options_col:
         st.write(st.session_state.question_generation_error_message)
 
 current_exercise_settings = {
+    "exercise_type": exercise_type,
+    "indicate_multiple_answers": indicate_multiple_answers,
+    "award_partial_credit": award_partial_credit,
     "show_principal_parts": show_principal_parts,
     "show_stems": show_stems,
     "conjugation_selector": conjugation_selector,
@@ -1448,11 +1497,20 @@ else:
         )
 
         verb_label = verb_dictionary_entry(verb) if show_principal_parts else verb
-        article = "az" if verb_label and verb_label[0].casefold() in "aáeéiíoóöőuúüű" else "a"
-        question_html = (
-            f'Add meg {article} <strong><em>{html.escape(verb_label)}</em></strong> ige '
-            f'<strong>{html.escape(form_label)}</strong> alakját!'
-        )
+        if exercise_type == "recognize":
+            displayed_form = verb_form[0] if isinstance(verb_form, list) else verb_form
+            form_article = hungarian_article(displayed_form)
+            question_html = (
+                f'Milyen alak lehet {form_article} <strong><em>{html.escape(displayed_form)}</em></strong>?'
+            )
+            if show_principal_parts:
+                question_html += f' <strong><em>{html.escape(verb_dictionary_entry(verb))}</em></strong>'
+        else:
+            article = hungarian_article(verb_label)
+            question_html = (
+                f'Add meg {article} <strong><em>{html.escape(verb_label)}</em></strong> ige '
+                f'<strong>{html.escape(form_label)}</strong> alakját!'
+            )
 
         stems = verb_stem_display(verb) if show_stems else []
         prompt_height = 114 if stems else 82
