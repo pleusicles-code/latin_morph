@@ -14,39 +14,16 @@ new_controls = '''    control_row = st.container(height=110, border=False)
         new_q_button_text = "Új kérdés" if st.session_state.question_list else "Kattints ide az első kérdéshez!"
         new_q_button_type = "secondary" if st.session_state.question_list else "primary"
         with new_question_col:
-            st.button(
-                new_q_button_text,
-                on_click=new_question,
-                args=(build_verb,),
-                key="question_button",
-                width="stretch",
-                type=new_q_button_type,
-            )
+            st.button(new_q_button_text, on_click=new_question, args=(build_verb,), key="question_button", width="stretch", type=new_q_button_type)
 
         with results_col:
-            if (
-                st.session_state.current_question
-                and st.session_state.answer_checked
-                and "Incorrect" in st.session_state.result_message
-            ):
+            if st.session_state.current_question and st.session_state.answer_checked and "Incorrect" in st.session_state.result_message:
                 starting_form = dict(st.session_state.current_question[1])
                 next_form = dict(starting_form)
-                help_text = (
-                    "Ehhez az alakhoz nem jeleníthető meg ragozási táblázat."
-                    if (
-                        starting_form["voice"] == "pass"
-                        and complete_verb_vocab[starting_form["verb"]].get("impers_pass_only") is True
-                    )
-                    else None
-                )
-
+                help_text = "Ehhez az alakhoz nem jeleníthető meg ragozási táblázat." if (starting_form["voice"] == "pass" and complete_verb_vocab[starting_form["verb"]].get("impers_pass_only") is True) else None
                 chart_popover = st.popover("Ragozási táblázat", type="primary", help=help_text)
-
                 with chart_popover:
-                    if not (
-                        starting_form["voice"] == "pass"
-                        and complete_verb_vocab[starting_form["verb"]].get("impers_pass_only") is True
-                    ):
+                    if not (starting_form["voice"] == "pass" and complete_verb_vocab[starting_form["verb"]].get("impers_pass_only") is True):
                         st.caption("Ez a funkció még fejlesztés alatt áll.")
                         conj_table = {}
                         table_index = []
@@ -57,7 +34,6 @@ new_controls = '''    control_row = st.container(height=110, border=False)
                                     table_index.append(pers)
                                 next_form["num"] = num
                                 next_form["pers"] = pers
-
                                 try:
                                     form = build_verb(next_form)[0]
                                     if isinstance(form, list):
@@ -66,33 +42,28 @@ new_controls = '''    control_row = st.container(height=110, border=False)
                                         form = f":green-background[{form}]"
                                 except Exception:
                                     form = None
-                                finally:
-                                    if starting_form["mood"] == "impv":
-                                        if starting_form["tense"] == "pres" and pers != 2:
-                                            form = None
-                                        if (
-                                            starting_form["voice"] in ["pass", "dep"]
-                                            and starting_form["tense"] == "fut"
-                                            and num == "pl"
-                                            and pers != 3
-                                        ):
-                                            form = None
-
+                                if starting_form["mood"] == "impv":
+                                    if starting_form["tense"] == "pres" and pers != 2:
+                                        form = None
+                                    if starting_form["voice"] in ["pass", "dep"] and starting_form["tense"] == "fut" and num == "pl" and pers != 3:
+                                        form = None
                                 conj_table[num].append(form if isinstance(form, str) else "--")
-
                         conjugation_table = pd.DataFrame(conj_table, index=table_index)
                         st.table(conjugation_table)
 
         with score_col:
             st.button("Pontszám nullázása", "reset", on_click=reset, width="stretch")
-            st.markdown(
-                f"Jelenlegi pontszám: **{st.session_state.current_score}** / **{st.session_state.total_questions}**"
-            )
+            st.markdown(f"Jelenlegi pontszám: **{st.session_state.current_score}** / **{st.session_state.total_questions}**")
 
 '''
 s = s[:start] + new_controls + s[end:]
 
 """
 
+# Replace the original final compile/write with diagnostic output on syntax failure.
 patch_source = patch_source[:start] + replacement + patch_source[end:]
+patch_source = patch_source.replace(
+    'compile(s, "verbs.py", "exec")\np.write_text(s)',
+    '''try:\n    compile(s, "verbs.py", "exec")\nexcept SyntaxError as exc:\n    lines = s.splitlines()\n    lo = max(0, exc.lineno - 12)\n    hi = min(len(lines), exc.lineno + 8)\n    for i in range(lo, hi):\n        print(f"{i+1:04d}: {lines[i]}")\n    raise\np.write_text(s)'''
+)
 exec(compile(patch_source, "scripts/translate_verbs_page.py", "exec"))
