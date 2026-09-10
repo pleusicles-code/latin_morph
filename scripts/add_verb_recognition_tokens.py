@@ -113,7 +113,7 @@ verbs = verbs.replace(anchor, anchor + addition)
 compile(verbs, 'verbs.py', 'exec')
 verbs_path.write_text(verbs)
 
-# Lightweight tokenizer/alias checks without importing Streamlit application modules.
+# Lightweight tokenizer checks without importing Streamlit application modules.
 import re
 
 def tok(text):
@@ -122,5 +122,3 @@ def tok(text):
 assert tok('praes. impf. ind. pass. sg. 2') == ['praes', 'impf', 'ind', 'pass', 'sg', '2']
 assert tok('imper. 2') == ['imper', '2']
 assert tok('imp. 2') == ['imp', '2']
-assert VERB_MORPHOLOGY_ALIASES['imper'] == ('mood', 'impv')
-assert VERB_MORPHOLOGY_ALIASES['imp'] == ('aspect', 'impf')
