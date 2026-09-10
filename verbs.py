@@ -1454,7 +1454,7 @@ else:
         )
 
         stems = verb_stem_display(verb) if show_stems else []
-        prompt_height = 104 if stems else 72
+        prompt_height = 114 if stems else 82
         prompt_space = st.container(height=prompt_height, border=False)
         with prompt_space:
             st.markdown(
