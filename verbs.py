@@ -5,7 +5,7 @@ import pandas as pd
 import ast
 import html
 import unicodedata
-from utils import radio_change, reset, new_question, remove_macrons, submit_and_check_answer, clear_page, send_setting, save_defaults, clear_defaults, auto_advance_delay
+from utils import radio_change, reset, new_question, remove_macrons, submit_and_check_answer, clear_page, send_setting, save_defaults, clear_defaults, auto_advance_delay, tokenize_morphology_answer
 from exercise_presets import (bool_setting, choice_setting, list_setting, resolve_exercise_settings, initialize_widget_state,
                               widget_key, url_preset_active, exercise_link_popover)
 from vocab import import_verbs
@@ -86,6 +86,61 @@ def hungarian_article(word):
     if len(normalized) > 1 and normalized[1] in LATIN_VOWELS:
         return "az" if normalized[:2] in LATIN_DIPHTHONGS else "a"
     return "az"
+
+
+VERB_MORPHOLOGY_ALIASES = {
+    # relative tense
+    "praesens": ("relative_tense", "pres"),
+    "praes": ("relative_tense", "pres"),
+    "praeteritum": ("relative_tense", "past"),
+    "praet": ("relative_tense", "past"),
+    "futurum": ("relative_tense", "fut"),
+    "fut": ("relative_tense", "fut"),
+    # aspect
+    "imperfectum": ("aspect", "impf"),
+    "impf": ("aspect", "impf"),
+    "imp": ("aspect", "impf"),
+    "perfectum": ("aspect", "perf"),
+    "perf": ("aspect", "perf"),
+    # voice
+    "activum": ("voice", "act"),
+    "activi": ("voice", "act"),
+    "act": ("voice", "act"),
+    "passivum": ("voice", "pass"),
+    "passivi": ("voice", "pass"),
+    "pass": ("voice", "pass"),
+    # mood
+    "indicativus": ("mood", "ind"),
+    "ind": ("mood", "ind"),
+    "coniunctivus": ("mood", "subj"),
+    "coni": ("mood", "subj"),
+    "imperativus": ("mood", "impv"),
+    "imper": ("mood", "impv"),
+    # number
+    "singularis": ("number", "sg"),
+    "sing": ("number", "sg"),
+    "sg": ("number", "sg"),
+    "pluralis": ("number", "pl"),
+    "plur": ("number", "pl"),
+    "pl": ("number", "pl"),
+    # person
+    "1": ("person", "1"),
+    "2": ("person", "2"),
+    "3": ("person", "3"),
+}
+
+
+def normalize_verb_morphology_tokens(text):
+    """Normalize recognized verb-analysis tokens; ignore unrecognized tokens.
+
+    Exact-token lookup keeps ``imper`` distinct from the imperfect alias ``imp``.
+    Future/second imperatives are not distinguished yet.
+    """
+    return [
+        VERB_MORPHOLOGY_ALIASES[token]
+        for token in tokenize_morphology_answer(text)
+        if token in VERB_MORPHOLOGY_ALIASES
+    ]
 
 
 def participial_answer_variants(answers):

@@ -92,15 +92,15 @@ def remove_macrons(text):
 
 
 def tokenize_morphology_answer(text):
-    """Return lowercase alphabetic tokens from a morphology-analysis answer.
+    """Return lowercase word tokens and standalone person digits 1-3.
 
-    All non-letter characters are treated purely as separators. Grammatical
-    interpretation and alias normalization (e.g. ``sing`` -> ``sg``) belong
-    to exercise-specific parsers built on top of this tokenizer.
+    All other non-letter/digit characters are treated purely as separators.
+    Grammatical interpretation and alias normalization belong to
+    exercise-specific parsers built on top of this tokenizer.
     """
     if not isinstance(text, str):
         return []
-    return re.findall(r"[^\W\d_]+", text.casefold(), flags=re.UNICODE)
+    return re.findall(r"[^\W\d_]+|[1-3]", text.casefold(), flags=re.UNICODE)
 
 
 def submit_and_check_answer():
