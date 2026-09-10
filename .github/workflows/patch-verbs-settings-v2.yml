@@ -1,0 +1,104 @@
+name: Patch verb settings redesign v2
+
+on:
+  push:
+    branches: [exercise-url-presets]
+    paths:
+      - '.github/workflows/patch-verbs-settings-v2.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: exercise-url-presets
+
+      - name: Patch and syntax-check verbs.py
+        shell: python
+        run: |
+          from pathlib import Path
+          import re
+
+          p = Path('verbs.py')
+          s = p.read_text()
+
+          def sub(pattern, repl, *, count=1, flags=0):
+              global s
+              s2, n = re.subn(pattern, repl, s, count=count, flags=flags)
+              if n != count:
+                  raise RuntimeError(f'Expected {count} replacements, got {n}: {pattern[:120]}')
+              s = s2
+
+          # Visible selector values. Internal conjugation values remain unchanged.
+          sub(r'conjugation_dict = \{1: "1st \(-āre\)",\n\s+2: "2nd \(-ēre\)",\n\s+3: "3rd \(-ere\)",\n\s+"3io": \'3rd "io" \(-ere\)\',\n\s+4: "4th \(-īre\)"\}',
+              'conjugation_dict = {1: "1.",\n                    2: "2.",\n                    3: "3.",\n                    4: "4."}')
+
+          s = s.replace('master_mood_list = ["ind", "subj", "inf", "impv"]',
+                        'master_mood_list = ["ind", "subj", "impv", "fut_impv"]\ndefault_mood_list = ["ind", "subj", "impv"]', 1)
+
+          marker = 'master_irregular_verbs_list = [key for key in complete_verb_vocab.keys() if complete_verb_vocab[key].get("irreg",{}).get("irreg") is True]\n'
+          migration = '''master_irregular_verbs_list = [key for key in complete_verb_vocab.keys() if complete_verb_vocab[key].get("irreg",{}).get("irreg") is True]\n\n# Migrate saved verb settings from the previous selector structure.\ndefaults = dict(defaults)\nif isinstance(defaults.get("conjugation_selector"), list):\n    migrated_conjugations = []\n    for conj in defaults["conjugation_selector"]:\n        visible_conj = 3 if conj == "3io" else conj\n        if visible_conj in conjugation_dict and visible_conj not in migrated_conjugations:\n            migrated_conjugations.append(visible_conj)\n    defaults["conjugation_selector"] = migrated_conjugations\nif isinstance(defaults.get("mood_selector"), list):\n    migrated_moods = [mood for mood in defaults["mood_selector"] if mood in default_mood_list]\n    if defaults.get("fut_impv") and "fut_impv" not in migrated_moods:\n        migrated_moods.append("fut_impv")\n    defaults["mood_selector"] = migrated_moods or default_mood_list\ndefaults.pop("fut_impv", None)\n'''
+          if marker not in s:
+              raise RuntimeError('master irregular marker not found')
+          s = s.replace(marker, migration, 1)
+
+          s = s.replace('"mood_selector": list_setting(master_mood_list, master_mood_list),',
+                        '"mood_selector": list_setting(default_mood_list, master_mood_list),', 1)
+          s = s.replace('    "fut_impv": bool_setting(False),\n', '', 1)
+
+          sub(r'    tense_dict = \{abbrev: name for abbrev, name in zip\(master_tense_list,\[verb_abbrevs\[tns\] for tns in master_tense_list\]\)\}',
+              '    tense_dict = {"pres": "praes. impf.",\n                  "impf": "praet. impf.",\n                  "fut": "fut. impf.",\n                  "perf": "praes. perf.",\n                  "plupf": "praet. perf.",\n                  "fut_pf": "fut. perf."}')
+          sub(r'    voice_dict = \{abbrev: name for abbrev, name in zip\(master_voice_list,\[verb_abbrevs\[vc\] for vc in master_voice_list\]\)\}',
+              '    voice_dict = {"act": "act.",\n                  "pass": "pass.",\n                  "dep": "deponens",\n                  "semidep": "semideponens"}')
+          sub(r'    mood_dict = \{abbrev: name for abbrev, name in zip\(master_mood_list,\[verb_abbrevs\[md\] for md in master_mood_list\]\)\}',
+              '    mood_dict = {"ind": "indicativus",\n                 "subj": "coniunctivus",\n                 "impv": "imperativus",\n                 "fut_impv": "2. imperativus"}')
+
+          sub(r'\n    fut_impv = False\n    if "fut" in tense_selector and "impv" in mood_selector:\n        fut_impv = st\.checkbox\("Include future imperatives\?",\n                                key=widget_key\(page_id, "fut_impv"\),\n                                help="Future imperatives are very rare and not usually taught in introductory or intermediate courses, but you can include them if you want to!"\)',
+              '\n    fut_impv = "fut_impv" in mood_selector')
+          s = s.replace('    "fut_impv": fut_impv,\n', '', 1)
+
+          sub(r'tense_list = list\(tense_selector\)\nmood_list = dict\(zip\(\["ind","subj","impv","inf"\], \[70, 70, 10, 30\]\)\)\nmoods = list\(mood_list\.keys\(\)\)\nfor md in moods:\n    if md not in mood_selector:\n        mood_list\.pop\(md\)\nif "pres" not in tense_list and not fut_impv and "impv" in mood_list:\n    mood_list\.pop\("impv"\)\nif all\(tns not in tense_list for tns in \["pres","fut","perf"\]\) and "inf" in mood_list:\n    mood_list\.pop\("inf"\)\nif all\(tns not in tense_list for tns in \["pres","impf","plupf","perf"\]\) and "subj" in mood_list:\n    mood_list\.pop\("subj"\)',
+              '''tense_list = list(tense_selector)\npresent_impv = "impv" in mood_selector\nfut_impv = "fut_impv" in mood_selector\ninternal_mood_selector = [mood for mood in mood_selector if mood != "fut_impv"]\nif fut_impv and "impv" not in internal_mood_selector:\n    internal_mood_selector.append("impv")\n\ninternal_conjugation_selector = []\nfor conj in conjugation_selector:\n    if conj == 3:\n        internal_conjugation_selector.extend([3, "3io"])\n    else:\n        internal_conjugation_selector.append(conj)\n\nmood_list = {"ind": 70, "subj": 70, "impv": 10}\nmoods = list(mood_list.keys())\nfor md in moods:\n    if md not in internal_mood_selector:\n        mood_list.pop(md)\nif "impv" in mood_list and not ((present_impv and "pres" in tense_list) or (fut_impv and "fut" in tense_list)):\n    mood_list.pop("impv")\nif all(tns not in tense_list for tns in ["pres","impf","plupf","perf"]) and "subj" in mood_list:\n    mood_list.pop("subj")''')
+
+          s = s.replace('verb_vocab[key]["conj"] in conjugation_selector + [None]',
+                        'verb_vocab[key]["conj"] in internal_conjugation_selector + [None]', 1)
+          s = s.replace('if mood_selector == ["impv"]:', 'if set(internal_mood_selector) == {"impv"}:', 1)
+          sub(r'if mood_selector == \["inf"\] and tense_list == \["fut"\]:\n    verb_vocab = \{key: val for key, val in verb_vocab\.items\(\) if "ppp" in val or "fap" in val\}\n', '')
+          s = s.replace('"ind" not in mood_selector', '"ind" not in internal_mood_selector')
+          s = s.replace('"subj" not in mood_selector', '"subj" not in internal_mood_selector')
+          s = s.replace('"inf" in mood_selector', '"inf" in internal_mood_selector')
+
+          old = '        avail_verbs = [v for v,i in verb_vocab.items() if i["conj"]==conj_random and v not in irreg_selector] if conj_random != "irreg" else [v for v in irreg_selector if v in verb_vocab]'
+          new = '''        if conj_random == "irreg":\n            avail_verbs = [v for v in irreg_selector if v in verb_vocab]\n        elif conj_random == 3:\n            avail_verbs = [v for v, i in verb_vocab.items() if i["conj"] in [3, "3io"] and v not in irreg_selector]\n        else:\n            avail_verbs = [v for v, i in verb_vocab.items() if i["conj"] == conj_random and v not in irreg_selector]'''
+          if old not in s:
+              raise RuntimeError('avail_verbs line not found')
+          s = s.replace(old, new, 1)
+
+          sub(r'            if "inf" in avail_moods:\n                if "ppp" not in verb_vocab\[verb\] and verb_vocab\[verb\]\.get\("fap"\) is None:\n                    avail_moods\.pop\("inf"\)\n', '')
+          sub(r'            elif mood == "impv" and verb == "fīō" and "fut" in tense_list_copy:\n                tense_list_copy\.remove\("fut"\)',
+              '''            elif mood == "impv":\n                allowed_impv_tenses = []\n                if present_impv and "pres" in tense_list_copy:\n                    allowed_impv_tenses.append("pres")\n                if fut_impv and "fut" in tense_list_copy and verb != "fīō":\n                    allowed_impv_tenses.append("fut")\n                tense_list_copy = allowed_impv_tenses''')
+
+          s = s.replace('.query(f"`id.conj` in {[str(conj) for conj in conjugation_selector]} or word in @irreg_selector")',
+                        '.query(f"`id.conj` in {[str(conj) for conj in internal_conjugation_selector]} or word in @irreg_selector")', 1)
+          s = s.replace('.query("`id.mood` in @mood_selector")', '.query("`id.mood` in @internal_mood_selector")', 1)
+          s = s.replace('                if not fut_impv:\n                    verb_df_filtered = verb_df_filtered.query("`id.tense` != \'fut\' and `id.mood` != \'impv\'")',
+                        '                if not present_impv:\n                    verb_df_filtered = verb_df_filtered.query("not (`id.tense` == \'pres\' and `id.mood` == \'impv\')")\n                if not fut_impv:\n                    verb_df_filtered = verb_df_filtered.query("not (`id.tense` == \'fut\' and `id.mood` == \'impv\')")', 1)
+
+          # Removed choices must not remain in the settings UI/schema.
+          assert '"inf"' not in re.search(r'master_mood_list = .*', s).group(0)
+          assert 'Include future imperatives?' not in s
+          assert '"fut_impv": bool_setting' not in s
+          compile(s, 'verbs.py', 'exec')
+          p.write_text(s)
+
+      - name: Commit verbs.py
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add verbs.py
+          git commit -m "Redesign verb practice selectors"
+          git push origin exercise-url-presets
