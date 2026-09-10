@@ -306,7 +306,7 @@ choose_page.run()
 
 st.markdown(
     body='''<div style="position:relative;height:5em;width:100%;">
-        <p style="font-size:smaller;text-align:right;position:absolute;bottom:0;right:-3em;">
+        <p style="font-size:smaller;text-align:right;position:absolute;bottom:0;right:0;">
             &copy; 2026 (<a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" target="_BLANK">CC BY-NC-SA 4.0</a>)
         </p>
         </div>''',

@@ -24,6 +24,7 @@ if not getattr(st, "_bevlat_global_content_width", False):
             .block-container {
                 max-width: 1300px !important;
                 padding-top: 2rem !important;
+                padding-left: 40px !important;
                 margin-top: 0 !important;
                 margin-left: 0 !important;
                 margin-right: auto !important;
