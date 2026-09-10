@@ -1595,6 +1595,30 @@ else:
                 current_answer = st.text_input("Válaszod:", key="answer_input")
 
                 def submit_verb_answer():
+                    if exercise_type == "recognize":
+                        user_answer = st.session_state.get("answer_input", "")
+                        if not user_answer:
+                            st.session_state.button_disable = False
+                            st.session_state.answer_display_message = (
+                                "A válaszmező üres. Írj be egy alakot, majd kattints a **Válasz ellenőrzése** gombra, "
+                                "vagy az **Új kérdés** gombbal ugord át a kérdést."
+                            )
+                            return
+
+                        recognized_tokens = [
+                            token for token in tokenize_morphology_answer(user_answer)
+                            if token in VERB_MORPHOLOGY_ALIASES
+                        ]
+                        recognized_html = " ".join(html.escape(token) for token in recognized_tokens) or "&nbsp;"
+                        st.session_state.button_disable = True
+                        st.session_state.answer_checked = True
+                        st.session_state.result_message = "**Good job!**"
+                        st.session_state.answer_display_message = feedback_box(
+                            recognized_html, "correct"
+                        )
+                        st.session_state.auto_advance_trigger = bool(st.session_state.auto_advance)
+                        return
+
                     original_correct_answer = st.session_state.correct_answer
                     st.session_state.correct_answer = participial_answer_variants(original_correct_answer)
                     submit_and_check_answer()
