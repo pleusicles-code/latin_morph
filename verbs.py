@@ -130,16 +130,51 @@ VERB_MORPHOLOGY_ALIASES = {
 }
 
 
-def normalize_verb_morphology_tokens(text):
-    """Normalize recognized verb-analysis tokens; ignore unrecognized tokens.
+VERB_MORPHOLOGY_SOURCE_TOKENS = tuple(
+    sorted(VERB_MORPHOLOGY_ALIASES, key=len, reverse=True)
+)
 
-    Exact-token lookup keeps ``imper`` distinct from the imperfect alias ``imp``.
-    Future/second imperatives are not distinguished yet.
+
+def segment_verb_morphology_token(token):
+    """Fully segment one tokenizer token into known verb-analysis tokens."""
+    memo = {}
+
+    def segment_from(index):
+        if index == len(token):
+            return []
+        if index in memo:
+            return memo[index]
+        for candidate in VERB_MORPHOLOGY_SOURCE_TOKENS:
+            if token.startswith(candidate, index):
+                remainder = segment_from(index + len(candidate))
+                if remainder is not None:
+                    memo[index] = [candidate] + remainder
+                    return memo[index]
+        memo[index] = None
+        return None
+
+    return segment_from(0)
+
+
+def recognized_verb_morphology_tokens(text):
+    """Return recognized source tokens in input order, including concatenated forms."""
+    recognized = []
+    for raw_token in tokenize_morphology_answer(text):
+        pieces = segment_verb_morphology_token(raw_token)
+        if pieces is not None:
+            recognized.extend(pieces)
+    return recognized
+
+
+def normalize_verb_morphology_tokens(text):
+    """Normalize recognized verb-analysis tokens, including concatenated forms.
+
+    Longest-first segmentation ensures ``imper`` is tried before the imperfect
+    alias ``imp``. Future/second imperatives are not distinguished yet.
     """
     return [
         VERB_MORPHOLOGY_ALIASES[token]
-        for token in tokenize_morphology_answer(text)
-        if token in VERB_MORPHOLOGY_ALIASES
+        for token in recognized_verb_morphology_tokens(text)
     ]
 
 
@@ -1605,10 +1640,7 @@ else:
                             )
                             return
 
-                        recognized_tokens = [
-                            token for token in tokenize_morphology_answer(user_answer)
-                            if token in VERB_MORPHOLOGY_ALIASES
-                        ]
+                        recognized_tokens = recognized_verb_morphology_tokens(user_answer)
                         recognized_html = " ".join(html.escape(token) for token in recognized_tokens) or "&nbsp;"
                         st.session_state.button_disable = True
                         st.session_state.answer_checked = True
