@@ -60,8 +60,11 @@ s = s[:start] + new_controls + s[end:]
 
 """
 
-# Replace the original final compile/write with diagnostic output on syntax failure.
 patch_source = patch_source[:start] + replacement + patch_source[end:]
+patch_source = patch_source.replace(
+    'correct_html = " <span style=\\\"font-weight:700;\\\">vagy</span> ".join(',
+    'correct_html = " <span style=\'font-weight:700;\'>vagy</span> ".join(',
+)
 patch_source = patch_source.replace(
     'compile(s, "verbs.py", "exec")\np.write_text(s)',
     '''try:\n    compile(s, "verbs.py", "exec")\nexcept SyntaxError as exc:\n    lines = s.splitlines()\n    lo = max(0, exc.lineno - 12)\n    hi = min(len(lines), exc.lineno + 8)\n    for i in range(lo, hi):\n        print(f"{i+1:04d}: {lines[i]}")\n    raise\np.write_text(s)'''
