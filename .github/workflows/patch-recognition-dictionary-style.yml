@@ -23,3 +23,5 @@ jobs:
           git add verbs.py
           git commit -m "Style recognition dictionary entry"
           git push origin exercise-url-presets
+
+# one-shot trigger
