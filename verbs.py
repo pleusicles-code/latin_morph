@@ -276,8 +276,6 @@ with options_col:
             key=widget_key(page_id, "award_partial_credit"),
         )
 
-    st.html('<hr style="border-top: 1px dotted; border-bottom: none;">')
-
     show_principal_parts = st.checkbox("Szótári alak megjelenítése?",
                                         help="Az ige szótári alakjának (főalakjainak) megjelenítése.",
                                         key=widget_key(page_id, "show_principal_parts"))
