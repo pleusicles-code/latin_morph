@@ -23,4 +23,4 @@ jobs:
           git add utils.py verbs.py
           git commit -m "Add verb recognition token dictionary"
           git push origin exercise-url-presets
-# rerun after regex fix
+# rerun after test fix
