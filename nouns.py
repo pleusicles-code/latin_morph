@@ -1183,7 +1183,7 @@ else:
 
     control_row = st.container(height=110, border=False)
     with control_row:
-        new_question_col, results_col, score_col = st.columns(3, gap="medium", vertical_alignment="top")
+        new_question_col, results_col, score_col = st.columns([5, 2, 5], gap="large", vertical_alignment="top")
 
         new_q_button_text = "Új kérdés" if st.session_state.question_list else "Kattints ide az első kérdéshez!"
         new_q_button_type = "secondary" if st.session_state.question_list else "primary"

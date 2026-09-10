@@ -482,7 +482,7 @@ if st.session_state.current_question:
 
 control_row = st.container(height=92, border=False)
 with control_row:
-    new_question_col, results_col, score_col = st.columns(3, gap="medium", vertical_alignment="top")
+    new_question_col, results_col, score_col = st.columns([5, 2, 5], gap="large", vertical_alignment="top")
 
     with new_question_col:
         button_text = "Új kérdés" if st.session_state.question_list else "Kattints ide az első kérdéshez!"
