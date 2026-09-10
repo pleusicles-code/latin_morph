@@ -1448,8 +1448,9 @@ else:
         )
 
         verb_label = verb_dictionary_entry(verb) if show_principal_parts else verb
+        article = "az" if verb_label and verb_label[0].casefold() in "aáeéiíoóöőuúüű" else "a"
         question_html = (
-            f'Add meg a <strong><em>{html.escape(verb_label)}</em></strong> ige '
+            f'Add meg {article} <strong><em>{html.escape(verb_label)}</em></strong> ige '
             f'<strong>{html.escape(form_label)}</strong> alakját!'
         )
 
