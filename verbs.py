@@ -1703,7 +1703,7 @@ else:
 
     control_row = st.container(height=110, border=False)
     with control_row:
-        new_question_col, results_col, score_col = st.columns([5, 2, 5], gap="large", vertical_alignment="top")
+        new_question_col, results_col, score_col = st.columns([6, 1, 6], gap="medium", vertical_alignment="top")
 
         new_q_button_text = "Új kérdés" if st.session_state.question_list else "Kattints ide az első kérdéshez!"
         new_q_button_type = "secondary" if st.session_state.question_list else "primary"
@@ -1747,7 +1747,10 @@ else:
 
         with score_col:
             st.button("Pontszám nullázása", "reset", on_click=reset, width="stretch")
-            st.markdown(f"Jelenlegi pontszám: **{st.session_state.current_score}** / **{st.session_state.total_questions}**")
+            st.markdown(
+                f'<div style="text-align:right;">Jelenlegi pontszám: <strong>{st.session_state.current_score}</strong> / <strong>{st.session_state.total_questions}</strong></div>',
+                unsafe_allow_html=True,
+            )
 
 if st.session_state.auto_advance_trigger and st.session_state.answer_checked:
     time.sleep(auto_advance_delay())

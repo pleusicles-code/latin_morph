@@ -388,7 +388,7 @@ recognition_check_timer()
 
 control_row = st.container(height=92, border=False)
 with control_row:
-    new_question_col, results_col, score_col = st.columns([5, 2, 5], gap="large", vertical_alignment="top")
+    new_question_col, results_col, score_col = st.columns([6, 1, 6], gap="medium", vertical_alignment="top")
     with new_question_col:
         button_text = "Új kérdés" if st.session_state.question_list else "Kattints ide az első kérdéshez!"
         button_type = "secondary" if st.session_state.question_list else "primary"
@@ -400,7 +400,10 @@ with control_row:
         st.container(height=48, border=False)
     with score_col:
         st.button("Pontszám törlése", "recognize_declension_reset", on_click=reset_recognition_score, width="stretch")
-        st.markdown(f"Jelenlegi pontszám: **{st.session_state.current_score}** / **{st.session_state.total_questions}**")
+        st.markdown(
+                f'<div style="text-align:right;">Jelenlegi pontszám: <strong>{st.session_state.current_score}</strong> / <strong>{st.session_state.total_questions}</strong></div>',
+                unsafe_allow_html=True,
+            )
 
 if not st.session_state.auto_advance:
     st.session_state.auto_advance_trigger = False
