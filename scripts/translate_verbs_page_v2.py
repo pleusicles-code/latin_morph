@@ -4,9 +4,9 @@ patch_source = Path("scripts/translate_verbs_page.py").read_text()
 start = patch_source.index("# Lower controls: translate and adopt the same spacing/placement as nouns.")
 end = patch_source.index("# Ensure key English UI strings are gone and syntax is valid.", start)
 
-replacement = r'''# Lower controls: replace the whole block explicitly, matching the noun layout.
+replacement = r"""# Lower controls: replace the whole block explicitly, matching the noun layout.
 start = s.index('    new_question_col, results_col, score_col = st.columns(3)')
-end = s.index('\n\nif st.session_state.auto_advance_trigger', start)
+end = s.index('\\n\\nif st.session_state.auto_advance_trigger', start)
 new_controls = '''    control_row = st.container(height=110, border=False)
     with control_row:
         new_question_col, results_col, score_col = st.columns(3, gap="medium", vertical_alignment="top")
@@ -91,7 +91,7 @@ new_controls = '''    control_row = st.container(height=110, border=False)
 '''
 s = s[:start] + new_controls + s[end:]
 
-'''
+"""
 
 patch_source = patch_source[:start] + replacement + patch_source[end:]
 exec(compile(patch_source, "scripts/translate_verbs_page.py", "exec"))
