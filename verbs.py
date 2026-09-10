@@ -196,6 +196,7 @@ if isinstance(defaults.get("mood_selector"), list):
 defaults.pop("fut_impv", None)
 exercise_schema = {
     "exercise_type": choice_setting("inflect", ["inflect", "recognize"]),
+    "print_macrons": bool_setting(False),
     "indicate_multiple_answers": bool_setting(False),
     "award_partial_credit": bool_setting(False),
     "show_principal_parts": bool_setting(False),
@@ -243,6 +244,7 @@ with options_col:
         st.session_state.enforce_macrons["verbs_enforce_macrons"] = st.session_state["verbs_enforce_macrons"]
         return
     st.markdown("Opciók:", help="Ezeket a beállításokat gyakorlás közben is bármikor módosíthatod.")
+    print_macrons = False
     indicate_multiple_answers = False
     award_partial_credit = False
     if exercise_type == "inflect":
@@ -258,6 +260,11 @@ with options_col:
             st.markdown("A hosszú magánhangzók innen másolhatók:")
             st.code("āēīōū", language=None)
     else:
+        print_macrons = st.checkbox(
+            "Hosszú magánhangzók jelölése?",
+            help="Ha be van kapcsolva, a kérdésben szereplő igealak jelöli a magánhangzók hosszúságát. Ez ritkán két, egyébként azonos írásképű alakot is megkülönböztethet.",
+            key=widget_key(page_id, "print_macrons"),
+        )
         indicate_multiple_answers = st.checkbox(
             "Több helyes válaszlehetőség jelzése?",
             help="Ha be van kapcsolva, a kérdés külön jelzi, ha az adott alaknak több helyes elemzése van.",
@@ -350,6 +357,7 @@ with verb_options_col:
 
 current_exercise_settings = {
     "exercise_type": exercise_type,
+    "print_macrons": print_macrons,
     "indicate_multiple_answers": indicate_multiple_answers,
     "award_partial_credit": award_partial_credit,
     "show_principal_parts": show_principal_parts,
@@ -1499,6 +1507,8 @@ else:
         verb_label = verb_dictionary_entry(verb) if show_principal_parts else verb
         if exercise_type == "recognize":
             displayed_form = verb_form[0] if isinstance(verb_form, list) else verb_form
+            if not print_macrons:
+                displayed_form = remove_macrons(displayed_form)
             form_article = hungarian_article(displayed_form)
             question_html = (
                 f'Milyen alak lehet {form_article} <strong><em>{html.escape(displayed_form)}</em></strong>?'
