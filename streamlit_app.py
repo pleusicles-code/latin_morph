@@ -18,12 +18,12 @@ if not getattr(st, "_bevlat_global_content_width", False):
             [data-testid="stMainBlockContainer"],
             .stMainBlockContainer {
                 max-width: 1200px !important;
-                padding-top: 0 !important;
+                padding-top: 2rem !important;
             }
 
             .block-container {
                 max-width: 1200px !important;
-                padding-top: 0 !important;
+                padding-top: 2rem !important;
                 margin-top: 0 !important;
             }
 
