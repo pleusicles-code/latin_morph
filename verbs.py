@@ -107,10 +107,12 @@ def verb_dictionary_entry(verb):
     conj_label = 3 if conj == "3io" else conj
     head = f"{verb} {conj_label}" if conj_label is not None else verb
 
+    # For regular 1st-conjugation verbs, the compact dictionary entry is just lemma + conjugation.
+    if conj == 1 and not data.get("irreg"):
+        return head
+
     # The identify-stems exercise uses perfect + supine for ordinary active verbs.
     if data.get("voice") == "act":
-        if conj == 1 and not data.get("irreg"):
-            return head
         parts = []
         if data.get("perf"):
             parts.append(data["perf"] + "ī")
@@ -1435,11 +1437,9 @@ else:
             else "2. imperativus" if mood == "impv" and tense == "fut"
             else "imperativus"
         )
-        voice_label = {
+        voice_label = "" if voice in ["dep", "semidep"] else {
             "act": "act.",
             "pass": "pass.",
-            "dep": "deponens",
-            "semidep": "semideponens",
         }.get(voice, str(voice))
         number_label = {"sg": "sg.", "pl": "pl."}.get(number, "")
         form_label = " ".join(
