@@ -1,0 +1,25 @@
+name: Zero block container top space
+
+on:
+  push:
+    branches: [exercise-url-presets]
+    paths:
+      - '.github/workflows/zero-block-container-top-space.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: exercise-url-presets
+      - run: python scripts/zero_block_container_top_space.py
+      - run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add streamlit_app.py
+          git commit -m "Zero block container top spacing"
+          git push origin exercise-url-presets
