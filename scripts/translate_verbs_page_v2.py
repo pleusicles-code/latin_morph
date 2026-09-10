@@ -6,7 +6,7 @@ end = patch_source.index("# Ensure key English UI strings are gone and syntax is
 
 replacement = r"""# Lower controls: replace the whole block explicitly, matching the noun layout.
 start = s.index('    new_question_col, results_col, score_col = st.columns(3)')
-end = s.index('\\n\\nif st.session_state.auto_advance_trigger', start)
+end = s.index('if st.session_state.auto_advance_trigger', start)
 new_controls = '''    control_row = st.container(height=110, border=False)
     with control_row:
         new_question_col, results_col, score_col = st.columns(3, gap="medium", vertical_alignment="top")
@@ -88,6 +88,7 @@ new_controls = '''    control_row = st.container(height=110, border=False)
             st.markdown(
                 f"Jelenlegi pontszám: **{st.session_state.current_score}** / **{st.session_state.total_questions}**"
             )
+
 '''
 s = s[:start] + new_controls + s[end:]
 
