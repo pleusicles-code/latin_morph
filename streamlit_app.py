@@ -19,6 +19,7 @@ if not getattr(st, "_bevlat_global_content_width", False):
             .stMainBlockContainer,
             .block-container {
                 max-width: 950px !important;
+                padding-top: 1.5rem !important;
             }
             </style>
             """,
