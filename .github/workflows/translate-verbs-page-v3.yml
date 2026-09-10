@@ -24,4 +24,4 @@ jobs:
           git commit -m "Translate and restyle verbs exercise"
           git push origin exercise-url-presets
 
-# diagnosed one-shot translation helper
+# corrected feedback helper
