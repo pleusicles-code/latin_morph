@@ -70,6 +70,56 @@ def heavy(text, italic=False):
         escaped = f"<em>{escaped}</em>"
     return f'<span style="font-weight:900;">{escaped}</span>'
 
+
+def verb_dictionary_entry(verb):
+    """Use the same compact verb-entry format as the identify-stems exercise."""
+    data = complete_verb_vocab[verb]
+    conj = data.get("conj")
+    conj_label = 3 if conj == "3io" else conj
+    head = f"{verb} {conj_label}" if conj_label is not None else verb
+
+    # The identify-stems exercise uses perfect + supine for ordinary active verbs.
+    if data.get("voice") == "act":
+        if conj == 1 and not data.get("irreg"):
+            return head
+        parts = []
+        if data.get("perf"):
+            parts.append(data["perf"] + "ī")
+        if data.get("ppp"):
+            parts.append(data["ppp"] + "um")
+        elif data.get("fap"):
+            parts.append("[" + data["fap"] + "us]")
+        return head + ((" " + ", ".join(parts)) if parts else "")
+
+    # For deponent / semideponent verbs, retain the dictionary information
+    # available in this exercise rather than inventing an active perfect.
+    parts = []
+    if data.get("ppp"):
+        parts.append(data["ppp"] + "us sum")
+    return head + ((" " + ", ".join(parts)) if parts else "")
+
+
+def learner_present_stem(data):
+    stem = data.get("pres")
+    if not stem:
+        return None
+    conj = data.get("conj")
+    if conj == 1:
+        stem += "ā"
+    elif conj == 2:
+        stem += "ē"
+    elif conj == "3io":
+        stem += "i"
+    elif conj == 4:
+        stem += "ī"
+    return stem
+
+
+def verb_stem_display(verb):
+    data = complete_verb_vocab[verb]
+    stems = [learner_present_stem(data), data.get("perf"), data.get("ppp")]
+    return [stem for stem in stems if stem]
+
 conjugation_dict = {1: "1.",
                     2: "2.",
                     3: "3.",
@@ -98,6 +148,7 @@ if isinstance(defaults.get("mood_selector"), list):
 defaults.pop("fut_impv", None)
 exercise_schema = {
     "show_principal_parts": bool_setting(False),
+    "show_stems": bool_setting(False),
     "conjugation_selector": list_setting(list(conjugation_dict.keys()), list(conjugation_dict.keys())),
     "tense_selector": list_setting(master_tense_list, master_tense_list),
     "voice_selector": list_setting(master_voice_list, master_voice_list),
@@ -146,6 +197,9 @@ with options_col:
     show_principal_parts = st.checkbox("Szótári alak megjelenítése?",
                                         help="Az ige szótári alakjának (főalakjainak) megjelenítése.",
                                         key=widget_key(page_id, "show_principal_parts"))
+    show_stems = st.checkbox("Tövek megjelenítése?",
+                             help="A jelenlegi ige töveinek megjelenítése a kérdés alatt.",
+                             key=widget_key(page_id, "show_stems"))
 
 # with conjugation_col:
 with verb_options_col:
@@ -219,6 +273,7 @@ with verb_options_col:
 
 current_exercise_settings = {
     "show_principal_parts": show_principal_parts,
+    "show_stems": show_stems,
     "conjugation_selector": conjugation_selector,
     "tense_selector": tense_selector,
     "voice_selector": voice_selector,
@@ -1337,34 +1392,50 @@ else:
 
         # questions_asked.append(verb_id)
 
-        voice_label = "" if (voice == "dep" or verb == "fīō") else verb_abbrevs[voice]
-        grammatical_parts = [verb_abbrevs[tense], verb_abbrevs[mood]]
-        if voice_label:
-            grammatical_parts.append(voice_label)
-        grammatical_parts.extend([verb_abbrevs[number], f"{person}. személyű"])
-        question_html = (
-            f'Add meg a <strong><em>{html.escape(verb)}</em></strong> ige '
-            f'<strong>{" ".join(grammatical_parts)}</strong> alakját!'
+        tense_labels = {
+            "pres": "praes. impf.",
+            "impf": "praet. impf.",
+            "fut": "fut. impf.",
+            "perf": "praes. perf.",
+            "plupf": "praet. perf.",
+            "fut_pf": "fut. perf.",
+        }
+        mood_label = (
+            "ind." if mood == "ind"
+            else "coni." if mood == "subj"
+            else "2. imperativus" if mood == "impv" and tense == "fut"
+            else "imperativus"
+        )
+        voice_label = {
+            "act": "act.",
+            "pass": "pass.",
+            "dep": "deponens",
+            "semidep": "semideponens",
+        }.get(voice, str(voice))
+        number_label = {"sg": "sg.", "pl": "pl."}.get(number, "")
+        form_label = " ".join(
+            part for part in [tense_labels[tense], mood_label, voice_label, number_label, str(person)]
+            if part and part != "None"
         )
 
-        supplementary = []
-        if show_principal_parts:
-            supplementary.append(
-                "Szótári alak: " + ", ".join(f"<em>{html.escape(str(part))}</em>" for part in verb_pp)
-            )
+        verb_label = verb_dictionary_entry(verb) if show_principal_parts else verb
+        question_html = (
+            f'Add meg a <strong><em>{html.escape(verb_label)}</em></strong> ige '
+            f'<strong>{html.escape(form_label)}</strong> alakját!'
+        )
 
-        prompt_height = 104 if supplementary else 72
+        stems = verb_stem_display(verb) if show_stems else []
+        prompt_height = 104 if stems else 72
         prompt_space = st.container(height=prompt_height, border=False)
         with prompt_space:
             st.markdown(
                 f'<div style="margin-top:0.75rem;font-size:1.75rem;line-height:1.25;">{question_html}</div>',
                 unsafe_allow_html=True,
             )
-            if supplementary:
+            if stems:
+                stems_html = ", ".join(f"<em>{html.escape(stem)}-</em>" for stem in stems)
                 st.markdown(
-                    '<div style="font-size:1.15rem;line-height:1.35;margin-top:0.35rem;">'
-                    + " &nbsp;·&nbsp; ".join(supplementary)
-                    + "</div>",
+                    f'<div style="font-size:1.05rem;line-height:1.35;margin-top:0.35rem;">A tövek: {stems_html}.</div>',
                     unsafe_allow_html=True,
                 )
 
