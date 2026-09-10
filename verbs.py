@@ -50,25 +50,40 @@ verb_abbrevs = {"ind": "indicative",
                 2: "2nd",
                 3: "3rd",}
 
-conjugation_dict = {1: "1st (-āre)",
-                    2: "2nd (-ēre)",
-                    3: "3rd (-ere)",
-                    "3io": '3rd "io" (-ere)',
-                    4: "4th (-īre)"}
+conjugation_dict = {1: "1.",
+                    2: "2.",
+                    3: "3.",
+                    4: "4."}
 
 master_tense_list = ["pres","impf","fut","perf","plupf","fut_pf"]
 master_voice_list = ["act", "pass", "dep", "semidep"]
-master_mood_list = ["ind", "subj", "inf", "impv"]
+master_mood_list = ["ind", "subj", "impv", "fut_impv"]
+default_mood_list = ["ind", "subj", "impv"]
 master_irregular_verbs_list = [key for key in complete_verb_vocab.keys() if complete_verb_vocab[key].get("irreg",{}).get("irreg") is True]
+
+# Migrate saved verb settings from the previous selector structure.
+defaults = dict(defaults)
+if isinstance(defaults.get("conjugation_selector"), list):
+    migrated_conjugations = []
+    for conj in defaults["conjugation_selector"]:
+        visible_conj = 3 if conj == "3io" else conj
+        if visible_conj in conjugation_dict and visible_conj not in migrated_conjugations:
+            migrated_conjugations.append(visible_conj)
+    defaults["conjugation_selector"] = migrated_conjugations
+if isinstance(defaults.get("mood_selector"), list):
+    migrated_moods = [mood for mood in defaults["mood_selector"] if mood in default_mood_list]
+    if defaults.get("fut_impv") and "fut_impv" not in migrated_moods:
+        migrated_moods.append("fut_impv")
+    defaults["mood_selector"] = migrated_moods or default_mood_list
+defaults.pop("fut_impv", None)
 exercise_schema = {
     "show_principal_parts": bool_setting(False),
     "conjugation_selector": list_setting(list(conjugation_dict.keys()), list(conjugation_dict.keys())),
     "tense_selector": list_setting(master_tense_list, master_tense_list),
     "voice_selector": list_setting(master_voice_list, master_voice_list),
-    "mood_selector": list_setting(master_mood_list, master_mood_list),
+    "mood_selector": list_setting(default_mood_list, master_mood_list),
     "irreg_selector": list_setting(master_irregular_verbs_list, master_irregular_verbs_list),
     "irreg_only": bool_setting(False),
-    "fut_impv": bool_setting(False),
 }
 exercise_settings = resolve_exercise_settings(page_id, exercise_schema, defaults)
 initialize_widget_state(page_id, exercise_settings)
@@ -125,7 +140,12 @@ with verb_options_col:
         )
 
 # with tense_col:
-    tense_dict = {abbrev: name for abbrev, name in zip(master_tense_list,[verb_abbrevs[tns] for tns in master_tense_list])}
+    tense_dict = {"pres": "praes. impf.",
+                  "impf": "praet. impf.",
+                  "fut": "fut. impf.",
+                  "perf": "praes. perf.",
+                  "plupf": "praet. perf.",
+                  "fut_pf": "fut. perf."}
 
     tense_selector = st.multiselect(
         "Choose which tenses to practice:",
@@ -135,7 +155,10 @@ with verb_options_col:
     )
 
 # with voice_col:
-    voice_dict = {abbrev: name for abbrev, name in zip(master_voice_list,[verb_abbrevs[vc] for vc in master_voice_list])}
+    voice_dict = {"act": "act.",
+                  "pass": "pass.",
+                  "dep": "deponens",
+                  "semidep": "semideponens"}
 
     voice_selector = st.multiselect("Choose which voices and types of verb to practice:",
                                     master_voice_list,
@@ -144,7 +167,10 @@ with verb_options_col:
                                     help = "If semi-deponent is selected, those verbs' active and deponent forms will be available, regardless of other voice selections.")
 
 # with mood_col:
-    mood_dict = {abbrev: name for abbrev, name in zip(master_mood_list,[verb_abbrevs[md] for md in master_mood_list])}
+    mood_dict = {"ind": "indicativus",
+                 "subj": "coniunctivus",
+                 "impv": "imperativus",
+                 "fut_impv": "2. imperativus"}
 
     mood_selector = st.multiselect("Choose which moods to practice:",
                                 master_mood_list,
@@ -167,11 +193,7 @@ with verb_options_col:
                                     key=widget_key(page_id, "irreg_only"),
                                     help="Select this to practice *only* the selected irregular verbs; you can achieve the same effect by deselecting all of the conjugations above.")
 
-    fut_impv = False
-    if "fut" in tense_selector and "impv" in mood_selector:
-        fut_impv = st.checkbox("Include future imperatives?",
-                                key=widget_key(page_id, "fut_impv"),
-                                help="Future imperatives are very rare and not usually taught in introductory or intermediate courses, but you can include them if you want to!")
+    fut_impv = "fut_impv" in mood_selector
     if st.session_state.question_generation_error_message:
         st.write(st.session_state.question_generation_error_message)
 
@@ -183,7 +205,6 @@ current_exercise_settings = {
     "mood_selector": mood_selector,
     "irreg_selector": irreg_selector,
     "irreg_only": irreg_only,
-    "fut_impv": fut_impv,
 }
 
 with options_col:
@@ -217,15 +238,26 @@ with options_col:
 ## DEFINE AVAILABLE VERBS AND VERB ENDINGS ##
 
 tense_list = list(tense_selector)
-mood_list = dict(zip(["ind","subj","impv","inf"], [70, 70, 10, 30]))
+present_impv = "impv" in mood_selector
+fut_impv = "fut_impv" in mood_selector
+internal_mood_selector = [mood for mood in mood_selector if mood != "fut_impv"]
+if fut_impv and "impv" not in internal_mood_selector:
+    internal_mood_selector.append("impv")
+
+internal_conjugation_selector = []
+for conj in conjugation_selector:
+    if conj == 3:
+        internal_conjugation_selector.extend([3, "3io"])
+    else:
+        internal_conjugation_selector.append(conj)
+
+mood_list = {"ind": 70, "subj": 70, "impv": 10}
 moods = list(mood_list.keys())
 for md in moods:
-    if md not in mood_selector:
+    if md not in internal_mood_selector:
         mood_list.pop(md)
-if "pres" not in tense_list and not fut_impv and "impv" in mood_list:
+if "impv" in mood_list and not ((present_impv and "pres" in tense_list) or (fut_impv and "fut" in tense_list)):
     mood_list.pop("impv")
-if all(tns not in tense_list for tns in ["pres","fut","perf"]) and "inf" in mood_list:
-    mood_list.pop("inf")
 if all(tns not in tense_list for tns in ["pres","impf","plupf","perf"]) and "subj" in mood_list:
     mood_list.pop("subj")
 
@@ -433,22 +465,20 @@ if irreg_only:
 # for feature, feature_list in zip(["voice","conj"],[voice_selector,conjugation_selector + [None]]):
 #     verb_vocab = {key: val for key, val in verb_vocab.items() if (verb_vocab[key][feature] in feature_list) or (key in irreg_selector)}
 verb_vocab = {key: val for key,val in verb_vocab.items() if verb_vocab[key]["voice"] in voice_selector or ("pass" in voice_selector and verb_vocab[key]["voice"] == "act" and "no_pass" not in verb_vocab[key])}
-verb_vocab = {key: val for key, val in verb_vocab.items() if verb_vocab[key]["conj"] in conjugation_selector + [None] or key in irreg_selector}
+verb_vocab = {key: val for key, val in verb_vocab.items() if verb_vocab[key]["conj"] in internal_conjugation_selector + [None] or key in irreg_selector}
 # if "act" not in voice_selector:
 #     verb_vocab = {key: val for key, val in verb_vocab.items() if not (verb_vocab[key].get("impers_pass_only") or verb_vocab[key].get("no_pass"))}
-if mood_selector == ["impv"]:
+if set(internal_mood_selector) == {"impv"}:
     verb_vocab = {key: val for key, val in verb_vocab.items() if not val.get("no_impv")}
     if "act" not in voice_selector:
         verb_vocab = {key: val for key, val in verb_vocab.items() if not val.get("impers_pass_only")}
-if mood_selector == ["inf"] and tense_list == ["fut"]:
-    verb_vocab = {key: val for key, val in verb_vocab.items() if "ppp" in val or "fap" in val}
-if (set(tense_list) <= {"fut","fut_pf"} and "ind" not in mood_selector) or (("subj" not in mood_selector and "ind" not in mood_selector) and (set(tense_list) <= {"fut","fut_pf","impf","plupf"})):
+if (set(tense_list) <= {"fut","fut_pf"} and "ind" not in internal_mood_selector) or (("subj" not in internal_mood_selector and "ind" not in internal_mood_selector) and (set(tense_list) <= {"fut","fut_pf","impf","plupf"})):
     if not fut_impv:
         verb_vocab = {key:val for key, val in verb_vocab.items() if "ppp" in val or val.get("fap") is not None}
     else:
         if irreg_selector:
             for verb in irreg_selector:
-                if not any(complete_verb_vocab[verb]["irreg"]["forms"].get("fut", {}).get(voice, {}).get("impv") for voice in ["act","pass","dep"]) and not all(["ppp" in complete_verb_vocab[verb] or complete_verb_vocab[verb].get("fap") is not None, "inf" in mood_selector]):
+                if not any(complete_verb_vocab[verb]["irreg"]["forms"].get("fut", {}).get(voice, {}).get("impv") for voice in ["act","pass","dep"]) and not all(["ppp" in complete_verb_vocab[verb] or complete_verb_vocab[verb].get("fap") is not None, "inf" in internal_mood_selector]):
                     if verb in verb_vocab:
                         verb_vocab.pop(verb)
 
@@ -482,7 +512,12 @@ else:
         st.session_state.question_generation_error_message = ""
         conj_random = random.choice(conjugation_selector + (["irreg"] if irreg_selector else []))
         # st.write(conj_random)
-        avail_verbs = [v for v,i in verb_vocab.items() if i["conj"]==conj_random and v not in irreg_selector] if conj_random != "irreg" else [v for v in irreg_selector if v in verb_vocab]
+        if conj_random == "irreg":
+            avail_verbs = [v for v in irreg_selector if v in verb_vocab]
+        elif conj_random == 3:
+            avail_verbs = [v for v, i in verb_vocab.items() if i["conj"] in [3, "3io"] and v not in irreg_selector]
+        else:
+            avail_verbs = [v for v, i in verb_vocab.items() if i["conj"] == conj_random and v not in irreg_selector]
         # st.write(avail_verbs)
 
         if len(avail_verbs) > 0:
@@ -500,9 +535,6 @@ else:
         if set(avail_tenses) <= {"fut","fut_pf"}:
             if "subj" in avail_moods:
                 avail_moods.pop("subj")
-            if "inf" in avail_moods:
-                if "ppp" not in verb_vocab[verb] and verb_vocab[verb].get("fap") is None:
-                    avail_moods.pop("inf")
             if "impv" in avail_moods:
                 if (fut_impv and verb == "fīō") or not fut_impv:
                     avail_moods.pop("impv")
@@ -536,8 +568,13 @@ else:
                         tense_list_copy.remove(tns)
                 if not (verb_vocab[verb].get("ppp") or verb_vocab[verb].get("fap")) and "fut" in tense_list_copy:
                     tense_list_copy.remove("fut")
-            elif mood == "impv" and verb == "fīō" and "fut" in tense_list_copy:
-                tense_list_copy.remove("fut")
+            elif mood == "impv":
+                allowed_impv_tenses = []
+                if present_impv and "pres" in tense_list_copy:
+                    allowed_impv_tenses.append("pres")
+                if fut_impv and "fut" in tense_list_copy and verb != "fīō":
+                    allowed_impv_tenses.append("fut")
+                tense_list_copy = allowed_impv_tenses
             # st.write(i, verb,mood,tense_list_copy)
             if not tense_list_copy:
                 inval_moods.append(mood)
@@ -662,13 +699,15 @@ else:
                 verb_df_filtered = (
                     verb_df.copy()
                         .query("word in @avail_verbs")
-                        .query(f"`id.conj` in {[str(conj) for conj in conjugation_selector]} or word in @irreg_selector") # filter to only currently-selected categories
-                        .query("`id.mood` in @mood_selector")
+                        .query(f"`id.conj` in {[str(conj) for conj in internal_conjugation_selector]} or word in @irreg_selector") # filter to only currently-selected categories
+                        .query("`id.mood` in @internal_mood_selector")
                         .query("`id.voice` in @voice_selector")
                         .query("`id.tense` in @tense_selector")
                     )
+                if not present_impv:
+                    verb_df_filtered = verb_df_filtered.query("not (`id.tense` == 'pres' and `id.mood` == 'impv')")
                 if not fut_impv:
-                    verb_df_filtered = verb_df_filtered.query("`id.tense` != 'fut' and `id.mood` != 'impv'")
+                    verb_df_filtered = verb_df_filtered.query("not (`id.tense` == 'fut' and `id.mood` == 'impv')")
                 # st.write(verb_df_filtered)
 
                 if not verb_df_filtered.empty:
