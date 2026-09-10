@@ -23,3 +23,5 @@ jobs:
           git add verbs.py
           git commit -m "Translate and restyle verbs exercise"
           git push origin exercise-url-presets
+
+# one-shot translation helper
