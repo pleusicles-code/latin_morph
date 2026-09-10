@@ -11,7 +11,7 @@ old_utils = '''def tokenize_morphology_answer(text):
     """
     if not isinstance(text, str):
         return []
-    return re.findall(r"[^\\W\\d_]+", text.casefold(), flags=re.UNICODE)
+    return re.findall(r"[^\W\d_]+", text.casefold(), flags=re.UNICODE)
 '''
 new_utils = '''def tokenize_morphology_answer(text):
     """Return lowercase word tokens and standalone person digits 1-3.
@@ -22,7 +22,7 @@ new_utils = '''def tokenize_morphology_answer(text):
     """
     if not isinstance(text, str):
         return []
-    return re.findall(r"[^\\W\\d_]+|[1-3]", text.casefold(), flags=re.UNICODE)
+    return re.findall(r"[^\W\d_]+|[1-3]", text.casefold(), flags=re.UNICODE)
 '''
 if utils.count(old_utils) != 1:
     raise SystemExit(f'Expected exactly one tokenizer block, found {utils.count(old_utils)}')
@@ -117,7 +117,7 @@ verbs_path.write_text(verbs)
 import re
 
 def tok(text):
-    return re.findall(r"[^\\W\\d_]+|[1-3]", text.casefold(), flags=re.UNICODE)
+    return re.findall(r"[^\W\d_]+|[1-3]", text.casefold(), flags=re.UNICODE)
 
 assert tok('praes. impf. ind. pass. sg. 2') == ['praes', 'impf', 'ind', 'pass', 'sg', '2']
 assert tok('imper. 2') == ['imper', '2']
