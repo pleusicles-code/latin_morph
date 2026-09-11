@@ -570,8 +570,9 @@ def format_incorrect_verb_recognition_table_html(user_analyses, correct_analyses
         style += extra
         return f'<div style="{style}">{content}</div>'
 
-    def spacer():
-        return '<div aria-hidden="true" style="padding:0 0.16rem;color:#111;font-weight:700;white-space:nowrap;">/</div>'
+    def spacer(show_slash=True):
+        content = "/" if show_slash else "&nbsp;"
+        return f'<div aria-hidden="true" style="padding:0 0.16rem;color:#111;font-weight:700;white-space:nowrap;">{content}</div>'
 
     for pair_index, (user_analysis, correct_analysis, mismatches) in enumerate(pairs):
         categories = template_categories
@@ -582,8 +583,8 @@ def format_incorrect_verb_recognition_table_html(user_analyses, correct_analyses
             ]
 
         if pair_index:
-            answer_cells.append(spacer())
-            correction_cells.append(spacer())
+            answer_cells.append(spacer(True))
+            correction_cells.append(spacer(False))
             column_count += 1
 
         for category in categories:
