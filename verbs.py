@@ -969,10 +969,6 @@ else:
 
     def gen_verb_id():
         avail_tenses = list(tense_list)
-        # With pass. only, semideponents contribute only their deponent
-        # perfect-system forms. Their active present-system forms are hidden.
-        if verb_vocab.get(verb, {}).get("voice") == "semidep" and "act" not in voice_selector:
-            avail_tenses = [tense for tense in avail_tenses if tense in perf_sys]
         avail_moods = dict(mood_list)
         st.session_state.question_generation_error_message = ""
         conj_random = random.choice(conjugation_selector + (["irreg"] if irreg_selector else []))
@@ -989,6 +985,11 @@ else:
             verb = random.choice(avail_verbs)
         else:
             verb = random.choice(list(verb_vocab.keys()))
+
+        # With pass. only, semideponents contribute only their deponent
+        # perfect-system forms. Their active present-system forms are hidden.
+        if verb_vocab.get(verb, {}).get("voice") == "semidep" and "act" not in voice_selector:
+            avail_tenses = [tense for tense in avail_tenses if tense in perf_sys]
 
      #    verb = "eō"    ## UNCOMMENT AND SET FOR TESTING
 
