@@ -925,10 +925,10 @@ with options_col:
         )
 
     show_principal_parts = st.checkbox("Szótári alak megjelenítése?",
-                                        help="Az ige szótári alakjának (főalakjainak) megjelenítése.",
+                                        help="Az ige szótári alakjának megjelenítése.",
                                         key=widget_key(page_id, "show_principal_parts"))
     show_stems = st.checkbox("Tövek megjelenítése?",
-                             help="A jelenlegi ige töveinek megjelenítése a kérdés alatt.",
+                             help="Az ige töveinek megjelenítése a kérdés alatt.",
                              key=widget_key(page_id, "show_stems"))
 
 # with conjugation_col:
