@@ -80,9 +80,6 @@ if not getattr(st, "_bevlat_inflection_table_popover", False):
         popover = _original_popover(label, *args, **kwargs)
         st.session_state["_bevlat_inflection_popover_open"] = bool(popover.open)
 
-        # The popover body is rendered in a document-body portal, so the marker
-        # must live inside the popover itself. Translating by its own height plus
-        # the trigger height places the table above, rather than below, its button.
         with popover:
             st.markdown(
                 """
@@ -106,12 +103,6 @@ if not getattr(st, "_bevlat_inflection_table_popover", False):
     st._bevlat_inflection_table_popover = True
 
 
-# Auto-advance normally ends each answered-question run with ``time.sleep``.
-# Intercept only those module-level sleeps in exercises that can show an
-# inflection table. The absolute deadline survives popover open/close reruns.
-# Short invisible Streamlit yield points make the wait interruptible, so opening
-# the table can pause auto-advance immediately instead of waiting for one long
-# Python sleep to finish.
 if not getattr(_time, "_bevlat_inflection_auto_advance_pause_v2", False):
     _previous_sleep = _time.sleep
     _auto_advance_exercise_files = {
@@ -159,9 +150,6 @@ if not getattr(_time, "_bevlat_inflection_auto_advance_pause_v2", False):
                 if remaining <= 0:
                     break
                 _select.select([], [], [], min(0.25, remaining))
-                # This produces no visible content, but it gives Streamlit a
-                # script yield point at which a queued popover rerun can abort
-                # this run and restart it with the tracked open state.
                 yield_point.empty()
         finally:
             yield_point.empty()
@@ -172,6 +160,30 @@ if not getattr(_time, "_bevlat_inflection_auto_advance_pause_v2", False):
 
     _time.sleep = _bevlat_sleep
     _time._bevlat_inflection_auto_advance_pause_v2 = True
+
+
+# Preserve the exact text submitted for an incorrect answer. Exercise forms may
+# clear their widgets on submit; the shared answer-input wrapper below restores
+# this saved text until new_question() explicitly requests a clear.
+if not getattr(utils, "_bevlat_preserve_incorrect_answer", False):
+    _original_submit_and_check_answer = utils.submit_and_check_answer
+
+    def _bevlat_submit_and_check_answer(*args, **kwargs):
+        submitted_answer = st.session_state.get("answer_input")
+        result = _original_submit_and_check_answer(*args, **kwargs)
+        result_message = str(st.session_state.get("result_message", ""))
+        if (
+            submitted_answer is not None
+            and st.session_state.get("answer_checked", False)
+            and ("Incorrect" in result_message or "Helytelen" in result_message)
+        ):
+            st.session_state["_bevlat_last_incorrect_answer"] = submitted_answer
+        else:
+            st.session_state.pop("_bevlat_last_incorrect_answer", None)
+        return result
+
+    utils.submit_and_check_answer = _bevlat_submit_and_check_answer
+    utils._bevlat_preserve_incorrect_answer = True
 
 
 if not getattr(st, "_bevlat_noun_form_input_handling", False):
@@ -280,8 +292,15 @@ if not getattr(st, "_bevlat_deferred_answer_input_clear", False):
 
     def _bevlat_deferred_clear_text_input(*args, **kwargs):
         key = kwargs.get("key")
-        if key == "answer_input" and st.session_state.pop("_bevlat_clear_answer_input", False):
-            st.session_state.pop("answer_input", None)
+        if key == "answer_input":
+            if st.session_state.pop("_bevlat_clear_answer_input", False):
+                st.session_state.pop("answer_input", None)
+                st.session_state.pop("_bevlat_last_incorrect_answer", None)
+            elif (
+                st.session_state.get("answer_checked", False)
+                and "_bevlat_last_incorrect_answer" in st.session_state
+            ):
+                st.session_state["answer_input"] = st.session_state["_bevlat_last_incorrect_answer"]
         return _previous_text_input_for_clear(*args, **kwargs)
 
     st.text_input = _bevlat_deferred_clear_text_input
@@ -453,8 +472,6 @@ if not getattr(st, "_bevlat_score_reset_panel", False):
     st._bevlat_score_reset_panel = True
 
 
-# Reset this run-local aggregate before the active exercise page renders. A
-# tracked inflection popover will set it back to True if it is currently open.
 st.session_state["_bevlat_inflection_popover_open"] = False
 
 runpy.run_path("latin_morph.py", run_name="__main__")
