@@ -275,4 +275,75 @@ if not getattr(vocab, "_bevlat_noun_data_fixes", False):
     vocab._bevlat_noun_data_fixes = True
 
 
+# Present the running score and reset action as one compact control without
+# changing every exercise page separately. Exercise pages still own the score
+# state and reset callback; this wrapper only replaces their shared UI pattern.
+if not getattr(st, "_bevlat_score_reset_panel", False):
+    _score_original_button = st.button
+    _score_previous_markdown = st.markdown
+
+    def _mix_hex(start, end, amount):
+        amount = max(0.0, min(1.0, amount))
+        start_rgb = tuple(int(start[index:index + 2], 16) for index in (1, 3, 5))
+        end_rgb = tuple(int(end[index:index + 2], 16) for index in (1, 3, 5))
+        mixed = tuple(round(a + (b - a) * amount) for a, b in zip(start_rgb, end_rgb))
+        return "#" + "".join(f"{value:02x}" for value in mixed)
+
+    def _score_color(percentage):
+        if percentage <= 50:
+            return _mix_hex("#c83a32", "#ee8a2d", percentage / 50 if percentage else 0)
+        if percentage <= 80:
+            return _mix_hex("#ee8a2d", "#c9d83a", (percentage - 50) / 30)
+        return _mix_hex("#c9d83a", "#2f9e55", (percentage - 80) / 20)
+
+    def _bevlat_score_button(label, *args, **kwargs):
+        if label != "Pontszám nullázása":
+            return _score_original_button(label, *args, **kwargs)
+
+        current_score = st.session_state.get("current_score", 0)
+        total_questions = st.session_state.get("total_questions", 0)
+        percentage = (100 * current_score / total_questions) if total_questions else 0
+        percentage_text = f"{percentage:.0f}%"
+
+        score_col, reset_col = st.columns(
+            [2, 1],
+            gap="small",
+            vertical_alignment="center",
+        )
+
+        with score_col:
+            bar_html = ""
+            if total_questions >= 6:
+                bar_html = f"""
+                    <div style="height:6px;background:rgba(128,128,128,0.18);border-radius:999px;overflow:hidden;margin-top:0.35rem;">
+                        <div style="height:100%;width:{max(0, min(100, percentage)):.1f}%;background:{_score_color(percentage)};border-radius:999px;"></div>
+                    </div>
+                """
+            _score_previous_markdown(
+                f"""
+                <div style="padding:0.15rem 0 0.1rem 0;line-height:1.25;">
+                    <div style="white-space:nowrap;">Pontszám: <strong>{current_score:g}</strong> / <strong>{total_questions}</strong> · <strong>{percentage_text}</strong></div>
+                    {bar_html}
+                </div>
+                """,
+                unsafe_allow_html=True,
+            )
+
+        with reset_col:
+            return _score_original_button("Újrakezdés", *args, **kwargs)
+
+    def _bevlat_score_markdown(body, *args, **kwargs):
+        if (
+            isinstance(body, str)
+            and "Jelenlegi pontszám:" in body
+            and "text-align:right" in body
+        ):
+            return None
+        return _score_previous_markdown(body, *args, **kwargs)
+
+    st.button = _bevlat_score_button
+    st.markdown = _bevlat_score_markdown
+    st._bevlat_score_reset_panel = True
+
+
 runpy.run_path("latin_morph.py", run_name="__main__")
