@@ -388,7 +388,7 @@ recognition_check_timer()
 
 control_row = st.container(height=92, border=False)
 with control_row:
-    new_question_col, results_col, score_col = st.columns([6, 1, 6], gap="medium", vertical_alignment="top")
+    new_question_col, results_col, score_col = st.columns([1, 1, 1], gap="medium", vertical_alignment="top")
     with new_question_col:
         button_text = "Új kérdés" if st.session_state.question_list else "Kattints ide az első kérdéshez!"
         button_type = "secondary" if st.session_state.question_list else "primary"

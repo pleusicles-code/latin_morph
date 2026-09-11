@@ -1076,7 +1076,7 @@ else:
                             )
                             label = "A helyes válasz" if len(answers) == 1 else "A helyes válaszok"
                             st.session_state.answer_display_message = feedback_box(
-                                f"<strong>Helytelen válasz. {label}: {correct_html}.</strong>",
+                                f"<strong>Helytelen válasz. {label}:</strong> {correct_html}.",
                                 "incorrect",
                             )
                     return
@@ -1140,7 +1140,7 @@ else:
                     else:
                         st.session_state.result_message = "**Incorrect. Better luck next time!**"
                         st.session_state.answer_display_message = feedback_box(
-                            f"<strong>Helytelen válasz. A helyes válasz: {heavy(all_possible_text)}</strong>",
+                            f"<strong>Helytelen válasz. A helyes válasz:</strong> {heavy(all_possible_text)}",
                             "incorrect",
                         )
 
@@ -1183,7 +1183,7 @@ else:
 
     control_row = st.container(height=110, border=False)
     with control_row:
-        new_question_col, results_col, score_col = st.columns([6, 1, 6], gap="medium", vertical_alignment="top")
+        new_question_col, results_col, score_col = st.columns([1, 1, 1], gap="medium", vertical_alignment="top")
 
         new_q_button_text = "Új kérdés" if st.session_state.question_list else "Kattints ide az első kérdéshez!"
         new_q_button_type = "secondary" if st.session_state.question_list else "primary"

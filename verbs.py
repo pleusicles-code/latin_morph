@@ -333,7 +333,7 @@ def parse_verb_morphology_analyses(
         required = ["mood", "number", "person"]
         if analysis.get("mood") != "impv":
             required = ["relative_tense", "aspect"] + required
-        if lexical_voice not in ["dep", "semidep"]:
+        if lexical_voice not in ["dep", "semidep"] and analysis.get("mood") != "impv":
             required.append("voice")
         missing = [category for category in required if category not in analysis]
         if missing:
@@ -2111,7 +2111,7 @@ else:
                         submit_and_check_answer()
                         st.session_state.correct_answer = original_correct_answer
 
-                        correct_text = "<br>".join(
+                        correct_text = ", ".join(
                             html.escape(format_correct_verb_recognition_analysis(analysis))
                             for analysis in recognition_correct_analyses
                         )
@@ -2131,7 +2131,7 @@ else:
                             st.session_state.result_message = "**Incorrect. Better luck next time!**"
                             label = "A helyes válasz" if len(recognition_correct_analyses) == 1 else "A helyes válaszok"
                             st.session_state.answer_display_message = feedback_box(
-                                f"<strong>Helytelen válasz. {label}: {correct_text}</strong>",
+                                f"<strong>Helytelen válasz. {label}:</strong> <span style='font-weight:900;'>{correct_text}</span>",
                                 "incorrect",
                             )
                         # Recognition forms deliberately do not clear on submit so that
@@ -2168,7 +2168,7 @@ else:
                                 )
                                 label = "A helyes válasz" if len(answers) == 1 else "A helyes válaszok"
                             st.session_state.answer_display_message = feedback_box(
-                                f"<strong>Helytelen válasz. {label}: {correct_html}.</strong>",
+                                f"<strong>Helytelen válasz. {label}:</strong> {correct_html}.",
                                 "incorrect",
                             )
 
@@ -2192,7 +2192,7 @@ else:
 
     control_row = st.container(height=110, border=False)
     with control_row:
-        new_question_col, results_col, score_col = st.columns([6, 1, 6], gap="medium", vertical_alignment="top")
+        new_question_col, results_col, score_col = st.columns([1, 1, 1], gap="medium", vertical_alignment="top")
 
         new_q_button_text = "Új kérdés" if st.session_state.question_list else "Kattints ide az első kérdéshez!"
         new_q_button_type = "secondary" if st.session_state.question_list else "primary"
@@ -2204,7 +2204,7 @@ else:
                 starting_form = dict(st.session_state.current_question[1])
                 next_form = dict(starting_form)
                 help_text = "Ehhez az alakhoz nem jeleníthető meg ragozási táblázat." if (starting_form["voice"] == "pass" and complete_verb_vocab[starting_form["verb"]].get("impers_pass_only") is True) else None
-                chart_popover = st.popover("Ragozási táblázat", type="primary", help=help_text)
+                chart_popover = st.popover("Ragozási táblázat", type="primary", help=help_text, width="stretch")
                 with chart_popover:
                     if not (starting_form["voice"] == "pass" and complete_verb_vocab[starting_form["verb"]].get("impers_pass_only") is True):
                         st.caption("Ez a funkció még fejlesztés alatt áll.")

@@ -65,6 +65,7 @@ def new_question(gen_question):
 #    try:
     st.session_state.answer_checked = False
     st.session_state.answer_to_check = ""
+    st.session_state.answer_input = ""
     st.session_state.result_message = ""
     st.session_state.answer_display_message = ""
     st.session_state.button_disable = False
