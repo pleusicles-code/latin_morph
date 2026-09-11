@@ -321,9 +321,11 @@ if not getattr(st, "_bevlat_score_reset_panel", False):
                 )
             score_html = (
                 '<div style="min-height:2.5rem;display:flex;flex-direction:column;justify-content:center;'
-                'padding:0;line-height:1.2;font-size:1.08rem;transform:translateY(-2px);">'
-                f'<div style="white-space:nowrap;">Pontszám: <strong>{current_score:g}</strong> / '
-                f'<strong>{total_questions}</strong> · <strong>{percentage_text}</strong></div>'
+                'padding:0;line-height:1.2;font-size:1.08rem;transform:translateY(-4px);">'
+                '<div style="display:flex;align-items:center;justify-content:space-between;white-space:nowrap;">'
+                f'<span>Pontszám: <strong>{current_score:g}</strong> / <strong>{total_questions}</strong></span>'
+                f'<strong style="margin-left:0.75rem;">{percentage_text}</strong>'
+                '</div>'
                 f'{bar_html}'
                 '</div>'
             )
