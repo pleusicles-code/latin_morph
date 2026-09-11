@@ -360,7 +360,10 @@ def parse_verb_morphology_analyses(
             if analysis.get("voice") not in [None, "pass"]:
                 return {"valid": False, "analyses": [], "error": "invalid deponent voice"}
         elif lexical_voice == "semidep":
-            expected_voice = "act" if analysis["aspect"] == "impf" else "pass"
+            if analysis.get("mood") == "impv":
+                expected_voice = "act"
+            else:
+                expected_voice = "act" if analysis.get("aspect") == "impf" else "pass"
             if analysis.get("voice") not in [None, expected_voice]:
                 return {"valid": False, "analyses": [], "error": "invalid semideponent voice"}
 
