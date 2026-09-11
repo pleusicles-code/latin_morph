@@ -564,6 +564,39 @@ noun_endings = {
 if len(declension) == 0 and not st.session_state.current_question:
     st.write("Legalább egy declinatiót ki kell választanod.")
 else:
+    def noun_has_distinct_sg_vocative(noun):
+        nominative = build_noun([noun, "nom", "sg"])
+        vocative = build_noun([noun, "voc", "sg"])
+        if vocative is None:
+            return False
+        nominative_forms = set(nominative if isinstance(nominative, list) else [nominative])
+        vocative_forms = set(vocative if isinstance(vocative, list) else [vocative])
+        return vocative_forms != nominative_forms
+
+
+    def inflection_cases_for_noun(noun, number):
+        cases = [case for case in noun_options["case"] if case != "voc"]
+        if number == "sg" and noun_has_distinct_sg_vocative(noun):
+            cases.append("voc")
+        return cases
+
+
+    def inflection_case_weights(noun, number):
+        cases = inflection_cases_for_noun(noun, number)
+        nom_weight = 9
+        if number == "sg":
+            nom_weight = 1 if is_diagnostic_sg_nom(noun, st.session_state.nouns_enforce_macrons) else 9
+        weights = {
+            "nom": nom_weight,
+            "gen": 9,
+            "dat": 9,
+            "acc": 9,
+            "abl": 9,
+            "voc": 8,
+        }
+        return cases, [weights[case] for case in cases]
+
+
     def gen_question():
         last_question = st.session_state.question_list[-1] if st.session_state.question_list else {}
         decl_rand = random.choice(declension)
@@ -578,20 +611,10 @@ else:
             vocab_subset = {k: v for k, v in active_vocab.items() if v["decl"] == decl_dict_subset}
         noun = random.choice(list(vocab_subset.keys()))
         number = random.choice(list(noun_options["number"].keys()))
-        if number == "sg":
-            nom_weight = 1 if is_diagnostic_sg_nom(noun, st.session_state.nouns_enforce_macrons) else 9
-            case_weights = [nom_weight, 9, 9, 9, 9]
-            if decl_rand == "2nd" and noun[-2:] == "us":
-                case_weights.append(8)
-            elif noun[-2:] == "us" or decl_rand == "2nd":
-                case_weights.append(5)
-            else:
-                case_weights.append(1)
-        else:
-            case_weights = [9, 9, 9, 9, 9, 1]
+        available_cases, case_weights = inflection_case_weights(noun, number)
         case = ""
         while case == "":
-            case = random.choices(list(noun_options["case"].keys()), case_weights)[0]
+            case = random.choices(available_cases, case_weights)[0]
             if case in noun_vocab[noun].get("irreg", {}).get(number, {}) and noun_vocab[noun]["irreg"][number][case] is None:
                 case = ""
             elif number == last_question.get("id", {}).get("num") and noun_vocab[noun]["decl"] == noun_vocab.get(last_question.get("word"), {}).get("decl"):
@@ -699,25 +722,18 @@ else:
                             if v["decl"] == decl and not v.get("irreg", {}).get("irreg")
                         }
                     noun = random.choice(list(avail_nouns))
+                if noun_info and case not in inflection_cases_for_noun(noun, number):
+                    noun_info = None
+                    case = None
                 if not noun_info:
                     number = random.choice(list(noun_options["number"].keys()))
-                    if number == "sg" and noun != "deus":
-                        nom_weight = 1 if is_diagnostic_sg_nom(noun, st.session_state.nouns_enforce_macrons) else 9
-                        case_weights = [nom_weight, 9, 9, 9, 9]
-                        if decl == "2_us":
-                            case_weights.append(8)
-                        elif noun[-2:] == "us" or (isinstance(decl, str) and decl.startswith("2")):
-                            case_weights.append(5)
-                        else:
-                            case_weights.append(1)
-                    else:
-                        case_weights = [9, 9, 9, 9, 9, 1]
+                    available_cases, case_weights = inflection_case_weights(noun, number)
                     case = ""
                     while case == "" or (
                         case in noun_vocab[noun].get("irreg", {}).get(number, {})
                         and noun_vocab[noun]["irreg"][number][case] is None
                     ):
-                        case = random.choices(list(noun_options["case"].keys()), case_weights)[0]
+                        case = random.choices(available_cases, case_weights)[0]
                         if (
                             (noun == last_q.get("word") or noun_vocab[noun]["decl"] == last_q.get("decl"))
                             and case == last_q.get("id", {}).get("case")
@@ -829,21 +845,7 @@ else:
 
     def recognition_cases_for_noun(noun, number):
         cases = [case for case in noun_options["case"] if case != "voc"]
-        if number != "sg":
-            return cases
-
-        noun_data = noun_vocab[noun]
-        if not str(noun_data.get("decl", "")).startswith("2") or noun_data.get("gender") != "m":
-            return cases
-
-        nominative = build_noun([noun, "nom", "sg"])
-        vocative = build_noun([noun, "voc", "sg"])
-        if vocative is None:
-            return cases
-
-        nominative_forms = set(nominative if isinstance(nominative, list) else [nominative])
-        vocative_forms = set(vocative if isinstance(vocative, list) else [vocative])
-        if vocative_forms != nominative_forms:
+        if number == "sg" and noun_has_distinct_sg_vocative(noun):
             cases.append("voc")
         return cases
 
@@ -1219,7 +1221,10 @@ else:
                     next_form = list(starting_form)
                     noun_table = {}
                     table_index = []
-                    cs_order = st.session_state.case_order
+                    cs_order = [
+                        cs for cs in st.session_state.case_order
+                        if cs != "voc" or noun_has_distinct_sg_vocative(starting_form[0])
+                    ]
                     for num in ["sg", "pl"]:
                         noun_table[num] = []
                         for cs in cs_order:
