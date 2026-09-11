@@ -291,10 +291,10 @@ if not getattr(st, "_bevlat_score_reset_panel", False):
 
     def _score_color(percentage):
         if percentage <= 50:
-            return _mix_hex("#c83a32", "#ee8a2d", percentage / 50 if percentage else 0)
+            return _mix_hex("#b93232", "#d95749", percentage / 50 if percentage else 0)
         if percentage <= 80:
-            return _mix_hex("#ee8a2d", "#c9d83a", (percentage - 50) / 30)
-        return _mix_hex("#c9d83a", "#2f9e55", (percentage - 80) / 20)
+            return _mix_hex("#d95749", "#dfca3f", (percentage - 50) / 30)
+        return _mix_hex("#dfca3f", "#2f9e55", (percentage - 80) / 20)
 
     def _bevlat_score_button(label, *args, **kwargs):
         if label != "Pontszám nullázása":
@@ -305,9 +305,44 @@ if not getattr(st, "_bevlat_score_reset_panel", False):
         percentage = (100 * current_score / total_questions) if total_questions else 0
         percentage_text = f"{percentage:.0f}%"
 
+        _score_previous_markdown(
+            """
+            <style>
+            [data-testid="stHorizontalBlock"]:has(.bevlat-score-panel-marker) {
+                gap: 0 !important;
+                border: 1px solid rgba(49, 51, 63, 0.22);
+                border-radius: 0.5rem;
+                overflow: hidden;
+                min-height: 2.5rem;
+            }
+            [data-testid="stHorizontalBlock"]:has(.bevlat-score-panel-marker) [data-testid="column"] {
+                padding: 0 !important;
+            }
+            [data-testid="stHorizontalBlock"]:has(.bevlat-score-panel-marker) button {
+                width: 100% !important;
+                min-height: 2.5rem !important;
+                height: 100% !important;
+                border: 0 !important;
+                border-left: 1px solid rgba(49, 51, 63, 0.18) !important;
+                border-radius: 0 !important;
+                background: rgba(128, 128, 128, 0.10) !important;
+            }
+            [data-testid="stHorizontalBlock"]:has(.bevlat-score-panel-marker) button:hover {
+                background: rgba(128, 128, 128, 0.17) !important;
+            }
+            [data-testid="stElementContainer"]:has(.bevlat-score-panel-style-marker),
+            .element-container:has(.bevlat-score-panel-style-marker) {
+                display: none !important;
+            }
+            </style>
+            <span class="bevlat-score-panel-style-marker"></span>
+            """,
+            unsafe_allow_html=True,
+        )
+
         score_col, reset_col = st.columns(
             [2, 1],
-            gap="small",
+            gap=None,
             vertical_alignment="center",
         )
 
@@ -315,13 +350,14 @@ if not getattr(st, "_bevlat_score_reset_panel", False):
             bar_html = ""
             if total_questions >= 6:
                 bar_html = (
-                    f'<div style="height:6px;background:rgba(128,128,128,0.18);border-radius:999px;overflow:hidden;margin-top:0.35rem;">'
+                    f'<div style="height:6px;background:rgba(128,128,128,0.18);border-radius:999px;overflow:hidden;margin-top:0.25rem;">'
                     f'<div style="height:100%;width:{max(0, min(100, percentage)):.1f}%;background:{_score_color(percentage)};border-radius:999px;"></div>'
                     '</div>'
                 )
             score_html = (
+                '<span class="bevlat-score-panel-marker"></span>'
                 '<div style="min-height:2.5rem;display:flex;flex-direction:column;justify-content:center;'
-                'padding:0;line-height:1.25;font-size:1.08rem;">'
+                'padding:0 0.65rem;line-height:1.2;font-size:1.08rem;transform:translateY(-2px);">'
                 f'<div style="white-space:nowrap;">Pontszám: <strong>{current_score:g}</strong> / '
                 f'<strong>{total_questions}</strong> · <strong>{percentage_text}</strong></div>'
                 f'{bar_html}'
@@ -330,6 +366,7 @@ if not getattr(st, "_bevlat_score_reset_panel", False):
             _score_previous_markdown(score_html, unsafe_allow_html=True)
 
         with reset_col:
+            kwargs["width"] = "stretch"
             return _score_original_button("Újrakezdés", *args, **kwargs)
 
     def _bevlat_score_markdown(body, *args, **kwargs):
