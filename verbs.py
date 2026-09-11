@@ -875,17 +875,24 @@ with option_expander:
     verb_options_col,options_col = st.columns([3,2])
 
 with verb_options_col:
-    exercise_type = st.radio(
-        "Feladattípus:",
-        options=["inflect", "recognize"],
-        format_func=lambda value: {
-            "inflect": "Ragozás",
-            "recognize": "Alakfelismerés",
-        }[value],
-        horizontal=True,
-        key=widget_key(page_id, "exercise_type"),
-        on_change=radio_change,
+    exercise_type_label_col, exercise_type_radio_col = st.columns(
+        [1, 4], vertical_alignment="center"
     )
+    with exercise_type_label_col:
+        st.markdown("Feladattípus:")
+    with exercise_type_radio_col:
+        exercise_type = st.radio(
+            "Feladattípus:",
+            options=["inflect", "recognize"],
+            format_func=lambda value: {
+                "inflect": "Ragozás",
+                "recognize": "Alakfelismerés",
+            }[value],
+            horizontal=True,
+            label_visibility="collapsed",
+            key=widget_key(page_id, "exercise_type"),
+            on_change=radio_change,
+        )
 
 with options_col:
     def switch_verb_macrons():
