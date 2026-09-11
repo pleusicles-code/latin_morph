@@ -1999,10 +1999,15 @@ else:
                             st.session_state.answer_checked = False
                             st.session_state.result_message = ""
                             st.session_state.auto_advance_trigger = False
-                            st.session_state.answer_display_message = (
-                                "Ellenőrizd a válasz paramétereit, majd próbáld újra. "
-                                "A válaszod nincs még értékelve."
-                            )
+                            if parsed_analyses.get("error") in ["incomplete tense", "missing required parameter"]:
+                                st.session_state.answer_display_message = (
+                                    "Hiányos válasz - pótold a hiányzó paramétereket!"
+                                )
+                            else:
+                                st.session_state.answer_display_message = (
+                                    "Ellenőrizd a válasz paramétereit, majd próbáld újra. "
+                                    "A válaszod nincs még értékelve."
+                                )
                             return
 
                         lexical_voice = verb_vocab[verb]["voice"]
