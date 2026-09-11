@@ -2000,13 +2000,14 @@ else:
                             st.session_state.result_message = ""
                             st.session_state.auto_advance_trigger = False
                             if parsed_analyses.get("error") in ["incomplete tense", "missing required parameter"]:
-                                st.session_state.answer_display_message = (
-                                    "Hiányos válasz - pótold a hiányzó paramétereket!"
+                                st.session_state.answer_display_message = feedback_box(
+                                    "<strong>Hiányos válasz - pótold a hiányzó paramétereket!</strong>",
+                                    "incorrect",
                                 )
                             else:
-                                st.session_state.answer_display_message = (
-                                    "Ellenőrizd a válasz paramétereit, majd próbáld újra. "
-                                    "A válaszod nincs még értékelve."
+                                st.session_state.answer_display_message = feedback_box(
+                                    "<strong>Ellenőrizd a válasz paramétereit, majd próbáld újra. A válaszod nincs még értékelve.</strong>",
+                                    "incorrect",
                                 )
                             return
 
@@ -2046,7 +2047,7 @@ else:
                             st.session_state.result_message = "**Incorrect. Better luck next time!**"
                             label = "A helyes válasz" if len(recognition_correct_analyses) == 1 else "A helyes válaszok"
                             st.session_state.answer_display_message = feedback_box(
-                                f"<strong>Helytelen válasz. {label}:<br>{correct_text}</strong>",
+                                f"<strong>Helytelen válasz. {label}: {correct_text}</strong>",
                                 "incorrect",
                             )
                         # Recognition forms deliberately do not clear on submit so that
