@@ -314,20 +314,20 @@ if not getattr(st, "_bevlat_score_reset_panel", False):
         with score_col:
             bar_html = ""
             if total_questions >= 6:
-                bar_html = f"""
-                    <div style="height:6px;background:rgba(128,128,128,0.18);border-radius:999px;overflow:hidden;margin-top:0.35rem;">
-                        <div style="height:100%;width:{max(0, min(100, percentage)):.1f}%;background:{_score_color(percentage)};border-radius:999px;"></div>
-                    </div>
-                """
-            _score_previous_markdown(
-                f"""
-                <div style="padding:0.15rem 0 0.1rem 0;line-height:1.25;">
-                    <div style="white-space:nowrap;">Pontszám: <strong>{current_score:g}</strong> / <strong>{total_questions}</strong> · <strong>{percentage_text}</strong></div>
-                    {bar_html}
-                </div>
-                """,
-                unsafe_allow_html=True,
+                bar_html = (
+                    f'<div style="height:6px;background:rgba(128,128,128,0.18);border-radius:999px;overflow:hidden;margin-top:0.35rem;">'
+                    f'<div style="height:100%;width:{max(0, min(100, percentage)):.1f}%;background:{_score_color(percentage)};border-radius:999px;"></div>'
+                    '</div>'
+                )
+            score_html = (
+                '<div style="min-height:2.5rem;display:flex;flex-direction:column;justify-content:center;'
+                'padding:0;line-height:1.25;font-size:1.08rem;">'
+                f'<div style="white-space:nowrap;">Pontszám: <strong>{current_score:g}</strong> / '
+                f'<strong>{total_questions}</strong> · <strong>{percentage_text}</strong></div>'
+                f'{bar_html}'
+                '</div>'
             )
+            _score_previous_markdown(score_html, unsafe_allow_html=True)
 
         with reset_col:
             return _score_original_button("Újrakezdés", *args, **kwargs)
