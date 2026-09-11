@@ -301,17 +301,20 @@ if not getattr(st, "_bevlat_score_reset_panel", False):
         )
 
         with score_col:
-            bar_html = ""
+            fill_html = ""
             if total_questions >= 6:
-                bar_html = (
-                    f'<div style="height:6px;background:rgba(128,128,128,0.18);border-radius:999px;overflow:hidden;margin-top:0.25rem;">'
-                    f'<div style="height:100%;width:{max(0, min(100, percentage)):.1f}%;background:{_score_color(percentage)};border-radius:999px;"></div>'
-                    '</div>'
+                fill_html = (
+                    f'<div style="height:100%;width:{max(0, min(100, percentage)):.1f}%;'
+                    f'background:{_score_color(percentage)};border-radius:999px;"></div>'
                 )
+            bar_html = (
+                '<div style="height:6px;background:rgba(128,128,128,0.18);border-radius:999px;'
+                f'overflow:hidden;margin-top:0.25rem;">{fill_html}</div>'
+            )
             score_html = (
                 '<div style="min-height:2.5rem;display:flex;flex-direction:column;justify-content:center;'
                 'padding:0.28rem 0.5rem 0.32rem 0.5rem;line-height:1.2;font-size:1.08rem;'
-                'transform:translateY(-6px);background:rgba(128,128,128,0.055);border-radius:0.55rem;">'
+                'transform:translateY(-7px);background:rgba(128,128,128,0.055);border-radius:0.55rem;">'
                 '<div style="display:flex;align-items:center;justify-content:space-between;white-space:nowrap;">'
                 f'<span>Pontszám: <strong>{current_score:g}</strong> / <strong>{total_questions}</strong></span>'
                 f'<strong style="margin-left:0.75rem;">{percentage_text}</strong>'
