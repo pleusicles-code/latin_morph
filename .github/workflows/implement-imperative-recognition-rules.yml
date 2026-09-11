@@ -1,0 +1,25 @@
+name: Implement imperative recognition rules
+
+on:
+  push:
+    branches: [exercise-url-presets]
+    paths:
+      - '.github/workflows/implement-imperative-recognition-rules.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: exercise-url-presets
+      - run: python scripts/implement_imperative_recognition_rules.py
+      - run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add verbs.py
+          git commit -m "Implement imperative prompt and recognition rules"
+          git push origin exercise-url-presets
