@@ -553,7 +553,7 @@ def format_incorrect_verb_recognition_table_html(user_analyses, correct_analyses
                 else:
                     correction = '&mdash;'
                 correction_cells.append(
-                    f'<td style="{cell_style}color:inherit;">{correction}</td>'
+                    f'<td style="{cell_style}color:#111;">{correction}</td>'
                 )
                 continue
 
@@ -578,11 +578,11 @@ def format_incorrect_verb_recognition_table_html(user_analyses, correct_analyses
                     verb_recognition_parameter_label(correct_analysis, category, correction=True)
                 )
                 correction_cells.append(
-                    f'<td style="{cell_style}color:inherit;">{correction}</td>'
+                    f'<td style="{cell_style}color:#111;">{correction}</td>'
                 )
             else:
                 correction_cells.append(
-                    f'<td style="{cell_style}color:inherit;">&mdash;</td>'
+                    f'<td style="{cell_style}color:#111;">&mdash;</td>'
                 )
 
     label_style = 'padding:0.08rem 0.55rem 0.08rem 0;text-align:right;white-space:nowrap;font-weight:700;'
