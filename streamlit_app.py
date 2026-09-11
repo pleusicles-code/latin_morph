@@ -2,6 +2,7 @@
 
 import inspect
 import runpy
+import time as _time
 import streamlit as st
 import utils
 import vocab
@@ -62,16 +63,104 @@ if not getattr(st, "_bevlat_hungarian_select_placeholders", False):
     st._bevlat_hungarian_select_placeholders = True
 
 
-if not getattr(st, "_bevlat_inflection_table_popover_width", False):
+if not getattr(st, "_bevlat_inflection_table_popover", False):
     _original_popover = st.popover
+    _inflection_popover_labels = {"Ragozási táblázat", "View chart"}
 
     def _bevlat_popover(label, *args, **kwargs):
-        if label in {"Ragozási táblázat", "View chart"}:
-            kwargs["width"] = "stretch"
-        return _original_popover(label, *args, **kwargs)
+        if label not in _inflection_popover_labels:
+            return _original_popover(label, *args, **kwargs)
+
+        kwargs["width"] = "stretch"
+        page_id = st.session_state.get("curr_page_id", "exercise")
+        kwargs.setdefault("key", f"_bevlat_inflection_popover_{page_id}")
+        kwargs["on_change"] = "rerun"
+
+        popover = _original_popover(label, *args, **kwargs)
+        st.session_state["_bevlat_inflection_popover_open"] = bool(popover.open)
+
+        # The popover body is rendered in a document-body portal, so the marker
+        # must live inside the popover itself. Translating by its own height plus
+        # the trigger height places the table above, rather than below, its button.
+        with popover:
+            st.markdown(
+                """
+                <style>
+                .stPopoverBody:has(.bevlat-inflection-popover-marker),
+                [data-testid="stPopoverBody"]:has(.bevlat-inflection-popover-marker) {
+                    translate: 0 calc(-100% - 3rem) !important;
+                }
+                [data-testid="stElementContainer"]:has(.bevlat-inflection-popover-marker),
+                .element-container:has(.bevlat-inflection-popover-marker) {
+                    display: none !important;
+                }
+                </style>
+                <span class="bevlat-inflection-popover-marker"></span>
+                """,
+                unsafe_allow_html=True,
+            )
+        return popover
 
     st.popover = _bevlat_popover
-    st._bevlat_inflection_table_popover_width = True
+    st._bevlat_inflection_table_popover = True
+
+
+# Auto-advance normally ends each answered-question run with ``time.sleep``.
+# Keep that existing mechanism, but give each sleep an absolute deadline. If an
+# inflection-table popover is opened, its tracked-state rerun interrupts the old
+# sleep; the replacement run stops here for as long as the popover stays open.
+# Closing the popover reruns again and sleeps only for any still-unelapsed part
+# of the original delay, or advances immediately if the deadline has passed.
+if not getattr(_time, "_bevlat_inflection_auto_advance_pause", False):
+    _original_sleep = _time.sleep
+    _auto_advance_exercise_files = {
+        "nouns.py",
+        "adjectives.py",
+        "verbs.py",
+        "verbal_adj.py",
+        "pronouns.py",
+    }
+
+    def _bevlat_sleep(seconds):
+        caller = inspect.currentframe().f_back
+        filename = caller.f_code.co_filename.rsplit("/", 1)[-1] if caller else ""
+        is_exercise_auto_advance = (
+            caller is not None
+            and caller.f_code.co_name == "<module>"
+            and filename in _auto_advance_exercise_files
+            and st.session_state.get("auto_advance_trigger", False)
+            and st.session_state.get("answer_checked", False)
+        )
+
+        if not is_exercise_auto_advance:
+            return _original_sleep(seconds)
+
+        token = (
+            st.session_state.get("curr_page_id"),
+            st.session_state.get("total_questions"),
+            repr(st.session_state.get("current_question")),
+        )
+        deadline_key = "_bevlat_auto_advance_deadline"
+        token_key = "_bevlat_auto_advance_deadline_token"
+        now = _time.monotonic()
+
+        if st.session_state.get(token_key) != token or deadline_key not in st.session_state:
+            st.session_state[token_key] = token
+            st.session_state[deadline_key] = now + max(0.0, float(seconds))
+
+        if st.session_state.get("_bevlat_inflection_popover_open", False):
+            st.stop()
+
+        remaining = st.session_state[deadline_key] - now
+        if remaining > 0:
+            _original_sleep(remaining)
+
+        st.session_state.pop(deadline_key, None)
+        st.session_state.pop(token_key, None)
+        return None
+
+    _time.sleep = _bevlat_sleep
+    _time._bevlat_inflection_auto_advance_pause = True
 
 
 if not getattr(st, "_bevlat_noun_form_input_handling", False):
@@ -352,5 +441,9 @@ if not getattr(st, "_bevlat_score_reset_panel", False):
     st.markdown = _bevlat_score_markdown
     st._bevlat_score_reset_panel = True
 
+
+# Reset this run-local aggregate before the active exercise page renders. A
+# tracked inflection popover will set it back to True if it is currently open.
+st.session_state["_bevlat_inflection_popover_open"] = False
 
 runpy.run_path("latin_morph.py", run_name="__main__")
