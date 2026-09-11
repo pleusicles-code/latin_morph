@@ -128,6 +128,10 @@ VERB_MORPHOLOGY_ALIASES = {
     "1": ("person", "1"),
     "2": ("person", "2"),
     "3": ("person", "3"),
+    # optional participial gender for passive/deponent perfect-system forms
+    "m": ("gender", "m"),
+    "f": ("gender", "f"),
+    "n": ("gender", "n"),
 }
 
 
@@ -184,6 +188,7 @@ VERB_ANALYSIS_CATEGORY_ORDER = (
     "aspect",
     "mood",
     "voice",
+    "gender",
     "number",
     "person",
 )
@@ -199,6 +204,9 @@ VERB_ANALYSIS_CANONICAL_LABELS = {
     ("mood", "impv"): "imper.",
     ("voice", "act"): "act.",
     ("voice", "pass"): "pass.",
+    ("gender", "m"): "m.",
+    ("gender", "f"): "f.",
+    ("gender", "n"): "n.",
     ("number", "sg"): "sg.",
     ("number", "pl"): "pl.",
     ("person", "1"): "1",
@@ -356,6 +364,17 @@ def parse_verb_morphology_analyses(
             if analysis.get("relative_tense") == "fut" and analysis["person"] not in ["2", "3"]:
                 return {"valid": False, "analyses": [], "error": "invalid future imperative person"}
 
+        if "gender" in analysis:
+            participial_perfect = (
+                analysis.get("aspect") == "perf"
+                and (
+                    lexical_voice in ["dep", "semidep"]
+                    or analysis.get("voice") == "pass"
+                )
+            )
+            if not participial_perfect:
+                return {"valid": False, "analyses": [], "error": "invalid participial gender"}
+
         if lexical_voice == "dep":
             if analysis.get("voice") not in [None, "pass"]:
                 return {"valid": False, "analyses": [], "error": "invalid deponent voice"}
@@ -375,7 +394,7 @@ def format_verb_morphology_analysis(analysis):
     return " ".join(
         VERB_ANALYSIS_CANONICAL_LABELS[(category, analysis[category])]
         for category in VERB_ANALYSIS_CATEGORY_ORDER
-        if category in analysis
+        if category in analysis and category != "gender"
     )
 
 
@@ -403,6 +422,9 @@ def canonical_verb_analysis(analysis, lexical_voice):
     normalized = dict(analysis)
     if lexical_voice in ["dep", "semidep"]:
         normalized.pop("voice", None)
+    # Gender is an optional refinement of participial perfect forms and is
+    # never required for correctness.
+    normalized.pop("gender", None)
     return tuple((category, normalized[category]) for category in VERB_ANALYSIS_CATEGORY_ORDER if category in normalized)
 
 
@@ -439,6 +461,11 @@ def verb_recognition_analysis_matches(user_analysis, correct_analysis, lexical_v
     if lexical_voice in ["dep", "semidep"]:
         user.pop("voice", None)
         correct.pop("voice", None)
+
+    supplied_gender = user.pop("gender", None)
+    correct_gender = correct.pop("gender", None)
+    if supplied_gender is not None and supplied_gender != correct_gender:
+        return False
 
     if user.get("mood") == "impv" and correct.get("mood") == "impv":
         if user.get("second_imperative") and correct.get("relative_tense") != "fut":
@@ -1956,14 +1983,16 @@ else:
                                     continue
                                 candidate_form = built[0]
                                 candidate_forms = candidate_form if isinstance(candidate_form, list) else [candidate_form]
-                                matched = False
-                                for form in candidate_forms:
+                                matched_index = None
+                                for form_index, form in enumerate(candidate_forms):
                                     surface = form if preserve_macrons else remove_macrons(form)
                                     if str(surface).casefold() == target_surface:
-                                        matched = True
+                                        matched_index = form_index
                                         break
-                                if matched:
+                                if matched_index is not None:
                                     analysis = verb_id_to_analysis(candidate_id, lexical_voice)
+                                    if len(candidate_forms) == 3 and matched_index < 3:
+                                        analysis["gender"] = ("m", "f", "n")[matched_index]
                                     key = canonical_verb_analysis(analysis, lexical_voice)
                                     analyses[key] = analysis
         finally:
