@@ -529,7 +529,7 @@ def format_incorrect_verb_recognition_table_html(user_analyses, correct_analyses
 
     answer_cells = []
     correction_cells = []
-    spacer = '<td aria-hidden="true" style="width:0.8rem;padding:0;"></td>'
+    spacer = '<td aria-hidden="true" style="width:0.45rem;padding:0;border:0;background:transparent;"></td>'
 
     for pair_index, (user_analysis, correct_analysis, mismatches) in enumerate(pairs):
         categories = template_categories
@@ -543,7 +543,7 @@ def format_incorrect_verb_recognition_table_html(user_analyses, correct_analyses
             correction_cells.append(spacer)
 
         for category in categories:
-            cell_style = 'padding:0.08rem 0.28rem;text-align:center;white-space:nowrap;font-weight:800;'
+            cell_style = 'padding:0 0.18rem;text-align:center;white-space:nowrap;font-weight:800;border:0!important;background:transparent!important;box-shadow:none!important;'
             if user_analysis is None:
                 answer_cells.append(f'<td style="{cell_style}">&nbsp;</td>')
                 if correct_analysis is not None and category in correct_analysis:
@@ -585,10 +585,10 @@ def format_incorrect_verb_recognition_table_html(user_analyses, correct_analyses
                     f'<td style="{cell_style}color:#111;">&mdash;</td>'
                 )
 
-    label_style = 'padding:0.08rem 0.55rem 0.08rem 0;text-align:right;white-space:nowrap;font-weight:700;'
+    label_style = 'padding:0 0.4rem 0 0;text-align:right;white-space:nowrap;font-weight:700;border:0!important;background:transparent!important;box-shadow:none!important;'
     return (
         '<div style="max-width:100%;overflow-x:auto;">'
-        '<table role="presentation" style="border-collapse:collapse;border:0;background:transparent;line-height:1.55;">'
+        '<table role="presentation" cellspacing="0" cellpadding="0" style="border-collapse:collapse!important;border-spacing:0!important;border:0!important;outline:0!important;background:transparent!important;box-shadow:none!important;line-height:1.45;">'
         '<tbody>'
         f'<tr><td style="{label_style}">Helytelen válasz:</td>{"".join(answer_cells)}</tr>'
         f'<tr><td style="{label_style}">Helyesen:</td>{"".join(correction_cells)}</tr>'
