@@ -305,44 +305,9 @@ if not getattr(st, "_bevlat_score_reset_panel", False):
         percentage = (100 * current_score / total_questions) if total_questions else 0
         percentage_text = f"{percentage:.0f}%"
 
-        _score_previous_markdown(
-            """
-            <style>
-            [data-testid="stHorizontalBlock"]:has(.bevlat-score-panel-marker) {
-                gap: 0 !important;
-                border: 1px solid rgba(49, 51, 63, 0.22);
-                border-radius: 0.5rem;
-                overflow: hidden;
-                min-height: 2.5rem;
-            }
-            [data-testid="stHorizontalBlock"]:has(.bevlat-score-panel-marker) [data-testid="column"] {
-                padding: 0 !important;
-            }
-            [data-testid="stHorizontalBlock"]:has(.bevlat-score-panel-marker) button {
-                width: 100% !important;
-                min-height: 2.5rem !important;
-                height: 100% !important;
-                border: 0 !important;
-                border-left: 1px solid rgba(49, 51, 63, 0.18) !important;
-                border-radius: 0 !important;
-                background: rgba(128, 128, 128, 0.10) !important;
-            }
-            [data-testid="stHorizontalBlock"]:has(.bevlat-score-panel-marker) button:hover {
-                background: rgba(128, 128, 128, 0.17) !important;
-            }
-            [data-testid="stElementContainer"]:has(.bevlat-score-panel-style-marker),
-            .element-container:has(.bevlat-score-panel-style-marker) {
-                display: none !important;
-            }
-            </style>
-            <span class="bevlat-score-panel-style-marker"></span>
-            """,
-            unsafe_allow_html=True,
-        )
-
         score_col, reset_col = st.columns(
             [2, 1],
-            gap=None,
+            gap="small",
             vertical_alignment="center",
         )
 
@@ -355,9 +320,8 @@ if not getattr(st, "_bevlat_score_reset_panel", False):
                     '</div>'
                 )
             score_html = (
-                '<span class="bevlat-score-panel-marker"></span>'
                 '<div style="min-height:2.5rem;display:flex;flex-direction:column;justify-content:center;'
-                'padding:0 0.65rem;line-height:1.2;font-size:1.08rem;transform:translateY(-2px);">'
+                'padding:0;line-height:1.2;font-size:1.08rem;transform:translateY(-2px);">'
                 f'<div style="white-space:nowrap;">Pontszám: <strong>{current_score:g}</strong> / '
                 f'<strong>{total_questions}</strong> · <strong>{percentage_text}</strong></div>'
                 f'{bar_html}'
@@ -366,7 +330,6 @@ if not getattr(st, "_bevlat_score_reset_panel", False):
             _score_previous_markdown(score_html, unsafe_allow_html=True)
 
         with reset_col:
-            kwargs["width"] = "stretch"
             return _score_original_button("Újrakezdés", *args, **kwargs)
 
     def _bevlat_score_markdown(body, *args, **kwargs):
