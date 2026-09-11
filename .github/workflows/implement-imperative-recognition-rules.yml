@@ -5,6 +5,7 @@ on:
     branches: [exercise-url-presets]
     paths:
       - '.github/workflows/implement-imperative-recognition-rules.yml'
+      - 'scripts/fix_semideponent_imperative_voice.py'
 
 permissions:
   contents: write
@@ -16,10 +17,10 @@ jobs:
       - uses: actions/checkout@v4
         with:
           ref: exercise-url-presets
-      - run: python scripts/implement_imperative_recognition_rules.py
+      - run: python scripts/fix_semideponent_imperative_voice.py
       - run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add verbs.py
-          git commit -m "Implement imperative prompt and recognition rules"
+          git commit -m "Fix semideponent imperative voice validation"
           git push origin exercise-url-presets
