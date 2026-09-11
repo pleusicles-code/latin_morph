@@ -514,7 +514,7 @@ exercise_schema = {
     "print_macrons": bool_setting(False),
     "indicate_multiple_answers": bool_setting(False),
     "award_partial_credit": bool_setting(False),
-    "show_principal_parts": bool_setting(False),
+    "show_principal_parts": bool_setting(True),
     "show_stems": bool_setting(False),
     "conjugation_selector": list_setting(list(conjugation_dict.keys()), list(conjugation_dict.keys())),
     "tense_selector": list_setting(master_tense_list, master_tense_list),
@@ -2044,6 +2044,10 @@ else:
                                 f"<strong>Helytelen válasz. {label}:<br>{correct_text}</strong>",
                                 "incorrect",
                             )
+                        # Recognition forms deliberately do not clear on submit so that
+                        # parsing errors remain editable. Once parsing succeeds and the
+                        # answer has actually been evaluated, clear the widget manually.
+                        st.session_state.answer_input = ""
                         return
 
                     original_correct_answer = st.session_state.correct_answer
