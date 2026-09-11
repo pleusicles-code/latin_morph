@@ -139,9 +139,6 @@ if not getattr(st, "_bevlat_noun_form_input_handling", False):
     st._bevlat_noun_form_input_handling = True
 
 
-# Kept separate from the form-handling guard so this enhancement is also
-# installed in already-running Streamlit processes where the older guard was
-# set before the tooltip code existed.
 if not getattr(st, "_bevlat_noun_recognition_input_help_v2", False):
     _previous_text_input = st.text_input
 
@@ -166,9 +163,6 @@ if not getattr(st, "_bevlat_noun_recognition_input_help_v2", False):
     st._bevlat_noun_recognition_input_help_v2 = True
 
 
-# Clear the shared answer widget safely on the run after a new question is generated.
-# This must happen before the widget with key ``answer_input`` is instantiated;
-# mutating that key later in the same run raises StreamlitAPIException.
 if not getattr(st, "_bevlat_deferred_answer_input_clear", False):
     _previous_text_input_for_clear = st.text_input
 
@@ -238,8 +232,6 @@ if not getattr(utils, "_bevlat_noun_single_number_token_order", False):
     def _bevlat_tokenize_morphology_answer(text):
         raw_tokens = _original_tokenize_morphology_answer(text)
 
-        # This relaxation belongs only to noun recognition. Other morphology
-        # parsers retain the original tokenizer behavior.
         if not any(frame.function == "parse_noun_analysis_answer" for frame in inspect.stack()[1:6]):
             return raw_tokens
 
@@ -275,9 +267,6 @@ if not getattr(vocab, "_bevlat_noun_data_fixes", False):
     vocab._bevlat_noun_data_fixes = True
 
 
-# Present the running score and reset action as one compact control without
-# changing every exercise page separately. Exercise pages still own the score
-# state and reset callback; this wrapper only replaces their shared UI pattern.
 if not getattr(st, "_bevlat_score_reset_panel", False):
     _score_original_button = st.button
     _score_previous_markdown = st.markdown
@@ -321,7 +310,8 @@ if not getattr(st, "_bevlat_score_reset_panel", False):
                 )
             score_html = (
                 '<div style="min-height:2.5rem;display:flex;flex-direction:column;justify-content:center;'
-                'padding:0;line-height:1.2;font-size:1.08rem;transform:translateY(-4px);">'
+                'padding:0.28rem 0.5rem 0.32rem 0.5rem;line-height:1.2;font-size:1.08rem;'
+                'transform:translateY(-6px);background:rgba(128,128,128,0.055);border-radius:0.55rem;">'
                 '<div style="display:flex;align-items:center;justify-content:space-between;white-space:nowrap;">'
                 f'<span>Pontszám: <strong>{current_score:g}</strong> / <strong>{total_questions}</strong></span>'
                 f'<strong style="margin-left:0.75rem;">{percentage_text}</strong>'
