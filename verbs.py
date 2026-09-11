@@ -625,7 +625,7 @@ exercise_schema = {
     "tense_selector": list_setting(master_tense_list, master_tense_list),
     "voice_selector": list_setting(master_voice_list, master_voice_list),
     "mood_selector": list_setting(default_mood_list, master_mood_list),
-    "irreg_selector": list_setting(master_irregular_verbs_list, master_irregular_verbs_list),
+    "irreg_selector": list_setting(["sum"], master_irregular_verbs_list),
     "irreg_only": bool_setting(False),
 }
 exercise_settings = resolve_exercise_settings(page_id, exercise_schema, defaults)
