@@ -62,6 +62,18 @@ if not getattr(st, "_bevlat_hungarian_select_placeholders", False):
     st._bevlat_hungarian_select_placeholders = True
 
 
+if not getattr(st, "_bevlat_inflection_table_popover_width", False):
+    _original_popover = st.popover
+
+    def _bevlat_popover(label, *args, **kwargs):
+        if label in {"Ragozási táblázat", "View chart"}:
+            kwargs["width"] = "stretch"
+        return _original_popover(label, *args, **kwargs)
+
+    st.popover = _bevlat_popover
+    st._bevlat_inflection_table_popover_width = True
+
+
 if not getattr(st, "_bevlat_noun_form_input_handling", False):
     _original_form = st.form
     _original_form_submit_button = st.form_submit_button
