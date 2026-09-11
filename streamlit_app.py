@@ -166,6 +166,22 @@ if not getattr(st, "_bevlat_noun_recognition_input_help_v2", False):
     st._bevlat_noun_recognition_input_help_v2 = True
 
 
+# Clear the shared answer widget safely on the run after a new question is generated.
+# This must happen before the widget with key ``answer_input`` is instantiated;
+# mutating that key later in the same run raises StreamlitAPIException.
+if not getattr(st, "_bevlat_deferred_answer_input_clear", False):
+    _previous_text_input_for_clear = st.text_input
+
+    def _bevlat_deferred_clear_text_input(*args, **kwargs):
+        key = kwargs.get("key")
+        if key == "answer_input" and st.session_state.pop("_bevlat_clear_answer_input", False):
+            st.session_state.pop("answer_input", None)
+        return _previous_text_input_for_clear(*args, **kwargs)
+
+    st.text_input = _bevlat_deferred_clear_text_input
+    st._bevlat_deferred_answer_input_clear = True
+
+
 if not getattr(st, "_bevlat_noun_multiple_answer_inline", False):
     _original_markdown = st.markdown
 
