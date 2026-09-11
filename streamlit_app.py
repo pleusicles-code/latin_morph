@@ -2,6 +2,7 @@
 
 import inspect
 import runpy
+import select as _select
 import time as _time
 import streamlit as st
 import utils
@@ -106,13 +107,13 @@ if not getattr(st, "_bevlat_inflection_table_popover", False):
 
 
 # Auto-advance normally ends each answered-question run with ``time.sleep``.
-# Keep that existing mechanism, but give each sleep an absolute deadline. If an
-# inflection-table popover is opened, its tracked-state rerun interrupts the old
-# sleep; the replacement run stops here for as long as the popover stays open.
-# Closing the popover reruns again and sleeps only for any still-unelapsed part
-# of the original delay, or advances immediately if the deadline has passed.
-if not getattr(_time, "_bevlat_inflection_auto_advance_pause", False):
-    _original_sleep = _time.sleep
+# Intercept only those module-level sleeps in exercises that can show an
+# inflection table. The absolute deadline survives popover open/close reruns.
+# Short invisible Streamlit yield points make the wait interruptible, so opening
+# the table can pause auto-advance immediately instead of waiting for one long
+# Python sleep to finish.
+if not getattr(_time, "_bevlat_inflection_auto_advance_pause_v2", False):
+    _previous_sleep = _time.sleep
     _auto_advance_exercise_files = {
         "nouns.py",
         "adjectives.py",
@@ -133,7 +134,7 @@ if not getattr(_time, "_bevlat_inflection_auto_advance_pause", False):
         )
 
         if not is_exercise_auto_advance:
-            return _original_sleep(seconds)
+            return _previous_sleep(seconds)
 
         token = (
             st.session_state.get("curr_page_id"),
@@ -151,16 +152,26 @@ if not getattr(_time, "_bevlat_inflection_auto_advance_pause", False):
         if st.session_state.get("_bevlat_inflection_popover_open", False):
             st.stop()
 
-        remaining = st.session_state[deadline_key] - now
-        if remaining > 0:
-            _original_sleep(remaining)
+        yield_point = st.empty()
+        try:
+            while True:
+                remaining = st.session_state[deadline_key] - _time.monotonic()
+                if remaining <= 0:
+                    break
+                _select.select([], [], [], min(0.25, remaining))
+                # This produces no visible content, but it gives Streamlit a
+                # script yield point at which a queued popover rerun can abort
+                # this run and restart it with the tracked open state.
+                yield_point.empty()
+        finally:
+            yield_point.empty()
 
         st.session_state.pop(deadline_key, None)
         st.session_state.pop(token_key, None)
         return None
 
     _time.sleep = _bevlat_sleep
-    _time._bevlat_inflection_auto_advance_pause = True
+    _time._bevlat_inflection_auto_advance_pause_v2 = True
 
 
 if not getattr(st, "_bevlat_noun_form_input_handling", False):
