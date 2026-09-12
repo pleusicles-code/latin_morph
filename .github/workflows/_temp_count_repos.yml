@@ -1,0 +1,43 @@
+name: Temporary count vocab repositories
+on:
+  push:
+    branches: [exercise-url-presets]
+    paths: ['.github/workflows/_temp_count_repos.yml']
+jobs:
+  count:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: exercise-url-presets
+      - name: Count repo membership
+        run: |
+          python - <<'PY'
+          import sys, types
+          st = types.ModuleType('streamlit')
+          st.cache_data = lambda f: f
+          sys.modules['streamlit'] = st
+          import vocab
+
+          vocabs = {
+              'nouns': vocab.import_nouns(),
+              'adjectives': vocab.import_adjectives(),
+              'verbs': vocab.import_verbs(),
+              'pronouns': vocab.import_pronouns(),
+          }
+
+          def repos(value):
+              if isinstance(value, (list, tuple, set)):
+                  return set(value)
+              return {value} if value else set()
+
+          total_core = total_alap1 = 0
+          for pos, data in vocabs.items():
+              core = sum('core' in repos(info.get('repo')) for info in data.values())
+              alap1 = sum('alap1' in repos(info.get('repo')) for info in data.values())
+              overlap = sum({'core','alap1'}.issubset(repos(info.get('repo'))) for info in data.values())
+              print(f'{pos}: core={core} alap1={alap1} overlap={overlap} unique={len(data)}')
+              total_core += core
+              total_alap1 += alap1
+          print(f'TOTAL: core={total_core} alap1={total_alap1}')
+          PY
