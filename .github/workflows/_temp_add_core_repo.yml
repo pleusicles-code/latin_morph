@@ -29,12 +29,10 @@ jobs:
 
           targets = {'verb_vocab', 'noun_vocab', 'pronoun_vocab', 'adjective_vocab'}
           inserts = []
-          counts = {}
 
           for node in ast.walk(tree):
               if not isinstance(node, (ast.Assign, ast.AnnAssign)):
                   continue
-              names = []
               if isinstance(node, ast.Assign):
                   names = [t.id for t in node.targets if isinstance(t, ast.Name)]
                   value = node.value
@@ -44,55 +42,61 @@ jobs:
               matched = next((n for n in names if n in targets), None)
               if not matched or not isinstance(value, ast.Dict):
                   continue
-              count = 0
+
               for key, val in zip(value.keys, value.values):
                   if not isinstance(key, ast.Constant) or not isinstance(key.value, str) or not isinstance(val, ast.Dict):
                       continue
                   if any(isinstance(k, ast.Constant) and k.value == 'repo' for k in val.keys):
-                      count += 1
                       continue
-                  # Insert immediately after this entry's opening brace.
                   line_i = val.lineno - 1
-                  col = val.col_offset
                   line = lines[line_i]
-                  brace = line.find('{', col)
+                  brace = line.find('{')
                   if brace < 0:
-                      raise RuntimeError(f'Opening brace not found for {key.value!r}')
+                      raise RuntimeError(f'Opening brace not found for {key.value!r}: {line!r}')
                   if line[brace+1:].strip():
                       payload = '"repo": "core", '
                   else:
-                      indent = ' ' * (col + 4)
+                      indent = ' ' * (val.col_offset + 4)
                       payload = '\n' + indent + '"repo": "core",'
                   inserts.append((line_i, brace + 1, payload))
-                  count += 1
-              counts[matched] = count
 
-          # Apply in reverse source order so positions remain valid.
           for line_i, pos, payload in sorted(inserts, reverse=True):
               lines[line_i] = lines[line_i][:pos] + payload + lines[line_i][pos:]
 
           new = ''.join(lines)
           ast.parse(new)
+          path.write_text(new, encoding='utf-8')
 
-          # Verify every top-level lexical entry has repo='core'.
-          ns = {}
-          exec(compile(new, 'vocab.py', 'exec'), ns)
-          expected = {
-              'verb_vocab': ns['import_verbs'](),
-              'noun_vocab': ns['import_nouns'](),
-              'pronoun_vocab': ns['import_pronouns'](),
-              'adjective_vocab': ns['import_adjectives'](),
-          }
-          missing = {
-              name: [word for word, data in vocab.items() if data.get('repo') != 'core']
-              for name, vocab in expected.items()
-          }
-          missing = {k: v for k, v in missing.items() if v}
+          # Verify semantically without importing Streamlit.
+          tree2 = ast.parse(new)
+          totals = {}
+          missing = {}
+          for node in ast.walk(tree2):
+              if not isinstance(node, ast.Assign):
+                  continue
+              names = [t.id for t in node.targets if isinstance(t, ast.Name)]
+              matched = next((n for n in names if n in targets), None)
+              if not matched or not isinstance(node.value, ast.Dict):
+                  continue
+              total = 0
+              miss = []
+              for key, val in zip(node.value.keys, node.value.values):
+                  if not isinstance(key, ast.Constant) or not isinstance(key.value, str) or not isinstance(val, ast.Dict):
+                      continue
+                  total += 1
+                  repo_ok = any(
+                      isinstance(k, ast.Constant) and k.value == 'repo'
+                      and isinstance(v, ast.Constant) and v.value == 'core'
+                      for k, v in zip(val.keys, val.values)
+                  )
+                  if not repo_ok:
+                      miss.append(key.value)
+              totals[matched] = total
+              if miss:
+                  missing[matched] = miss
           if missing:
               raise RuntimeError(f'Missing repo tags: {missing}')
-
-          path.write_text(new, encoding='utf-8')
-          print('Tagged entries:', {k: len(v) for k, v in expected.items()})
+          print('Tagged entries:', totals)
           PY
       - name: Commit vocab.py change
         run: |
