@@ -1636,7 +1636,7 @@ def import_nouns():
          'meaning': 'ügy, dolog, birtok, jószág, vagyon',
          'gender': 'f',
          'decl': '5_consonant',
-         'stem': 'rē'},
+         'stem': 'r'},
  'rēx': {'repo': 'alap1', 'meaning': 'király, uralkodó, vezető', 'gender': 'm', 'decl': 3, 'stem': 'rēg'},
  'sacerdōs': {'repo': 'alap1', 'meaning': 'pap, papnő', 'gender': 'm/f', 'decl': 3, 'stem': 'sacerdōt'},
  'silva': {'repo': 'alap1', 'meaning': 'erdő, vadon, fa, park', 'gender': 'f', 'decl': 1, 'stem': 'silv'},
