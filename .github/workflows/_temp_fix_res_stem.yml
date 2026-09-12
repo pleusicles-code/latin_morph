@@ -1,0 +1,43 @@
+name: Temporary fix res stem
+on:
+  push:
+    branches: [exercise-url-presets]
+    paths: ['.github/workflows/_temp_fix_res_stem.yml']
+permissions:
+  contents: write
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: exercise-url-presets
+      - name: Correct rēs stem
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import re, py_compile, types, sys
+          p = Path('vocab.py')
+          text = p.read_text(encoding='utf-8')
+          pattern = r'("rēs"\s*:\s*\{.*?"stem"\s*:\s*)"re"'
+          text2, count = re.subn(pattern, r'\1"r"', text, count=1, flags=re.S)
+          if count != 1:
+              raise SystemExit(f'Expected exactly one rēs stem=re occurrence, found {count}')
+          p.write_text(text2, encoding='utf-8')
+          py_compile.compile('vocab.py', doraise=True)
+          st = types.ModuleType('streamlit')
+          st.cache_data = lambda f: f
+          sys.modules['streamlit'] = st
+          import vocab
+          nouns = vocab.filter_vocab_by_repo(vocab.import_nouns(), 'alap1')
+          if nouns['rēs']['stem'] != 'r':
+              raise SystemExit(nouns['rēs'])
+          print('rēs:', nouns['rēs'])
+          PY
+      - name: Commit
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add vocab.py
+          git commit -m 'Correct alap1 rēs stem'
+          git push origin HEAD:exercise-url-presets
