@@ -1,0 +1,29 @@
+name: Temporary copy vocab core
+
+on:
+  push:
+    branches: [exercise-url-presets]
+    paths:
+      - '.github/workflows/_temp_copy_vocab_core.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  copy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: exercise-url-presets
+      - name: Copy and verify
+        run: |
+          cp vocab.py vocab_core.py
+          cmp -s vocab.py vocab_core.py
+      - name: Commit backup
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add vocab_core.py
+          git commit -m 'Make vocab_core.py exact copy of vocab.py'
+          git push origin HEAD:exercise-url-presets
