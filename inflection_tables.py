@@ -100,6 +100,8 @@ def noun_form(word, info, case, number):
         return [stem + "im", stem + "em"]
     if info.get("true_i_stem") and number == "sg" and case == "abl":
         return [stem + "ī", stem + "e"]
+    if isinstance(ending, (list, tuple)):
+        return [stem + item for item in ending]
     return stem + ending
 
 ADJ_12 = {
