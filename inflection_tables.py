@@ -69,7 +69,7 @@ NOUN_ENDINGS = {
     "2_neut": {"sg":{"gen":"ī","dat":"ō","acc":"um","abl":"ō","voc":None},"pl":{"nom":"a","gen":"ōrum","dat":"īs","acc":"a","abl":"īs","voc":None}},
     3: {"sg":{"gen":"is","dat":"ī","acc":"em","abl":"e","voc":None},"pl":{"nom":"ēs","gen":"um","dat":"ibus","acc":"ēs","abl":"ibus","voc":None}},
     "3_neut": {"sg":{"gen":"is","dat":"ī","acc":None,"abl":"e","voc":None},"pl":{"nom":"a","gen":"um","dat":"ibus","acc":"a","abl":"ibus","voc":None}},
-    "3_istem": {"sg":{"gen":"is","dat":"ī","acc":"em","abl":"e","voc":None},"pl":{"nom":"ēs","gen":"ium","dat":"ibus","acc":["īs","ēs"],"abl":"ibus","voc":None}},
+    "3_istem": {"sg":{"gen":"is","dat":"ī","acc":"em","abl":"e","voc":None},"pl":{"nom":"ēs","gen":"ium","dat":"ibus","acc":["ēs","īs"],"abl":"ibus","voc":None}},
     "3_istem_neut": {"sg":{"gen":"is","dat":"ī","acc":None,"abl":"ī","voc":None},"pl":{"nom":"ia","gen":"ium","dat":"ibus","acc":"ia","abl":"ibus","voc":None}},
     4: {"sg":{"gen":"ūs","dat":"uī","acc":"um","abl":"ū","voc":None},"pl":{"nom":"ūs","gen":"uum","dat":"ibus","acc":"ūs","abl":"ibus","voc":None}},
     "4_neut": {"sg":{"gen":"ūs","dat":"ū","acc":"ū","abl":"ū","voc":None},"pl":{"nom":"ua","gen":"uum","dat":"ibus","acc":"ua","abl":"ibus","voc":None}},
