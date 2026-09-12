@@ -4,6 +4,7 @@ import streamlit as st
 def import_verbs():
     verb_vocab = {
         "sum": {
+                   "repo": "core",
             "voice": "act",
             "no_pass": True,
             "conj": None,
@@ -73,6 +74,7 @@ def import_verbs():
             "gdv": None
             },
         "possum": {
+                      "repo": "core",
             "voice": "act",
             "conj": None,
             "no_impv": True,
@@ -129,6 +131,7 @@ def import_verbs():
             "gdv": None
             },
         "ferō": {
+                     "repo": "core",
             "voice": "act",
             "conj": 3,
             "irreg": {
@@ -206,6 +209,7 @@ def import_verbs():
             "ppp": "lāt"
         },
         "eō": {
+                   "repo": "core",
             "voice": "act",
             "impers_pass_only": True,
             "conj": 3,
@@ -283,6 +287,7 @@ def import_verbs():
             "gdv": "eund"
         },
         "volō": {
+                     "repo": "core",
             "voice": "act",
             "no_pass": True,
             "conj": 3,
@@ -327,6 +332,7 @@ def import_verbs():
             "gdv": None
         },
         "nōlō": {
+                      "repo": "core",
             "voice": "act",
             "no_pass": True,
             "conj": 3,
@@ -388,6 +394,7 @@ def import_verbs():
             "gdv": None
         },
         "mālō": {
+                      "repo": "core",
             "voice": "act",
             "no_pass": True,
             "conj": 3,
@@ -432,6 +439,7 @@ def import_verbs():
             "gdv": None
         },
     "fīō": {
+                 "repo": "core",
             "voice": "semidep",
             "conj": 3,
             "pres": "fī",
@@ -475,86 +483,86 @@ def import_verbs():
 
         ## ACTIVE
         ### 1st conj
-        "amō": {"voice": "act",
+        "amō": {"repo": "core", "voice": "act",
                 "conj": 1,
                 "pres": "am",
                 "perf": "amāv",
                 "ppp": "amāt"},
-        "portō": {"voice": "act",
+        "portō": {"repo": "core", "voice": "act",
                   "conj": 1,
                   "pres": "port",
                   "perf": "portāv",
                   "ppp": "portāt"},
-        "parō": {"voice": "act",
+        "parō": {"repo": "core", "voice": "act",
                   "conj": 1,
                   "pres": "par",
                   "perf": "parāv",
                   "ppp": "parāt"},
-        "optō": {"voice": "act",
+        "optō": {"repo": "core", "voice": "act",
                   "conj": 1,
                   "pres": "opt",
                   "perf": "optāv",
                   "ppp": "optāt"},
-        "vocō": {"voice": "act",
+        "vocō": {"repo": "core", "voice": "act",
                  "conj": 1,
                  "pres": "voc",
                  "perf": "vocāv",
                  "ppp": "vocāt"},
 
         ### 2nd conj
-        "habeō": {"voice": "act",
+        "habeō": {"repo": "core", "voice": "act",
                 "conj": 2,
                 "pres": "hab",
                 "perf": "habu",
                 "ppp": "habit"},
-        "dēleō": {"voice": "act",
+        "dēleō": {"repo": "core", "voice": "act",
                   "conj": 2,
                   "pres": "dēl",
                   "perf": "dēlēv",
                   "ppp": "dēlēt"},
-        "spondeō": {"voice": "act",
+        "spondeō": {"repo": "core", "voice": "act",
                     "conj": 2,
                     "pres": "spond",
                     "perf": "spopond",
                     "ppp": "spons"},
-        "moneō": {"voice": "act",
+        "moneō": {"repo": "core", "voice": "act",
                   "conj": 2,
                   "pres": "mon",
                   "perf": "monu",
                   "ppp": "monit"},
-        "impleō": {"voice": "act",
+        "impleō": {"repo": "core", "voice": "act",
                   "conj": 2,
                   "pres": "impl",
                   "perf": "implēv",
                   "ppp": "implēt"},
-        "teneō": {"voice": "act",
+        "teneō": {"repo": "core", "voice": "act",
                   "conj": 2,
                   "pres": "ten",
                   "perf": "tenu",
                   "ppp": "tent"},
 
         ### 3rd conj
-        "regō": {"voice": "act",
+        "regō": {"repo": "core", "voice": "act",
                 "conj": 3,
                 "pres": "reg",
                 "perf": "rēx",
                 "ppp": "rect"},
-        "fallō": {"voice": "act",
+        "fallō": {"repo": "core", "voice": "act",
                   "conj": 3,
                   "pres": "fall",
                   "perf": "fefell",
                   "ppp": "fals"},
-        "legō": {"voice": "act",
+        "legō": {"repo": "core", "voice": "act",
                  "conj": 3,
                  "pres": "leg",
                  "perf": "lēg",
                  "ppp": "lect"},
-        "mittō": {"voice": "act",
+        "mittō": {"repo": "core", "voice": "act",
                  "conj": 3,
                  "pres": "mitt",
                  "perf": "mīs",
                  "ppp": "miss"},
-        "dīcō": {"voice": "act",
+        "dīcō": {"repo": "core", "voice": "act",
                  "conj": 3,
                  "pres": "dīc",
                  "perf": "dīx",
@@ -572,7 +580,7 @@ def import_verbs():
                          }
                      }
                  }},
-        "dūcō": {"voice": "act",
+        "dūcō": {"repo": "core", "voice": "act",
                  "conj": 3,
                  "pres": "dūc",
                  "perf": "dūx",
@@ -592,39 +600,39 @@ def import_verbs():
                  }},
 
         ### 3rd io conj
-        "capiō": {"voice": "act",
+        "capiō": {"repo": "core", "voice": "act",
                 "conj": "3io",
                 "pres": "cap",
                 "perf": "cēp",
                 "ppp": "capt"},
-        "fugiō": {"voice": "act",
+        "fugiō": {"repo": "core", "voice": "act",
                   "conj": "3io",
                   "pres": "fug",
                   "perf": "fūg",
                   "ppp": "fugit"},
-        "cupiō": {"voice": "act",
+        "cupiō": {"repo": "core", "voice": "act",
                   "conj": "3io",
                   "pres": "cup",
                   "perf": "cupīv",
                   "ppp": "cupīt"},
-        "incipiō": {"voice": "act",
+        "incipiō": {"repo": "core", "voice": "act",
                 "conj": "3io",
                 "pres": "incip",
                 "perf": "incēp",
                 "ppp": "incept"},
 
         ### 4th conj
-        "audiō": {"voice": "act",
+        "audiō": {"repo": "core", "voice": "act",
                 "conj": 4,
                 "pres": "aud",
                 "perf": "audīv",
                 "ppp": "audīt"},
-        "sentiō": {"voice": "act",
+        "sentiō": {"repo": "core", "voice": "act",
                 "conj": 4,
                 "pres": "sent",
                 "perf": "sēns",
                 "ppp": "sēns"},
-        "veniō": {"voice": "act",
+        "veniō": {"repo": "core", "voice": "act",
                   "impers_pass_only": True,
                   "conj": 4,
                   "pres": "ven",
@@ -633,92 +641,92 @@ def import_verbs():
 
         ## DEPONENT
         ### 1st conj
-        "cōnor": {"voice": "dep",
+        "cōnor": {"repo": "core", "voice": "dep",
                 "conj": 1,
                 "pres": "cōn",
                 "ppp": "cōnāt"},
-        "precor": {"voice": "dep",
+        "precor": {"repo": "core", "voice": "dep",
                 "conj": 1,
                 "pres": "prec",
                 "ppp": "precāt"},
-        "mīror": {"voice": "dep",
+        "mīror": {"repo": "core", "voice": "dep",
                 "conj": 1,
                 "pres": "mīr",
                 "ppp": "mīrāt"},
-        "vēnor": {"voice": "dep",
+        "vēnor": {"repo": "core", "voice": "dep",
                 "conj": 1,
                 "pres": "vēn",
                 "ppp": "vēnāt"},
-        "minor": {"voice": "dep",
+        "minor": {"repo": "core", "voice": "dep",
                 "conj": 1,
                 "pres": "min",
                 "ppp": "mināt"},
         ### 2nd conj
-        "fateor": {"voice": "dep",
+        "fateor": {"repo": "core", "voice": "dep",
                 "conj": 2,
                 "pres": "fat",
                 "ppp": "fass"},
-        "reor": {"voice": "dep",
+        "reor": {"repo": "core", "voice": "dep",
                 "conj": 2,
                 "pres": "r",
                 "ppp": "rat"},
-        "vereor": {"voice": "dep",
+        "vereor": {"repo": "core", "voice": "dep",
                 "conj": 2,
                 "pres": "ver",
                 "ppp": "verit"},
-        "polliceor": {"voice": "dep",
+        "polliceor": {"repo": "core", "voice": "dep",
                 "conj": 2,
                 "pres": "pollic",
                 "ppp": "pollicit"},
         ### 3rd conj
-        "sequor": {"voice": "dep",
+        "sequor": {"repo": "core", "voice": "dep",
                 "conj": 3,
                 "pres": "sequ",
                 "ppp": "secūt"},
-        "nāscor": {"voice": "dep",
+        "nāscor": {"repo": "core", "voice": "dep",
                 "conj": 3,
                 "pres": "nāsc",
                 "ppp": "nāt",},
-        "ūtor": {"voice": "dep",
+        "ūtor": {"repo": "core", "voice": "dep",
                 "conj": 3,
                 "pres": "ūt",
                 "ppp": "ūs",},
-        "loquor": {"voice": "dep",
+        "loquor": {"repo": "core", "voice": "dep",
                 "conj": 3,
                 "pres": "loqu",
                 "ppp": "locūt",},
         ### 3rd io conj
-        "morior": {"voice": "dep",
+        "morior": {"repo": "core", "voice": "dep",
                 "conj": "3io",
                 "pres": "mor",
                 "ppp": "mortu",
                 "fap": "moritūr"},
-        "patior": {"voice": "dep",
+        "patior": {"repo": "core", "voice": "dep",
                 "conj": "3io",
                 "pres": "pat",
                 "ppp": "pass"},
-        "progredior": {"voice": "dep",
+        "progredior": {"repo": "core", "voice": "dep",
                 "conj": "3io",
                 "pres": "progred",
                 "ppp": "progress"},
-        "ingredior": {"voice": "dep",
+        "ingredior": {"repo": "core", "voice": "dep",
                 "conj": "3io",
                 "pres": "ingred",
                 "ppp": "ingress"},
         ### 4th conj
-        "experior": {"voice": "dep",
+        "experior": {"repo": "core", "voice": "dep",
                 "conj": 4,
                 "pres": "exper",
                 "ppp": "expert"},
-        "mōlior": {"voice": "dep",
+        "mōlior": {"repo": "core", "voice": "dep",
                 "conj": 4,
                 "pres": "mōl",
                 "ppp": "mōlīt"},
-        "partior": {"voice": "dep",
+        "partior": {"repo": "core", "voice": "dep",
                 "conj": 4,
                 "pres": "part",
                 "ppp": "partīt"},
-        "mentior": {"voice": "dep",
+        "mentior": {"repo": "core", "voice": "dep",
                 "conj": 4,
                 "pres": "ment",
                 "ppp": "mentīt"},
@@ -730,11 +738,11 @@ def import_verbs():
         #         "fap": "oritūr",
         #         "gdv": "oriund"},
         ## SEMIDEPONENT
-        "audeō": {"voice": "semidep",
+        "audeō": {"repo": "core", "voice": "semidep",
                 "conj": 2,
                 "pres": "aud",
                 "ppp": "aus"},
-        "gaudeō": {"voice": "semidep",
+        "gaudeō": {"repo": "core", "voice": "semidep",
                 "conj": 2,
                 "pres": "gaud",
                 "ppp": "gāvīs"},
@@ -748,33 +756,33 @@ def import_nouns():
         ## Regular Nouns
 
         # 1st declension
-        "puella": {"gender": "f", "decl": 1,
+        "puella": {"repo": "core", "gender": "f", "decl": 1,
                     "stem": "puell"},
-        "hōra": {"gender": "f", "decl": 1,
+        "hōra": {"repo": "core", "gender": "f", "decl": 1,
                     "stem": "hōr"},
-        "agricola": {"gender": "m", "decl": 1,
+        "agricola": {"repo": "core", "gender": "m", "decl": 1,
                         "stem": "agricol"},
-        "mēnsa": {"gender": "f", "decl": 1,
+        "mēnsa": {"repo": "core", "gender": "f", "decl": 1,
                   "stem": "mēns"},
-        "poena": {"gender": "f", "decl": 1,
+        "poena": {"repo": "core", "gender": "f", "decl": 1,
                   "stem": "poen"},
-        "silva": {"gender": "f", "decl": 1,
+        "silva": {"repo": "core", "gender": "f", "decl": 1,
                   "stem": "silv"},
-        "umbra": {"gender": "f", "decl": 1,
+        "umbra": {"repo": "core", "gender": "f", "decl": 1,
                   "stem": "umbr"},
-        "aqua": {"gender": "f", "decl": 1,
+        "aqua": {"repo": "core", "gender": "f", "decl": 1,
                   "stem": "aqu"},
-        "causa": {"gender": "f", "decl": 1,
+        "causa": {"repo": "core", "gender": "f", "decl": 1,
                   "stem": "caus"},
-        "anima": {"gender": "f", "decl": 1,
+        "anima": {"repo": "core", "gender": "f", "decl": 1,
                   "stem": "anim"},
-        "pecūnia": {"gender": "f", "decl": 1,
+        "pecūnia": {"repo": "core", "gender": "f", "decl": 1,
                   "stem": "pecūni"},
-        "stēlla": {"gender": "f", "decl": 1,
+        "stēlla": {"repo": "core", "gender": "f", "decl": 1,
                   "stem": "stēll"},
-        "fēmina": {"gender": "f", "decl": 1,
+        "fēmina": {"repo": "core", "gender": "f", "decl": 1,
                   "stem": "fēmin"},
-        "fīlia": {"gender": "f", "decl": 1,
+        "fīlia": {"repo": "core", "gender": "f", "decl": 1,
                     "stem": "fīli",
                     "irreg": {
                         "pl": {
@@ -782,7 +790,7 @@ def import_nouns():
                             "abl": ["fīliīs", "fīliābus"]
                         }
                     }},
-        "dea": {"gender": "f", "decl": 1,
+        "dea": {"repo": "core", "gender": "f", "decl": 1,
                     "stem": "de",
                     "irreg": {
                         "pl": {
@@ -792,188 +800,188 @@ def import_nouns():
                     }},
 
         # 2nd declension
-        "servus": {"gender": "m", "decl": "2_us",
+        "servus": {"repo": "core", "gender": "m", "decl": "2_us",
                     "stem": "serv"},
-        "equus": {"gender": "m", "decl": "2_us",
+        "equus": {"repo": "core", "gender": "m", "decl": "2_us",
                     "stem": "equ"},
-        "fīlius": {"gender": "m", "decl": "2_us",
+        "fīlius": {"repo": "core", "gender": "m", "decl": "2_us",
                     "stem": "fīli"},
-        "lupus": {"gender": "m", "decl": "2_us",
+        "lupus": {"repo": "core", "gender": "m", "decl": "2_us",
                   "stem": "lup"},
-        "animus": {"gender": "m", "decl": "2_us",
+        "animus": {"repo": "core", "gender": "m", "decl": "2_us",
                   "stem": "anim"},
-        "annus": {"gender": "m", "decl": "2_us",
+        "annus": {"repo": "core", "gender": "m", "decl": "2_us",
                   "stem": "ann"},
-        "gladius": {"gender": "m", "decl": "2_us",
+        "gladius": {"repo": "core", "gender": "m", "decl": "2_us",
                   "stem": "gladi"},
-        "dolus": {"gender": "m", "decl": "2_us",
+        "dolus": {"repo": "core", "gender": "m", "decl": "2_us",
                   "stem": "dol"},
-        "colōnus": {"gender": "m", "decl": "2_us",
+        "colōnus": {"repo": "core", "gender": "m", "decl": "2_us",
                   "stem": "colōn"},
-        "dominus": {"gender": "m", "decl": "2_us",
+        "dominus": {"repo": "core", "gender": "m", "decl": "2_us",
                   "stem": "domin"},
-        "nātus": {"gender": "m", "decl": "2_us",
+        "nātus": {"repo": "core", "gender": "m", "decl": "2_us",
                   "stem": "nāt"},
-        "amīcus": {"gender": "m", "decl": "2_us",
+        "amīcus": {"repo": "core", "gender": "m", "decl": "2_us",
                   "stem": "amīc"},
         ## -er
-        "puer": {"gender": "m", "decl": "2_er",
+        "puer": {"repo": "core", "gender": "m", "decl": "2_er",
                     "stem": "puer"},
-        "vir": {"gender": "m", "decl": "2_er",
+        "vir": {"repo": "core", "gender": "m", "decl": "2_er",
                 "stem": "vir",
                 "irreg": {
                     "pl": {"gen": ["virōrum", "virum"]}
                 }},
-        "ager": {"gender": "m", "decl": "2_er",
+        "ager": {"repo": "core", "gender": "m", "decl": "2_er",
                     "stem": "agr"},
-        "liber": {"gender": "m", "decl": "2_er",
+        "liber": {"repo": "core", "gender": "m", "decl": "2_er",
                     "stem": "libr"},
-        "magister": {"gender": "m", "decl": "2_er",
+        "magister": {"repo": "core", "gender": "m", "decl": "2_er",
                     "stem": "magistr"},
-        "culter": {"gender": "m", "decl": "2_er",
+        "culter": {"repo": "core", "gender": "m", "decl": "2_er",
                     "stem": "cultr"},
         ## neuter
-        "templum": {"gender": "n", "decl": "2_neut",
+        "templum": {"repo": "core", "gender": "n", "decl": "2_neut",
                     "stem": "templ"},
-        "verbum": {"gender": "n", "decl": "2_neut",
+        "verbum": {"repo": "core", "gender": "n", "decl": "2_neut",
                     "stem": "verb"},
-        "iugum": {"gender": "n", "decl": "2_neut",
+        "iugum": {"repo": "core", "gender": "n", "decl": "2_neut",
                   "stem": "iug"},
-        "beneficium": {"gender": "n", "decl": "2_neut",
+        "beneficium": {"repo": "core", "gender": "n", "decl": "2_neut",
                   "stem": "benefici"},
-        "signum": {"gender": "n", "decl": "2_neut",
+        "signum": {"repo": "core", "gender": "n", "decl": "2_neut",
                   "stem": "sign"},
-        "bellum": {"gender": "n", "decl": "2_neut",
+        "bellum": {"repo": "core", "gender": "n", "decl": "2_neut",
                   "stem": "bell"},
-        "regnum": {"gender": "n", "decl": "2_neut",
+        "regnum": {"repo": "core", "gender": "n", "decl": "2_neut",
                   "stem": "regn"},
-        "saxum": {"gender": "n", "decl": "2_neut",
+        "saxum": {"repo": "core", "gender": "n", "decl": "2_neut",
                   "stem": "sax"},
-        "somnium": {"gender": "n", "decl": "2_neut",
+        "somnium": {"repo": "core", "gender": "n", "decl": "2_neut",
                   "stem": "somni"},
-        "dōnum": {"gender": "n", "decl": "2_neut",
+        "dōnum": {"repo": "core", "gender": "n", "decl": "2_neut",
                   "stem": "dōn"},
         # 3rd declension
-        "leo": {"gender": "m", "decl": 3,
+        "leo": {"repo": "core", "gender": "m", "decl": 3,
                 "stem": "leōn"},
-        "mīles": {"gender": "m", "decl": 3,
+        "mīles": {"repo": "core", "gender": "m", "decl": 3,
                     "stem": "mīlit"},
-        "sōl": {"gender": "m", "decl": 3,
+        "sōl": {"repo": "core", "gender": "m", "decl": 3,
                 "stem": "sōl"},
-        "vōx": {"gender": "f", "decl": 3,
+        "vōx": {"repo": "core", "gender": "f", "decl": 3,
                  "stem": "vōc"},
-        "rēx": {"gender": "m", "decl": 3,
+        "rēx": {"repo": "core", "gender": "m", "decl": 3,
                 "stem": "rēg"},
-        "flōs": {"gender": "m", "decl": 3,
+        "flōs": {"repo": "core", "gender": "m", "decl": 3,
                 "stem": "flōr"},
-        "fūr": {"gender": "m/f", "decl": 3,
+        "fūr": {"repo": "core", "gender": "m/f", "decl": 3,
                 "stem": "fūr"},
-        "rūmor": {"gender": "m", "decl": 3,
+        "rūmor": {"repo": "core", "gender": "m", "decl": 3,
                 "stem": "rūmōr"},
-        "homō": {"gender": "m/f", "decl": 3,
+        "homō": {"repo": "core", "gender": "m/f", "decl": 3,
                 "stem": "homin"},
-        "servitūs": {"gender": "f", "decl": 3,
+        "servitūs": {"repo": "core", "gender": "f", "decl": 3,
                 "stem": "servitūt"},
         ## i-stem
-        "cīvis": {"gender": "m/f", "decl": "3_istem",
+        "cīvis": {"repo": "core", "gender": "m/f", "decl": "3_istem",
                     "stem": "cīv"},
-        "nāvis": {"gender": "f", "decl": "3_istem",
+        "nāvis": {"repo": "core", "gender": "f", "decl": "3_istem",
                   "stem": "nāv"},
-        "urbs": {"gender": "f", "decl": "3_istem",
+        "urbs": {"repo": "core", "gender": "f", "decl": "3_istem",
                     "stem": "urb"},
-        "mōns": {"gender": "m", "decl": "3_istem",
+        "mōns": {"repo": "core", "gender": "m", "decl": "3_istem",
                   "stem": "mont"},
-        "aedes": {"gender": "f", "decl": "3_istem",
+        "aedes": {"repo": "core", "gender": "f", "decl": "3_istem",
                   "stem": "aed"},
-        "ignis": {"gender": "m", "decl": "3_istem",
+        "ignis": {"repo": "core", "gender": "m", "decl": "3_istem",
                   "stem": "ign"},
-        "nox": {"gender": "f", "decl": "3_istem",
+        "nox": {"repo": "core", "gender": "f", "decl": "3_istem",
                   "stem": "noct"},
         ## true i-stem (maybe add possibility of excluding these?)
-        "turris": {"gender": "f", "decl": "3_istem",
+        "turris": {"repo": "core", "gender": "f", "decl": "3_istem",
                    "stem": "turr",
                    "true_i_stem": True},
         ## neuter
-        "nōmen": {"gender": "n", "decl": "3_neut",
+        "nōmen": {"repo": "core", "gender": "n", "decl": "3_neut",
                     "stem": "nōmin"},
-        "carmen": {"gender": "n", "decl": "3_neut",
+        "carmen": {"repo": "core", "gender": "n", "decl": "3_neut",
                     "stem": "carmin"},
-        "genus": {"gender": "n", "decl": "3_neut",
+        "genus": {"repo": "core", "gender": "n", "decl": "3_neut",
                   "stem": "gener"},
-        "lītus": {"gender": "n", "decl": "3_neut",
+        "lītus": {"repo": "core", "gender": "n", "decl": "3_neut",
                   "stem": "lītor"},
-        "onus": {"gender": "n", "decl": "3_neut",
+        "onus": {"repo": "core", "gender": "n", "decl": "3_neut",
                   "stem": "oner"},
-        "sīdus": {"gender": "n", "decl": "3_neut",
+        "sīdus": {"repo": "core", "gender": "n", "decl": "3_neut",
                   "stem": "sīder"},
-        "caput": {"gender": "n", "decl": "3_neut",
+        "caput": {"repo": "core", "gender": "n", "decl": "3_neut",
                   "stem": "capit"},
         ## i-stem neuter
-        "animal": {"gender": "n", "decl": "3_istem_neut",
+        "animal": {"repo": "core", "gender": "n", "decl": "3_istem_neut",
                     "stem": "animāl"},
-        "mare": {"gender": "n", "decl": "3_istem_neut",
+        "mare": {"repo": "core", "gender": "n", "decl": "3_istem_neut",
                  "stem": "mar",
                  "irreg": {
                      "pl": {"gen": ["marium","marum"]}
                  }},
-        "rēte": {"gender": "n", "decl": "3_istem_neut",
+        "rēte": {"repo": "core", "gender": "n", "decl": "3_istem_neut",
                  "stem": "rēt"},
-        "exemplar": {"gender": "n", "decl": "3_istem_neut",
+        "exemplar": {"repo": "core", "gender": "n", "decl": "3_istem_neut",
                  "stem": "exemplār"},
 
         # 4th declension
-        "manus": {"gender": "f", "decl": 4,
+        "manus": {"repo": "core", "gender": "f", "decl": 4,
                     "stem": "man"},
-        "senātus": {"gender": "m", "decl": 4,
+        "senātus": {"repo": "core", "gender": "m", "decl": 4,
                     "stem": "senāt"},
-        "cāsus": {"gender": "m", "decl": 4,
+        "cāsus": {"repo": "core", "gender": "m", "decl": 4,
                   "stem": "cās"},
-        "ictus": {"gender": "m", "decl": 4,
+        "ictus": {"repo": "core", "gender": "m", "decl": 4,
              "stem": "ict"},
-        "gradus": {"gender": "m", "decl": 4,
+        "gradus": {"repo": "core", "gender": "m", "decl": 4,
              "stem": "grad"},
-        "exercitus": {"gender": "m", "decl": 4,
+        "exercitus": {"repo": "core", "gender": "m", "decl": 4,
              "stem": "exercit"},
-        "vultus": {"gender": "m", "decl": 4,
+        "vultus": {"repo": "core", "gender": "m", "decl": 4,
              "stem": "vult"},
-        "impetus": {"gender": "m", "decl": 4,
+        "impetus": {"repo": "core", "gender": "m", "decl": 4,
              "stem": "impet"},
-        "currus": {"gender": "m", "decl": 4,
+        "currus": {"repo": "core", "gender": "m", "decl": 4,
              "stem": "curr"},
-        "sinus": {"gender": "m", "decl": 4,
+        "sinus": {"repo": "core", "gender": "m", "decl": 4,
              "stem": "sin"},
-        "metus": {"gender": "m", "decl": 4,
+        "metus": {"repo": "core", "gender": "m", "decl": 4,
              "stem": "met"},
-        "portus": {"gender": "m", "decl": 4,
+        "portus": {"repo": "core", "gender": "m", "decl": 4,
              "stem": "port"},
-        "frūctus": {"gender": "m", "decl": 4,
+        "frūctus": {"repo": "core", "gender": "m", "decl": 4,
              "stem": "frūct"},
         ## neuter
-        "cornū": {"gender": "n", "decl": "4_neut",
+        "cornū": {"repo": "core", "gender": "n", "decl": "4_neut",
                     "stem": "corn"},
-        "genū": {"gender": "n", "decl": "4_neut",
+        "genū": {"repo": "core", "gender": "n", "decl": "4_neut",
                  "stem": "gen"},
                     
         # 5th declension
-        "rēs": {"gender": "f", "decl": "5_consonant",
+        "rēs": {"repo": "core", "gender": "f", "decl": "5_consonant",
                 "stem": "r"},
-        "diēs": {"gender": "m/f", "decl": "5_vowel",
+        "diēs": {"repo": "core", "gender": "m/f", "decl": "5_vowel",
                 "stem": "di"},
-        "faciēs": {"gender": "f", "decl": "5_vowel",
+        "faciēs": {"repo": "core", "gender": "f", "decl": "5_vowel",
                 "stem": "faci"},
-        "fidēs": {"gender": "f", "decl": "5_consonant",
+        "fidēs": {"repo": "core", "gender": "f", "decl": "5_consonant",
              "stem": "fid"},
-        "spēs": {"gender": "f", "decl": "5_consonant",
+        "spēs": {"repo": "core", "gender": "f", "decl": "5_consonant",
              "stem": "sp"},
-        "aciēs": {"gender": "f", "decl": "5_vowel",
+        "aciēs": {"repo": "core", "gender": "f", "decl": "5_vowel",
              "stem": "aci"},
-        "speciēs": {"gender": "f", "decl": "5_vowel",
+        "speciēs": {"repo": "core", "gender": "f", "decl": "5_vowel",
              "stem": "speci"},
 
         ## Irregular nouns
 
         # 2nd declension
-        "deus": {"gender": "m", 
+        "deus": {"repo": "core", "gender": "m", 
             "decl": "2_us",
             "stem": "de",
             "irreg": {
@@ -991,7 +999,7 @@ def import_nouns():
         },
 
         # 3rd declension
-        "vīs": {"gender": "f", 
+        "vīs": {"repo": "core", "gender": "f", 
             "decl": "3_istem",
             "stem": "vī(r)",
             "irreg": {
@@ -1013,7 +1021,7 @@ def import_nouns():
                 }
             }
         },
-        "bōs": {"gender": "m/f", 
+        "bōs": {"repo": "core", "gender": "m/f", 
             "decl": 3,
             "stem": "bov",
             "irreg": {
@@ -1036,6 +1044,7 @@ def import_nouns():
 def import_pronouns():
     pronoun_vocab = {
         "hic": {
+                   "repo": "core",
             "genders": True,
             "type": "demonstrative",
             "sg": {
@@ -1054,6 +1063,7 @@ def import_pronouns():
             }
         },
         "ille": {
+                    "repo": "core",
             "genders": True,
             "type": "demonstrative",
             "sg": {
@@ -1072,6 +1082,7 @@ def import_pronouns():
             }
         },
         "iste": {
+                    "repo": "core",
             "genders": True,
             "type": "demonstrative",
             "sg": {
@@ -1090,6 +1101,7 @@ def import_pronouns():
             }
         },
         "quī": {
+                    "repo": "core",
             "genders": True,
             "type": "rel_interrog",
             "sg": {
@@ -1108,6 +1120,7 @@ def import_pronouns():
             }
         },
         "is": {
+                  "repo": "core",
             "genders": True,
             "type": "demonstrative",
             "sg": {
@@ -1126,6 +1139,7 @@ def import_pronouns():
             }
         },
         "īdem": {
+                     "repo": "core",
             "genders": True,
             "type": "demonstrative",
             "sg": {
@@ -1144,6 +1158,7 @@ def import_pronouns():
             }
         },
         "ipse": {
+                    "repo": "core",
             "genders": True,
             "type": "demonstrative",
             "sg": {
@@ -1162,6 +1177,7 @@ def import_pronouns():
             }
         },
         "quis": {
+                    "repo": "core",
             "genders": True,
             "type": "rel_interrog",
             "sg": {
@@ -1180,6 +1196,7 @@ def import_pronouns():
             }
         },
         "ego": {
+                   "repo": "core",
             "type": "pers_pron",
             "forms": {
                 "nom": "ego",
@@ -1190,6 +1207,7 @@ def import_pronouns():
             },
         },
         "tū": {
+                   "repo": "core",
             "type": "pers_pron",
             "forms": {
                 "nom": "tū",
@@ -1200,6 +1218,7 @@ def import_pronouns():
             },
         },
         "sē": {
+                   "repo": "core",
             "type": "pers_pron",
             "forms": {
                 "nom": None,
@@ -1210,6 +1229,7 @@ def import_pronouns():
             },
         },
         "nōs": {
+                    "repo": "core",
             "type": "pers_pron",
             "forms": {
                 "nom": "nōs",
@@ -1221,6 +1241,7 @@ def import_pronouns():
             },
         },
         "vōs": {
+                    "repo": "core",
             "type": "pers_pron",
             "forms": {
                 "nom": "vōs",
@@ -1232,6 +1253,7 @@ def import_pronouns():
             },
         },
         "nēmō": {
+                      "repo": "core",
             "type": "indefinite",
             "forms": {
                 "nom": "nēmō",
@@ -1242,6 +1264,7 @@ def import_pronouns():
             }
         },
         "quīdam": {
+                       "repo": "core",
             "genders": True,
             "type": "indefinite",
             "sg": {
@@ -1278,22 +1301,27 @@ def import_adjectives():
         ## 1st/2nd declension
         ### -r, -ra, -rum
         "pulcher": {
+                       "repo": "core",
             "stem": "pulchr",
             "decl": (1,2)
         },
         "pauper": {
+                      "repo": "core",
             "stem": "pauper",
             "decl": (1,2)
         },
         "niger": {
+                     "repo": "core",
             "stem": "nigr",
             "decl": (1,2)
         },
         "tener": {
+                     "repo": "core",
             "stem": "tener",
             "decl": (1,2)
         },
         "miser": {
+                     "repo": "core",
             "stem": "miser",
             "decl": (1,2),
             "irreg": {
@@ -1303,6 +1331,7 @@ def import_adjectives():
             }
         },
         "dexter": {
+                      "repo": "core",
             "stem": "dextr",
             "decl": (1,2),
             "irreg": {
@@ -1321,31 +1350,38 @@ def import_adjectives():
         },
         # -us, -a, -um
         "laetus": {
+                      "repo": "core",
             "stem": "laet",
             "decl": (1,2)
         },
         "cautus": {
+                      "repo": "core",
             "stem": "caut",
             "decl": (1,2)
         },
         "sānus": {
+                      "repo": "core",
             "stem": "sān",
             "decl": (1,2)
         },
         "vacuus": {
+                      "repo": "core",
             "stem": "vacu",
             "decl": (1,2)
         },
         "longus": {
+                      "repo": "core",
             "stem": "long",
             "decl": (1,2)
         },
         "cārus": {
+                      "repo": "core",
             "stem": "cār",
             "decl": (1,2)
         },
         ### irregular
         "bonus": {
+                     "repo": "core",
             "stem": "bon",
             "decl": (1,2),
             "irreg": {
@@ -1359,6 +1395,7 @@ def import_adjectives():
             }
         },
         "malus": {
+                     "repo": "core",
             "stem": "mal",
             "decl": (1,2),
             "irreg": {
@@ -1374,6 +1411,7 @@ def import_adjectives():
             }
         },
         "magnus": {
+                      "repo": "core",
             "stem": "magn",
             "decl": (1,2),
             "irreg": {
@@ -1390,6 +1428,7 @@ def import_adjectives():
             }
         },
         "multus": {
+                      "repo": "core",
             "stem": "mult",
             "decl": (1,2),
             "irreg": {
@@ -1416,6 +1455,7 @@ def import_adjectives():
             }
         },
         "parvus": {
+                      "repo": "core",
             "stem": "parv",
             "decl": (1,2),
             "irreg": {
@@ -1438,6 +1478,7 @@ def import_adjectives():
         },
         ## 3rd declension
         "facilis": {
+                       "repo": "core",
             "noms": ("facilis", "facile"),
             "stem": "facil",
             "decl": 3,
@@ -1448,6 +1489,7 @@ def import_adjectives():
             }
         },
         "difficilis": {
+                          "repo": "core",
             "noms": ("difficilis", "difficile"),
             "stem": "difficil",
             "decl": 3,
@@ -1458,16 +1500,19 @@ def import_adjectives():
             }
         },
         "fortis": {
+                      "repo": "core",
             "noms": ("fortis", "forte"),
             "stem": "fort",
             "decl": 3,
         },
         "dulcis": {
+                      "repo": "core",
             "noms": ("dulcis", "dulce"),
             "stem": "dulc",
             "decl": 3,
         },
         "trīstis": {
+                        "repo": "core",
             "noms": ("trīstis", "trīste"),
             "stem": "trīst",
             "decl": 3,
@@ -1478,16 +1523,19 @@ def import_adjectives():
             }
         },
         "audax": {
+                     "repo": "core",
             "noms": ("audax",),
             "stem": "audāc",
             "decl": 3,
         },
         "ācer": {
+                     "repo": "core",
             "noms": ("ācer", "ācris", "ācre"),
             "stem": ("ācr"),
             "decl": 3
         },
         "celer": {
+                     "repo": "core",
             "noms": ("celer", "celeris", "celere"),
             "stem": ("celer"),
             "decl": 3,
@@ -1500,17 +1548,20 @@ def import_adjectives():
             }
         },
         "ingēns": {
+                       "repo": "core",
             "noms": ("ingēns",),
             "stem": ("ingent"),
             "decl": 3,
             "no_adv": True
         },
         "innocēns": {
+                         "repo": "core",
             "noms": ("innocēns",),
             "stem": ("innocent"),
             "decl": 3,
         },
         "omnis": {
+                     "repo": "core",
             "noms": ("omnis", "omne"),
             "stem": "omn",
             "decl": 3,
@@ -1525,6 +1576,7 @@ def import_adjectives():
             }
         },        
         "sōlus": {
+                      "repo": "core",
             "pronominal": True,
             "decl": (1,2),
             "stem": "sōl",
@@ -1537,6 +1589,7 @@ def import_adjectives():
             }
         },
         "alius": {
+                     "repo": "core",
             "pronominal": True,
             "decl": (1,2),
             "stem": "ali",
@@ -1557,6 +1610,7 @@ def import_adjectives():
             }
         },
         "ūnus": {
+                     "repo": "core",
             "cardinal": True,
             "pronominal": True,
             "decl": (1,2),
@@ -1564,6 +1618,7 @@ def import_adjectives():
             "stem": "ūn"
         },
         "duo": {
+                   "repo": "core",
             "cardinal": True,
             "decl": (1,2),
             "no_sg": True,
@@ -1582,6 +1637,7 @@ def import_adjectives():
             }
         },
         "trēs": {
+                     "repo": "core",
             "cardinal": True,
             "decl": 3,
             "no_sg": True,
@@ -1591,6 +1647,7 @@ def import_adjectives():
 
         ## 3rd decl. consonant stems
         "vetus": {
+                     "repo": "core",
             "cons_stem": True,
             "decl": 3,
             "stem": "veter",
