@@ -610,7 +610,13 @@ else:
         else:
             vocab_subset = {k: v for k, v in active_vocab.items() if v["decl"] == decl_dict_subset}
         noun = random.choice(list(vocab_subset.keys()))
-        number = random.choice(list(noun_options["number"].keys()))
+        number_restriction = noun_vocab[noun].get("number")
+        if number_restriction == "singular":
+            number = "sg"
+        elif number_restriction == "plural":
+            number = "pl"
+        else:
+            number = random.choice(list(noun_options["number"].keys()))
         available_cases, case_weights = inflection_case_weights(noun, number)
         case = ""
         while case == "":
