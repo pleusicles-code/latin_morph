@@ -1,5 +1,6 @@
 import streamlit as st
 import pandas as pd
+import unicodedata
 
 from vocab import import_nouns, import_adjectives, import_verbs, import_pronouns, filter_vocab_by_repo
 
@@ -7,7 +8,7 @@ st.set_page_config("BevLat – Ragozási táblák", layout="centered")
 st.markdown("# Ragozási táblák")
 st.caption("Diagnosztikai oldal az alap1 szókincs ragozási adatainak ellenőrzéséhez.")
 
-CASES = ["nom", "gen", "dat", "acc", "abl", "voc"]
+CASES = ["nom", "acc", "gen", "dat", "abl"]
 CASE_LABELS = {"nom":"nom.", "gen":"gen.", "dat":"dat.", "acc":"acc.", "abl":"abl.", "voc":"voc."}
 GENDERS = ["m", "f", "n"]
 
@@ -19,11 +20,15 @@ adjectives = repo_entries(import_adjectives())
 verbs = repo_entries(import_verbs())
 pronouns = repo_entries(import_pronouns())
 
+def sort_key(value):
+    normalized = unicodedata.normalize("NFD", str(value).casefold())
+    return "".join(ch for ch in normalized if unicodedata.category(ch) != "Mn")
+
 entries = []
 for pos, vocab in (("főnév", nouns), ("melléknév", adjectives), ("ige", verbs), ("névmás", pronouns)):
     for lemma, data in vocab.items():
         display = data.get("lemma_lexical") or lemma
-        entries.append((display.casefold(), lemma.casefold(), pos, lemma, data))
+        entries.append((sort_key(display), sort_key(lemma), pos, lemma, data))
 entries.sort(key=lambda row: (row[0], row[2], row[1]))
 
 if not entries:
@@ -246,18 +251,37 @@ def verb_ind_form(word, info, tense, voice, number, person):
     return stem + bridge + pass_end
 
 if pos == "főnév":
+    noun_cases = ["nom"]
+    distinct_vocative = any(
+        noun_form(lemma, data, "voc", number) != noun_form(lemma, data, "nom", number)
+        for number in ("sg", "pl")
+        if noun_form(lemma, data, "nom", number) is not None
+    )
+    if distinct_vocative:
+        noun_cases.append("voc")
+    noun_cases.extend(["acc", "gen", "dat", "abl"])
     table = {"sg.": [], "pl.": []}
-    for case in CASES:
+    for case in noun_cases:
         table["sg."].append(join_form(noun_form(lemma, data, case, "sg")))
         table["pl."].append(join_form(noun_form(lemma, data, case, "pl")))
-    st.table(pd.DataFrame(table, index=[CASE_LABELS[c] for c in CASES]))
+    st.table(pd.DataFrame(table, index=[CASE_LABELS[c] for c in noun_cases]))
 
 elif pos == "melléknév":
+    adjective_cases = ["nom"]
+    distinct_vocative = any(
+        adj_form(lemma, data, "voc", number, gender) != adj_form(lemma, data, "nom", number, gender)
+        for number in ("sg", "pl")
+        for gender in GENDERS
+        if adj_form(lemma, data, "nom", number, gender) is not None
+    )
+    if distinct_vocative:
+        adjective_cases.append("voc")
+    adjective_cases.extend(["acc", "gen", "dat", "abl"])
     columns = {}
     for number in ("sg", "pl"):
         for gender in GENDERS:
-            columns[(number, gender)] = [join_form(adj_form(lemma, data, case, number, gender)) for case in CASES]
-    st.table(pd.DataFrame(columns, index=[CASE_LABELS[c] for c in CASES]))
+            columns[(number, gender)] = [join_form(adj_form(lemma, data, case, number, gender)) for case in adjective_cases]
+    st.table(pd.DataFrame(columns, index=[CASE_LABELS[c] for c in adjective_cases]))
 
 elif pos == "ige":
     st.caption("Az igei diagnosztikai nézet jelenleg az indicativus hat igeidejét mutatja; a tárolt rendhagyó alakok elsőbbséget élveznek a szabályos képzéssel szemben.")
