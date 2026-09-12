@@ -1,0 +1,79 @@
+name: Run reviewed alap1 import
+
+on:
+  push:
+    branches: [exercise-url-presets]
+    paths:
+      - '.github/workflows/_temp_run_alap1_import.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  import-alap1:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: exercise-url-presets
+      - name: Apply existing reviewed-vocabulary transformation
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import re, base64, zlib
+          text = Path('.github/workflows/_temp_import_alap1.yml').read_text(encoding='utf-8')
+          match = re.search(r'IMPORT_PAYLOAD:\s*>-\s*\n\s+([A-Za-z0-9+/=]+)', text)
+          if not match:
+              raise RuntimeError('Import payload not found')
+          script = zlib.decompress(base64.b64decode(match.group(1))).decode('utf-8')
+          exec(compile(script, '_import_alap1.py', 'exec'))
+          PY
+      - name: Validate generated vocabularies
+        run: |
+          python -m py_compile vocab.py nouns.py
+          python - <<'PY'
+          import sys, types
+          sys.modules['streamlit'] = types.SimpleNamespace()
+          from vocab import import_nouns, import_adjectives, import_verbs
+
+          def repos(data):
+              value = data.get('repo')
+              return set(value if isinstance(value, list) else [value])
+
+          nouns = import_nouns()
+          adjs = import_adjectives()
+          verbs = import_verbs()
+
+          assert sum('alap1' in repos(v) for v in nouns.values()) == 104
+          assert sum('alap1' in repos(v) for v in adjs.values()) == 37
+          assert sum('alap1' in repos(v) for v in verbs.values()) == 62
+          assert nouns['Rōma']['number'] == 'singular'
+          assert nouns['arma']['number'] == 'plural'
+          assert nouns['līberī']['number'] == 'plural'
+          assert nouns['frāter']['decl'] == 3
+          assert nouns['lupus']['meaning'] == 'farkas'
+          assert nouns['lupa']['meaning'] == 'anyafarkas'
+          assert nouns['deus']['irreg']['pl']['nom'] == ['dī', 'deī', 'diī']
+          assert {'core', 'alap1'} <= repos(nouns['deus'])
+          assert nouns['domus']['irreg']['sg']['abl'] == 'domō'
+          assert adjs['līber']['lemma_lexical'] == 'līber [melléknév]'
+          assert adjs['meus']['irreg']['forms']['sg']['voc'][0] == 'mī'
+          assert {'core', 'alap1'} <= repos(adjs['bonus'])
+          assert verbs['faciō']['conj'] == '3io'
+          assert verbs['accipiō']['conj'] == '3io'
+          assert verbs['morior']['conj'] == '3io'
+          assert verbs['volō']['lemma_lexical'] == 'volō [akar]'
+          assert {'core', 'alap1'} <= repos(verbs['ferō'])
+          assert verbs['dō']['irreg']['forms']['pres']['act']['ind']['pl'][1] == 'damus'
+          assert verbs['abeō']['irreg']['forms']['pres']['act']['ind']['sg'][1] == 'abeō'
+          assert verbs['absum']['irreg']['forms']['pres']['act']['ind']['sg'][1] == 'absum'
+          assert verbs['trānseō']['irreg']['forms']['pres']['act']['ind']['sg'][1] == 'trānseō'
+          print('alap1 import validation passed')
+          PY
+      - name: Commit source changes only
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add vocab.py nouns.py
+          git commit -m 'Import reviewed alap1 noun adjective and verb vocabularies'
+          git push origin HEAD:exercise-url-presets
