@@ -39,7 +39,11 @@ option_ids = list(range(len(entries)))
 def option_label(index):
     _, _, pos, lemma, data = entries[index]
     display = data.get("lemma_lexical") or lemma
-    return f"{display} — {pos}"
+    alias = sort_key(display)
+    label = f"{display} — {pos}"
+    if alias != str(display).casefold():
+        label += f" · {alias}"
+    return label
 
 selected = st.selectbox("Válassz egy szót:", option_ids, format_func=option_label)
 _, _, pos, lemma, data = entries[selected]
