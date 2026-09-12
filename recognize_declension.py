@@ -8,7 +8,7 @@ import streamlit as st
 from utils import clear_page, new_question, reset, save_defaults, clear_defaults, auto_advance_delay
 from exercise_presets import (list_setting, resolve_exercise_settings, initialize_widget_state,
                               widget_key, url_preset_active, exercise_link_popover)
-from vocab import import_nouns, import_adjectives
+from vocab import import_nouns, import_adjectives, filter_vocab_by_repo
 
 
 st.set_page_config("BevLat – Declinatio felismerése", layout="centered")
@@ -23,8 +23,8 @@ if new_run or "recognize_declension_selected_answer" not in st.session_state:
 questions_asked = st.session_state.question_list
 defaults = st.session_state.default_settings.get(f"{page_id}.py", {})
 
-noun_vocab = import_nouns()
-adjective_vocab = import_adjectives()
+noun_vocab = filter_vocab_by_repo(import_nouns(), "alap1")
+adjective_vocab = filter_vocab_by_repo(import_adjectives(), "alap1")
 
 DECLENSIONS = ["1st", "2nd", "3rd", "4th", "5th"]
 PARTS_OF_SPEECH = ["noun", "adjective"]

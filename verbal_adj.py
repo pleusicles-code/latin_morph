@@ -6,7 +6,7 @@ import ast
 from utils import reset, new_question, submit_and_check_answer, clear_page, remove_macrons, send_setting, save_defaults, clear_defaults, auto_advance_delay
 from exercise_presets import (bool_setting, list_setting, resolve_exercise_settings, initialize_widget_state,
                               widget_key, url_preset_active, exercise_link_popover)
-from vocab import import_verbs
+from vocab import import_verbs, filter_vocab_by_repo
 
 st.set_page_config("BevLat Verbal Adjectives", layout="centered")
 
@@ -20,7 +20,7 @@ clear_page(page_id)
 
 defaults = st.session_state.default_settings.get(f"{page_id}.py", {})
 
-complete_verb_vocab = import_verbs()
+complete_verb_vocab = filter_vocab_by_repo(import_verbs(), "alap1")
 
 st.title("""Verbal Adjectives""")
 st.html('<h1 style="margin-top: -0.3em; margin-bottom: -0.2em;">Participles and Gerundives</h1>')

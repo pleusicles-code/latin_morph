@@ -9,7 +9,7 @@ import unicodedata
 from utils import radio_change, reset, new_question, remove_macrons, submit_and_check_answer, clear_page, send_setting, save_defaults, clear_defaults, auto_advance_delay, tokenize_morphology_answer
 from exercise_presets import (bool_setting, choice_setting, list_setting, resolve_exercise_settings, initialize_widget_state,
                               widget_key, url_preset_active, exercise_link_popover)
-from vocab import import_verbs
+from vocab import import_verbs, filter_vocab_by_repo
 
 st.set_page_config("BevLat – Igék", layout="centered")
 
@@ -23,7 +23,7 @@ clear_page(page_id)
 
 defaults = st.session_state.default_settings.get(f"{page_id}.py", {})
 
-complete_verb_vocab = import_verbs()
+complete_verb_vocab = filter_vocab_by_repo(import_verbs(), "alap1")
 pres_sys = ["pres","fut","impf"]
 perf_sys = ["perf", "plupf", "fut_pf"]
 

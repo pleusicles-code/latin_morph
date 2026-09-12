@@ -8,13 +8,13 @@ import html
 from utils import radio_change, reset, new_question, submit_and_check_answer, clear_page, send_setting, save_defaults, clear_defaults, auto_advance_delay, remove_macrons, tokenize_morphology_answer
 from exercise_presets import (bool_setting, choice_setting, list_setting, resolve_exercise_settings,
                               initialize_widget_state, widget_key, url_preset_active, exercise_link_popover)
-from vocab import import_nouns
+from vocab import import_nouns, filter_vocab_by_repo
 
 
 st.set_page_config("BevLat – Főnevek", layout="centered")
 
 questions_asked = st.session_state.question_list
-noun_vocab = import_nouns()
+noun_vocab = filter_vocab_by_repo(import_nouns(), "alap1")
 st.session_state.nouns_enforce_macrons = st.session_state.enforce_macrons["nouns_enforce_macrons"]
 
 page_id = "nouns"

@@ -14,6 +14,12 @@ def _repo_values(value):
         return list(value)
     return [value]
 
+def filter_vocab_by_repo(vocab, repo_name):
+    return {
+        key: value for key, value in vocab.items()
+        if repo_name in _repo_values(value.get("repo"))
+    }
+
 def _merge_repo_entries(vocab, additions, repo_name, preserve_core=None):
     preserve_core = {_repo_match_key(item) for item in (preserve_core or set())}
     for lemma, incoming in additions.items():

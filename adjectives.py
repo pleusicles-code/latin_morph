@@ -6,7 +6,7 @@ import ast
 from utils import reset, new_question, submit_and_check_answer, clear_page, remove_macrons, send_setting, save_defaults, clear_defaults, auto_advance_delay
 from exercise_presets import (bool_setting, choice_setting, list_setting, resolve_exercise_settings,
                               initialize_widget_state, widget_key, url_preset_active, exercise_link_popover)
-from vocab import import_adjectives
+from vocab import import_adjectives, filter_vocab_by_repo
 
 st.set_page_config("BevLat Adjectives and Adverbs", layout="centered")
 
@@ -19,7 +19,7 @@ clear_page(page_id)
 
 defaults = st.session_state.default_settings.get(f"{page_id}.py", {})
 
-adj_vocab = import_adjectives()
+adj_vocab = filter_vocab_by_repo(import_adjectives(), "alap1")
 cons_stems = ["vetus","compos", "dīves", "particeps", "pauper", "prīnceps", "sōspes", "superstes"]
 l_stems = ["facilis","difficilis","similis","dissimilis","gracilis","humilis"]
 # for word in adj_vocab.keys():
