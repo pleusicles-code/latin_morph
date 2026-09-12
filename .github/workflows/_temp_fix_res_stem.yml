@@ -19,10 +19,10 @@ jobs:
           import re, py_compile, types, sys
           p = Path('vocab.py')
           text = p.read_text(encoding='utf-8')
-          pattern = r'("rēs"\s*:\s*\{.*?"stem"\s*:\s*)"re"'
-          text2, count = re.subn(pattern, r'\1"r"', text, count=1, flags=re.S)
+          pattern = r"('rēs'\s*:\s*\{.*?'stem'\s*:\s*)'rē'"
+          text2, count = re.subn(pattern, r"\1'r'", text, count=1, flags=re.S)
           if count != 1:
-              raise SystemExit(f'Expected exactly one rēs stem=re occurrence, found {count}')
+              raise SystemExit(f'Expected exactly one alap1 rēs stem=rē occurrence, found {count}')
           p.write_text(text2, encoding='utf-8')
           py_compile.compile('vocab.py', doraise=True)
           st = types.ModuleType('streamlit')
