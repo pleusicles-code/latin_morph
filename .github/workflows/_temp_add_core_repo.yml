@@ -1,0 +1,103 @@
+name: Temporary core repo tag
+
+on:
+  push:
+    branches: [exercise-url-presets]
+    paths:
+      - '.github/workflows/_temp_add_core_repo.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  tag-core:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: exercise-url-presets
+      - name: Add repo metadata to top-level vocabulary entries
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import ast
+
+          path = Path('vocab.py')
+          text = path.read_text(encoding='utf-8')
+          tree = ast.parse(text)
+          lines = text.splitlines(keepends=True)
+
+          targets = {'verb_vocab', 'noun_vocab', 'pronoun_vocab', 'adjective_vocab'}
+          inserts = []
+          counts = {}
+
+          for node in ast.walk(tree):
+              if not isinstance(node, (ast.Assign, ast.AnnAssign)):
+                  continue
+              names = []
+              if isinstance(node, ast.Assign):
+                  names = [t.id for t in node.targets if isinstance(t, ast.Name)]
+                  value = node.value
+              else:
+                  names = [node.target.id] if isinstance(node.target, ast.Name) else []
+                  value = node.value
+              matched = next((n for n in names if n in targets), None)
+              if not matched or not isinstance(value, ast.Dict):
+                  continue
+              count = 0
+              for key, val in zip(value.keys, value.values):
+                  if not isinstance(key, ast.Constant) or not isinstance(key.value, str) or not isinstance(val, ast.Dict):
+                      continue
+                  if any(isinstance(k, ast.Constant) and k.value == 'repo' for k in val.keys):
+                      count += 1
+                      continue
+                  # Insert immediately after this entry's opening brace.
+                  line_i = val.lineno - 1
+                  col = val.col_offset
+                  line = lines[line_i]
+                  brace = line.find('{', col)
+                  if brace < 0:
+                      raise RuntimeError(f'Opening brace not found for {key.value!r}')
+                  if line[brace+1:].strip():
+                      payload = '"repo": "core", '
+                  else:
+                      indent = ' ' * (col + 4)
+                      payload = '\n' + indent + '"repo": "core",'
+                  inserts.append((line_i, brace + 1, payload))
+                  count += 1
+              counts[matched] = count
+
+          # Apply in reverse source order so positions remain valid.
+          for line_i, pos, payload in sorted(inserts, reverse=True):
+              lines[line_i] = lines[line_i][:pos] + payload + lines[line_i][pos:]
+
+          new = ''.join(lines)
+          ast.parse(new)
+
+          # Verify every top-level lexical entry has repo='core'.
+          ns = {}
+          exec(compile(new, 'vocab.py', 'exec'), ns)
+          expected = {
+              'verb_vocab': ns['import_verbs'](),
+              'noun_vocab': ns['import_nouns'](),
+              'pronoun_vocab': ns['import_pronouns'](),
+              'adjective_vocab': ns['import_adjectives'](),
+          }
+          missing = {
+              name: [word for word, data in vocab.items() if data.get('repo') != 'core']
+              for name, vocab in expected.items()
+          }
+          missing = {k: v for k, v in missing.items() if v}
+          if missing:
+              raise RuntimeError(f'Missing repo tags: {missing}')
+
+          path.write_text(new, encoding='utf-8')
+          print('Tagged entries:', {k: len(v) for k, v in expected.items()})
+          PY
+      - name: Commit vocab.py change
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add vocab.py
+          git commit -m 'Tag core vocabulary entries with repo metadata'
+          git push origin HEAD:exercise-url-presets
