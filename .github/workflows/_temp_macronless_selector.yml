@@ -1,0 +1,36 @@
+name: Temporary macron-insensitive selector
+on:
+  push:
+    branches: [exercise-url-presets]
+    paths: ['.github/workflows/_temp_macronless_selector.yml']
+permissions:
+  contents: write
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: exercise-url-presets
+      - name: Add selector search aliases
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import py_compile
+          p = Path('inflection_tables.py')
+          text = p.read_text(encoding='utf-8')
+          old = '''def option_label(index):\n    _, _, pos, lemma, data = entries[index]\n    display = data.get("lemma_lexical") or lemma\n    return f"{display} — {pos}"\n'''
+          new = '''def option_label(index):\n    _, _, pos, lemma, data = entries[index]\n    display = data.get("lemma_lexical") or lemma\n    alias = sort_key(display)\n    label = f"{display} — {pos}"\n    if alias != str(display).casefold():\n        label += f" · {alias}"\n    return label\n'''
+          if old not in text:
+              raise SystemExit('option_label block not found')
+          text = text.replace(old, new, 1)
+          p.write_text(text, encoding='utf-8')
+          py_compile.compile('inflection_tables.py', doraise=True)
+          PY
+      - name: Commit
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add inflection_tables.py
+          git commit -m 'Make inflection selector macron-insensitive'
+          git push origin HEAD:exercise-url-presets
