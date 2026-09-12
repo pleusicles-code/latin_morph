@@ -1,0 +1,43 @@
+name: Temporary refine inflection tables
+on:
+  push:
+    branches: [exercise-url-presets]
+    paths: ['.github/workflows/_temp_fix_inflection_tables.yml']
+permissions:
+  contents: write
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: exercise-url-presets
+      - name: Refine ordering
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          p = Path('inflection_tables.py')
+          text = p.read_text(encoding='utf-8')
+          text = text.replace('import pandas as pd\n', 'import pandas as pd\nimport unicodedata\n', 1)
+          text = text.replace('CASES = ["nom", "gen", "dat", "acc", "abl", "voc"]\n', 'CASES = ["nom", "acc", "gen", "dat", "abl"]\n', 1)
+          old = '''entries = []\nfor pos, vocab in (("főnév", nouns), ("melléknév", adjectives), ("ige", verbs), ("névmás", pronouns)):\n    for lemma, data in vocab.items():\n        display = data.get("lemma_lexical") or lemma\n        entries.append((display.casefold(), lemma.casefold(), pos, lemma, data))\nentries.sort(key=lambda row: (row[0], row[2], row[1]))\n'''
+          new = '''def sort_key(value):\n    normalized = unicodedata.normalize("NFD", str(value).casefold())\n    return "".join(ch for ch in normalized if unicodedata.category(ch) != "Mn")\n\nentries = []\nfor pos, vocab in (("főnév", nouns), ("melléknév", adjectives), ("ige", verbs), ("névmás", pronouns)):\n    for lemma, data in vocab.items():\n        display = data.get("lemma_lexical") or lemma\n        entries.append((sort_key(display), sort_key(lemma), pos, lemma, data))\nentries.sort(key=lambda row: (row[0], row[2], row[1]))\n'''
+          if old not in text:
+              raise SystemExit('entries block not found')
+          text = text.replace(old, new, 1)
+          old2 = '''if pos == "főnév":\n    table = {"sg.": [], "pl.": []}\n    for case in CASES:\n        table["sg."].append(join_form(noun_form(lemma, data, case, "sg")))\n        table["pl."].append(join_form(noun_form(lemma, data, case, "pl")))\n    st.table(pd.DataFrame(table, index=[CASE_LABELS[c] for c in CASES]))\n\nelif pos == "melléknév":\n    columns = {}\n    for number in ("sg", "pl"):\n        for gender in GENDERS:\n            columns[(number, gender)] = [join_form(adj_form(lemma, data, case, number, gender)) for case in CASES]\n    st.table(pd.DataFrame(columns, index=[CASE_LABELS[c] for c in CASES]))\n'''
+          new2 = '''if pos == "főnév":\n    noun_cases = ["nom"]\n    distinct_vocative = any(\n        noun_form(lemma, data, "voc", number) != noun_form(lemma, data, "nom", number)\n        for number in ("sg", "pl")\n        if noun_form(lemma, data, "nom", number) is not None\n    )\n    if distinct_vocative:\n        noun_cases.append("voc")\n    noun_cases.extend(["acc", "gen", "dat", "abl"])\n    table = {"sg.": [], "pl.": []}\n    for case in noun_cases:\n        table["sg."].append(join_form(noun_form(lemma, data, case, "sg")))\n        table["pl."].append(join_form(noun_form(lemma, data, case, "pl")))\n    st.table(pd.DataFrame(table, index=[CASE_LABELS[c] for c in noun_cases]))\n\nelif pos == "melléknév":\n    adjective_cases = ["nom"]\n    distinct_vocative = any(\n        adj_form(lemma, data, "voc", number, gender) != adj_form(lemma, data, "nom", number, gender)\n        for number in ("sg", "pl")\n        for gender in GENDERS\n        if adj_form(lemma, data, "nom", number, gender) is not None\n    )\n    if distinct_vocative:\n        adjective_cases.append("voc")\n    adjective_cases.extend(["acc", "gen", "dat", "abl"])\n    columns = {}\n    for number in ("sg", "pl"):\n        for gender in GENDERS:\n            columns[(number, gender)] = [join_form(adj_form(lemma, data, case, number, gender)) for case in adjective_cases]\n    st.table(pd.DataFrame(columns, index=[CASE_LABELS[c] for c in adjective_cases]))\n'''
+          if old2 not in text:
+              raise SystemExit('table block not found')
+          text = text.replace(old2, new2, 1)
+          p.write_text(text, encoding='utf-8')
+          import py_compile
+          py_compile.compile('inflection_tables.py', doraise=True)
+          PY
+      - name: Commit
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add inflection_tables.py
+          git commit -m 'Refine inflection table case and word ordering'
+          git push origin HEAD:exercise-url-presets
