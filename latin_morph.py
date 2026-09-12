@@ -207,6 +207,7 @@ data_page = st.Page("data.py", title="Statisztikáid és adataid")
 test_page = st.Page("button_test.py", title="Tesztoldal") if st.context.headers.get("host","").startswith("localhost") else ""
 account_page = st.Page("account.py", title=("Felhasználói fiók" if st.user.is_logged_in else "Felhasználói fiók (bejelentkezés)"))
 vocab_page = st.Page("vocab_list.py", title="Szójegyzék")
+inflection_tables_page = st.Page("inflection_tables.py", title="Ragozási táblák")
 
 nav_dict = {"**BevLat**": [main_page, account_page, about_page, faq_page], 
                             "Gyakorlás": [
@@ -220,7 +221,8 @@ nav_dict = {"**BevLat**": [main_page, account_page, about_page, faq_page],
                                 pronouns_page, 
                             ],
                             "Eszközök": [data_page,
-                                      vocab_page]
+                                      vocab_page,
+                                      inflection_tables_page]
                             } 
 
 if st.context.headers.get("host","").startswith("localhost"):
@@ -249,6 +251,7 @@ st.sidebar.page_link(pronouns_page)
 st.sidebar.markdown("**Eszközök**")
 st.sidebar.page_link(data_page)
 st.sidebar.page_link(vocab_page)
+st.sidebar.page_link(inflection_tables_page)
 if st.context.headers.get("host", "").startswith("localhost"):
     st.sidebar.markdown("**Tesztelés**")
     st.sidebar.page_link(test_page)
