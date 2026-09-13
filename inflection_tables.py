@@ -416,8 +416,10 @@ def verb_ind_form(word, info, tense, voice, number, person):
             vowel = {1:"o",2:"ā",3:"ā"}.get(person,"ā") if number == "sg" else "ā"
         elif conj == 2:
             vowel = "e" if number == "sg" and person == 1 else "ē"
-        elif conj in (3,"3io"):
+        elif conj == 3:
             vowel = "i" if not (number == "pl" and person == 3) else "u"
+        elif conj == "3io":
+            vowel = "i" if not (number == "pl" and person == 3) else "iu"
         else:
             vowel = "ī" if not (number == "pl" and person == 3) else "iu"
         if number == "sg" and person == 1:
@@ -446,6 +448,129 @@ def verb_ind_form(word, info, tense, voice, number, person):
     if number == "sg" and person == 1:
         return stem + bridge[:-1] + "or"
     return stem + bridge + pass_end
+
+
+def active_present_infinitive(word, info):
+    irregular = irregular_present_infinitive(info)
+    if irregular and info.get("voice") == "act":
+        return irregular
+    if word == "fīō":
+        return "fiere"
+    stem = info.get("pres")
+    conj = info.get("conj")
+    if stem is None or conj is None:
+        return None
+    vowel = {1:"ā", 2:"ē", 3:"e", "3io":"e", 4:"ī"}.get(conj)
+    return stem + vowel + "re" if vowel is not None else None
+
+
+def finite_endings(voice):
+    if voice == "act":
+        return {"sg":{1:"m",2:"s",3:"t"},"pl":{1:"mus",2:"tis",3:"nt"}}
+    return {"sg":{1:"r",2:["ris","re"],3:"tur"},"pl":{1:"mur",2:"minī",3:"ntur"}}
+
+
+def add_ending(base, ending):
+    if isinstance(ending, (list, tuple)):
+        return [base + item for item in ending]
+    return base + ending
+
+
+def sum_form(tense, mood, number, person):
+    info = import_verbs()["sum"]
+    return irregular_verb_form(info, tense, "act", mood, number, person)
+
+
+def verb_subj_form(word, info, tense, voice, number, person):
+    special = irregular_verb_form(info, tense, voice, "subj", number, person)
+    if special is not None:
+        return special
+    lexical_voice = info.get("voice")
+    effective_voice = "pass" if voice == "dep" else voice
+    if lexical_voice == "semidep" and tense in ("perf","plupf"):
+        effective_voice = "pass"
+    endings = finite_endings(effective_voice)
+    ending = endings[number][person]
+    if tense == "pres":
+        stem = info.get("pres")
+        conj = info.get("conj")
+        if stem is None or conj not in (1,2,3,"3io",4):
+            return None
+        vowel = {1:"ē",2:"eā",3:"ā","3io":"iā",4:"iā"}[conj]
+        if (effective_voice == "pass" and number == "sg" and person == 1) or ending in ("m","t") or (isinstance(ending,str) and ending.startswith("nt")):
+            vowel = vowel.replace("ā","a").replace("ē","e")
+        return add_ending(stem + vowel, ending)
+    if tense == "impf":
+        infinitive = active_present_infinitive(word, info)
+        if not infinitive:
+            return None
+        base = infinitive
+        if person == 2 or (person == 1 and number == "pl") or (effective_voice == "pass" and person == 3 and number == "sg"):
+            base = infinitive[:-1] + "ē"
+        return add_ending(base, ending)
+    if tense == "perf" and effective_voice == "act":
+        stem = info.get("perf")
+        if not stem:
+            return None
+        endings_perf = {"sg":{1:"erim",2:["eris","erīs"],3:"erit"},"pl":{1:["erimus","erīmus"],2:["eritis","erītis"],3:"erint"}}
+        return add_ending(stem, endings_perf[number][person])
+    if tense == "plupf" and effective_voice == "act":
+        stem = info.get("perf")
+        if not stem:
+            return None
+        infinitive = stem + "isse"
+        base = infinitive[:-1] + "ē" if person == 2 or (person == 1 and number == "pl") else infinitive
+        return add_ending(base, finite_endings("act")[number][person])
+    if tense in ("perf","plupf") and effective_voice == "pass":
+        stem = info.get("ppp")
+        if not stem:
+            return None
+        if number == "sg":
+            participles = [stem+x for x in ("us","a","um")]
+        else:
+            participles = [stem+x for x in ("ī","ae","a")]
+        aux_tense = "pres" if tense == "perf" else "impf"
+        aux = sum_form(aux_tense, "subj", number, person)
+        if aux is None:
+            return None
+        return [ptc + " " + aux for ptc in participles]
+    return None
+
+
+def verb_impv_form(word, info, tense, voice, number, person):
+    special = irregular_verb_form(info, tense, voice, "impv", number, person)
+    if special is not None:
+        return special
+    effective_voice = "pass" if voice == "dep" else voice
+    stem = info.get("pres")
+    conj = info.get("conj")
+    if stem is None or conj not in (1,2,3,"3io",4):
+        return None
+    infinitive = active_present_infinitive(word, info)
+    if tense == "pres":
+        if person != 2 or not infinitive:
+            return None
+        if effective_voice == "act":
+            if number == "sg":
+                return infinitive[:-2]
+            return infinitive[:-3] + "ite" if conj in (3,"3io") else infinitive[:-2] + "te"
+        if number == "sg":
+            return infinitive
+        vowel = {1:"ā",2:"ē",3:"i","3io":"i",4:"ī"}[conj]
+        return stem + vowel + "minī"
+    if tense == "fut":
+        endings = {
+            "act":{"sg":{2:"tō",3:"tō"},"pl":{2:"tōte",3:"ntō"}},
+            "pass":{"sg":{2:"tor",3:"tor"},"pl":{3:"ntor"}},
+        }
+        ending = endings[effective_voice].get(number,{}).get(person)
+        if ending is None:
+            return None
+        vowel = {1:"ā",2:"ē",3:"i","3io":"i",4:"ī"}[conj]
+        if number == "pl" and person == 3:
+            vowel = "u" if conj == 3 else "iu" if conj in ("3io",4) else vowel.replace("ā","a").replace("ē","e")
+        return stem + vowel + ending
+    return None
 
 if pos == "főnév":
     noun_cases = ["nom"]
@@ -487,7 +612,7 @@ elif pos == "melléknév":
     st.table(pd.DataFrame(columns, index=[CASE_LABELS[c] for c in adjective_cases]))
 
 elif pos == "ige":
-    st.caption("Az igei diagnosztikai nézet jelenleg az indicativus hat igeidejét mutatja; a tárolt rendhagyó alakok elsőbbséget élveznek a szabályos képzéssel szemben.")
+    st.caption("Az igei diagnosztikai nézet az indicativus, coniunctivus és mindkét imperativus tábláit mutatja; a tárolt rendhagyó alakok elsőbbséget élveznek a szabályos képzéssel szemben.")
     lexical_voice = data.get("voice")
     voices = ["act"]
     if lexical_voice == "dep":
@@ -496,21 +621,35 @@ elif pos == "ige":
         voices = ["act", "dep"]
     elif not data.get("no_pass"):
         voices.append("pass")
-    tense_names = [("pres","praes. impf."),("impf","praet. impf."),("fut","fut. impf."),("perf","praes. perf."),("plupf","praet. perf."),("fut_pf","fut. perf.")]
+
+    def render_finite_table(title, form_builder, persons=(1,2,3)):
+        forms = {"sg.": [], "pl.": []}
+        for number in ("sg","pl"):
+            for person in persons:
+                forms["sg." if number == "sg" else "pl."].append(join_form(form_builder(number, person)))
+        st.markdown(f"**{title}**")
+        st.table(pd.DataFrame(forms, index=[f"{person}." for person in persons]))
+
+    indicative_tenses = [("pres","praes. impf."),("impf","praet. impf."),("fut","fut. impf."),("perf","praes. perf."),("plupf","praet. perf."),("fut_pf","fut. perf.")]
+    subjunctive_tenses = [("pres","praes. impf."),("impf","praet. impf."),("perf","praes. perf."),("plupf","praet. perf.")]
     for voice in voices:
         voice_label = "deponens" if voice == "dep" else "act." if voice == "act" else "pass."
         st.markdown(f"### {voice_label}")
-        for tense, tense_label in tense_names:
-            # semideponents: active present system, deponent perfect system only
+        for tense, tense_label in indicative_tenses:
             if lexical_voice == "semidep" and ((voice == "act" and tense in ("perf","plupf","fut_pf")) or (voice == "dep" and tense in ("pres","impf","fut"))):
                 continue
-            forms = {"sg.": [], "pl.": []}
-            for number in ("sg","pl"):
-                for person in (1,2,3):
-                    form_voice = "pass" if voice == "dep" else voice
-                    forms["sg." if number == "sg" else "pl."].append(join_form(verb_ind_form(lemma, data, tense, form_voice, number, person)))
-            st.markdown(f"**{tense_label} indicativus**")
-            st.table(pd.DataFrame(forms, index=["1.","2.","3."]))
+            form_voice = "pass" if voice == "dep" else voice
+            render_finite_table(f"{tense_label} indicativus", lambda number, person, t=tense, v=form_voice: verb_ind_form(lemma, data, t, v, number, person))
+
+        if not data.get("no_subj"):
+            for tense, tense_label in subjunctive_tenses:
+                if lexical_voice == "semidep" and ((voice == "act" and tense in ("perf","plupf")) or (voice == "dep" and tense in ("pres","impf"))):
+                    continue
+                render_finite_table(f"{tense_label} coniunctivus", lambda number, person, t=tense, v=voice: verb_subj_form(lemma, data, t, v, number, person))
+
+        if not data.get("no_impv") and not (lexical_voice == "semidep" and voice == "dep"):
+            render_finite_table("imperativus", lambda number, person, v=voice: verb_impv_form(lemma, data, "pres", v, number, person), persons=(2,))
+            render_finite_table("2. imperativus", lambda number, person, v=voice: verb_impv_form(lemma, data, "fut", v, number, person), persons=(2,3))
 
 else:
     st.info("Ehhez a szóhoz jelenleg nincs morfológiai ragozási tábla a diagnosztikai oldalon.")
