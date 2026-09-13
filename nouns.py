@@ -775,6 +775,8 @@ else:
         else:
             noun_id = adap_gen_question()
         noun, case, number = noun_id
+        if number not in allowed_numbers_for_noun(noun):
+            return None
         noun_decl = noun_vocab.get(noun, {}).get("decl")
         noun_stem = noun_vocab.get(noun, {}).get("stem")
         correct_answer = ""
