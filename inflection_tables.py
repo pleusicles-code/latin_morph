@@ -44,11 +44,11 @@ available_repos = sorted(
     key=lambda repo: (repo_order.get(repo, 100), sort_key(repo)),
 )
 if not available_repos:
-    st.warning("Jelenleg nincs repóadat a szókincsben.")
+    st.warning("Jelenleg nincs listaadat a szókincsben.")
     st.stop()
 
 default_repo = "alap2" if "alap2" in available_repos else ("alap1" if "alap1" in available_repos else available_repos[0])
-selected_repo = st.selectbox("Repó:", available_repos, index=available_repos.index(default_repo))
+selected_repo = st.selectbox("Lista:", available_repos, index=available_repos.index(default_repo))
 
 pos_labels = {
     "all": "mind",
@@ -73,7 +73,7 @@ for category, pos, vocabulary in sources:
 entries.sort(key=lambda row: (row[0], row[3], row[1]))
 
 if not entries:
-    st.warning("Ebben a repó- és szófaj-kombinációban jelenleg nincs megjeleníthető szó.")
+    st.warning("Ebben a lista- és szófaj-kombinációban jelenleg nincs megjeleníthető szó.")
     st.stop()
 
 option_ids = list(range(len(entries)))
@@ -226,7 +226,7 @@ meta = [f"**Szótári alak:** {dictionary_entry(category, lemma, data)}"]
 if data.get("meaning"):
     meta.append(f"**Jelentés:** {data['meaning']}")
 meta.append(f"**Szófaj:** {pos}")
-meta.append(f"**Repó:** {selected_repo}")
+meta.append(f"**Lista:** {selected_repo}")
 st.markdown("  \n".join(meta))
 
 def join_form(value):
