@@ -1,0 +1,41 @@
+name: Temporary optional act for active-only verbs
+on:
+  push:
+    branches: [exercise-url-presets]
+    paths: ['.github/workflows/_temp_optional_act_nopass.yml']
+permissions:
+  contents: write
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: exercise-url-presets
+      - name: Patch and validate
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          p=Path('verbs.py')
+          s=p.read_text(encoding='utf-8')
+          old='''                            selected_tenses=tense_selector,\n                            selected_voices=voice_selector,\n                            selected_moods=mood_selector,\n                            lexical_voice=verb_vocab[verb]["voice"],'''
+          new='''                            selected_tenses=tense_selector,\n                            # If this verb has no passive paradigm, act. is\n                            # pedagogically redundant and may be omitted even\n                            # when both visible voices are enabled.\n                            selected_voices=(\n                                ["act"] if verb_vocab[verb].get("no_pass") else voice_selector\n                            ),\n                            selected_moods=mood_selector,\n                            lexical_voice=verb_vocab[verb]["voice"],'''
+          if old not in s:
+              raise SystemExit('recognition parser call not found')
+          p.write_text(s.replace(old,new,1),encoding='utf-8')
+          PY
+          python -m py_compile verbs.py
+          python - <<'PY'
+          from pathlib import Path
+          s=Path('verbs.py').read_text(encoding='utf-8')
+          assert '["act"] if verb_vocab[verb].get("no_pass") else voice_selector' in s
+          # Ensure generation still excludes passive for no_pass verbs.
+          assert 'not verb_vocab[verb].get("no_pass")' in s
+          PY
+      - name: Commit and push
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add verbs.py
+          git commit -m 'Make active label optional for active-only verbs'
+          git push origin HEAD:exercise-url-presets
