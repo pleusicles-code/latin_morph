@@ -1,0 +1,46 @@
+name: Temporary live multiple-answer indication
+on:
+  push:
+    branches: [exercise-url-presets]
+    paths: ['.github/workflows/_temp_live_multiple_answer_notice.yml']
+permissions:
+  contents: write
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: exercise-url-presets
+      - name: Patch and validate
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          p=Path('verbs.py')
+          s=p.read_text(encoding='utf-8')
+          old='''            if show_principal_parts:\n                question_html += f' <em>({html.escape(verb_dictionary_entry(verb))})</em>'\n        else:\n'''
+          new='''            if show_principal_parts:\n                question_html += f' <em>({html.escape(verb_dictionary_entry(verb))})</em>'\n            if indicate_multiple_answers and len(recognition_correct_analyses) > 1:\n                question_html += (\n                    '<br><span style="font-size:1rem;color:#7c3aed;">'\n                    'Több helyes válaszlehetőség van.</span>'\n                )\n        else:\n'''
+          if old not in s:
+              raise SystemExit('recognition question block not found')
+          s=s.replace(old,new,1)
+          old2='''        stems = verb_stem_display(verb) if show_stems else []\n        prompt_height = 114 if stems else 82\n'''
+          new2='''        stems = verb_stem_display(verb) if show_stems else []\n        multiple_answer_notice = (\n            exercise_type == "recognize"\n            and indicate_multiple_answers\n            and len(recognition_correct_analyses) > 1\n        )\n        prompt_height = (142 if stems else 110) if multiple_answer_notice else (114 if stems else 82)\n'''
+          if old2 not in s:
+              raise SystemExit('prompt height block not found')
+          p.write_text(s.replace(old2,new2,1),encoding='utf-8')
+          PY
+          python -m py_compile verbs.py
+          python - <<'PY'
+          from pathlib import Path
+          s=Path('verbs.py').read_text(encoding='utf-8')
+          assert 'if indicate_multiple_answers and len(recognition_correct_analyses) > 1:' in s
+          assert 'Több helyes válaszlehetőség van.' in s
+          assert 'multiple_answer_notice = (' in s
+          PY
+      - name: Commit and push
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add verbs.py
+          git commit -m 'Update multiple-answer notice live'
+          git push origin HEAD:exercise-url-presets
