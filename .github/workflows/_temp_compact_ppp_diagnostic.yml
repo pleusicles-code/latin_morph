@@ -1,0 +1,47 @@
+name: Temporary compact PPP diagnostic forms
+on:
+  push:
+    branches: [exercise-url-presets]
+    paths: ['.github/workflows/_temp_compact_ppp_diagnostic.yml']
+permissions:
+  contents: write
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: exercise-url-presets
+      - name: Patch and validate
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          p=Path('inflection_tables.py')
+          s=p.read_text(encoding='utf-8')
+          old1='''        endings = ["us","a","um"] if number == "sg" else ["ī","ae","a"]\n        aux_tense = {"perf":"pres","plupf":"impf","fut_pf":"fut"}[tense]\n        aux = SUM[aux_tense][number][person-1]\n        return [stem + ending + " " + aux for ending in endings]'''
+          new1='''        aux_tense = {"perf":"pres","plupf":"impf","fut_pf":"fut"}[tense]\n        aux = SUM[aux_tense][number][person-1]\n        return stem + "us 3 " + aux'''
+          if old1 not in s:
+              raise SystemExit('indicative PPP block not found')
+          s=s.replace(old1,new1,1)
+          old2='''        if number == "sg":\n            participles = [stem+x for x in ("us","a","um")]\n        else:\n            participles = [stem+x for x in ("ī","ae","a")]\n        aux_tense = "pres" if tense == "perf" else "impf"\n        aux = sum_form(aux_tense, "subj", number, person)\n        if aux is None:\n            return None\n        return [ptc + " " + aux for ptc in participles]'''
+          new2='''        aux_tense = "pres" if tense == "perf" else "impf"\n        aux = sum_form(aux_tense, "subj", number, person)\n        if aux is None:\n            return None\n        return stem + "us 3 " + aux'''
+          if old2 not in s:
+              raise SystemExit('subjunctive PPP block not found')
+          s=s.replace(old2,new2,1)
+          p.write_text(s,encoding='utf-8')
+          PY
+          python -m py_compile inflection_tables.py
+          python - <<'PY'
+          from pathlib import Path
+          s=Path('inflection_tables.py').read_text(encoding='utf-8')
+          assert s.count('return stem + "us 3 " + aux') == 2
+          assert 'participles = [stem+x' not in s
+          assert 'return [stem + ending + " " + aux for ending in endings]' not in s
+          PY
+      - name: Commit and push
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add inflection_tables.py
+          git commit -m 'Compact PPP forms in diagnostics'
+          git push origin HEAD:exercise-url-presets
