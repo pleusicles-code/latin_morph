@@ -2346,7 +2346,7 @@ def import_nouns():
  'dictātor': {'meaning': 'diktátor (legfőbb rendkívüli tisztviselő)', 'gender': 'm', 'stem': 'dictātōr', 'decl': 3},
  'dolor': {'meaning': 'kín, szenvedés, bánat, harag', 'gender': 'm', 'stem': 'dolōr', 'decl': 3},
  'epistola': {'meaning': 'levél, írásbeli közlemény', 'gender': 'f', 'stem': 'epistol', 'decl': 1},
- 'famēs': {'meaning': 'éhség, éhínség, mohó vágy', 'gender': 'f', 'stem': 'fam', 'decl': 3},
+ 'famēs': {'meaning': 'éhség, éhínség, mohó vágy', 'gender': 'f', 'stem': 'fam', 'decl': 3, 'number': 'singular'},
  'flōs': {'meaning': 'virág, ifjúság', 'gender': 'm', 'stem': 'flōr', 'decl': 3},
  'foedus': {'meaning': 'szövetség, egyezmény, rendelkezés', 'gender': 'n', 'stem': 'foeder', 'decl': '3_neut'},
  'fōns': {'meaning': 'forrás, kezdete vminek', 'gender': 'm', 'stem': 'font', 'decl': 3},
