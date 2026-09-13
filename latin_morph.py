@@ -257,10 +257,10 @@ if st.context.headers.get("host", "").startswith("localhost"):
     st.sidebar.page_link(test_page)
 
 st.sidebar.select_slider("Automatikus továbblépés a következő kérdésre?", 
-                         options=[False, 3] + list(range(5,61)), 
+                         options=[False, 2, 3] + list(range(5,61)), 
                          format_func=lambda x: "Nem" if x is False else str(x)+" mp", 
                          key="auto_advance", 
-                         help="Ha azt szeretnéd, hogy a válaszadás után automatikusan megjelenjen a következő kérdés, és ne kelljen az **Új kérdés** gombra kattintanod, itt állíthatod be, hány másodperc múlva lépjen tovább a program (3–60 másodperc). Hibás vagy részben helyes válasz esetén 5 másodperccel több időt kapsz a válasz áttekintésére. (Az **Új kérdés** gombbal továbbra is bármikor továbbléphetsz vagy átugorhatsz egy kérdést.)",
+                         help="Ha azt szeretnéd, hogy a válaszadás után automatikusan megjelenjen a következő kérdés, és ne kelljen az **Új kérdés** gombra kattintanod, itt állíthatod be, hány másodperc múlva lépjen tovább a program (2–60 másodperc). Hibás vagy részben helyes válasz esetén 5 másodperccel több időt kapsz a válasz áttekintésére. (Az **Új kérdés** gombbal továbbra is bármikor továbbléphetsz vagy átugorhatsz egy kérdést.)",
                          on_change=send_setting,
                          kwargs={"streamlit_page":"latin_morph.py","setting_name":"auto_advance"}
                          )
