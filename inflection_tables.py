@@ -374,4 +374,4 @@ elif pos == "ige":
             st.table(pd.DataFrame(forms, index=["1.","2.","3."]))
 
 else:
-    st.info("Az alap1 repóban jelenleg nincs külön importált névmási állomány.")
+    st.info("Ehhez a szóhoz jelenleg nincs morfológiai ragozási tábla a diagnosztikai oldalon.")
