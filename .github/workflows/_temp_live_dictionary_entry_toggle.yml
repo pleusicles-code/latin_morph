@@ -1,0 +1,57 @@
+name: Temporary live dictionary entry toggle
+on:
+  push:
+    branches: [exercise-url-presets]
+    paths: ['.github/workflows/_temp_live_dictionary_entry_toggle.yml']
+permissions:
+  contents: write
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: exercise-url-presets
+      - name: Patch and validate
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          p=Path('recognize_pos.py')
+          s=p.read_text(encoding='utf-8')
+          old='''    with prompt_space:\n        article = hungarian_article(question["word"])\n        st.markdown(\n            f'<div style="margin-top:0.75rem;font-size:1.75rem;line-height:1.25;">Milyen szófajú szó {article} '\n            f'<strong><em>{question["entry"]}</em></strong>?</div>',\n            unsafe_allow_html=True,\n        )'''
+          new='''    with prompt_space:\n        article = hungarian_article(question["word"])\n        current_entry = ENTRY_BUILDERS[question["pos"]](question["word"])\n        st.markdown(\n            f'<div style="margin-top:0.75rem;font-size:1.75rem;line-height:1.25;">Milyen szófajú szó {article} '\n            f'<strong><em>{current_entry}</em></strong>?</div>',\n            unsafe_allow_html=True,\n        )'''
+          if old not in s:
+              raise SystemExit('recognize_pos prompt block not found')
+          p.write_text(s.replace(old,new,1),encoding='utf-8')
+
+          p=Path('identify_stems.py')
+          s=p.read_text(encoding='utf-8')
+          old='''    with prompt_space:\n        article = hungarian_article(question["word"])\n        if question["target_pos"] == "verb":\n            prompt_text = f"Melyek {article} <strong><em>{question['entry']}</em></strong> tövei?"\n        else:\n            prompt_text = f"Mi {article} <strong><em>{question['entry']}</em></strong> töve?"'''
+          new='''    with prompt_space:\n        article = hungarian_article(question["word"])\n        current_entry = ENTRY_BUILDERS[question["target_pos"]](question["word"])\n        if question["target_pos"] == "verb":\n            prompt_text = f"Melyek {article} <strong><em>{current_entry}</em></strong> tövei?"\n        else:\n            prompt_text = f"Mi {article} <strong><em>{current_entry}</em></strong> töve?"'''
+          if old not in s:
+              raise SystemExit('identify_stems prompt block not found')
+          p.write_text(s.replace(old,new,1),encoding='utf-8')
+          PY
+          python -m py_compile recognize_pos.py identify_stems.py verbs.py verbal_adj.py
+          python - <<'PY'
+          from pathlib import Path
+          rp=Path('recognize_pos.py').read_text(encoding='utf-8')
+          st=Path('identify_stems.py').read_text(encoding='utf-8')
+          assert 'current_entry = ENTRY_BUILDERS[question["pos"]](question["word"])' in rp
+          assert 'f\'<strong><em>{current_entry}</em></strong>?</div>\'' in rp
+          assert 'current_entry = ENTRY_BUILDERS[question["target_pos"]](question["word"])' in st
+          assert "<strong><em>{current_entry}</em></strong> tövei?" in st
+          # Existing verb and verbal-adjective pages already format from the current setting at render time.
+          vb=Path('verbs.py').read_text(encoding='utf-8')
+          va=Path('verbal_adj.py').read_text(encoding='utf-8')
+          assert 'verb_label = verb_dictionary_entry(verb) if show_principal_parts else verb' in vb
+          assert 'if full_regular_first_entry and regular_first:' in va
+          PY
+      - name: Commit and push
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add recognize_pos.py identify_stems.py
+          git commit -m 'Update dictionary entries live when toggled'
+          git push origin HEAD:exercise-url-presets
