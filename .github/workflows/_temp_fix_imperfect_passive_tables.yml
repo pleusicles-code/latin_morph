@@ -1,0 +1,60 @@
+name: Temporary fix imperfect passive tables
+on:
+  push:
+    branches: [exercise-url-presets]
+    paths: ['.github/workflows/_temp_fix_imperfect_passive_tables.yml']
+permissions:
+  contents: write
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: exercise-url-presets
+      - name: Fix imperfect passive generation
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import py_compile
+          p = Path('inflection_tables.py')
+          text = p.read_text(encoding='utf-8')
+          old = '''    if tense == "impf":
+        bridge = "ābā" if conj == 1 else "ēbā" if conj in (2,3) else "iēbā"
+    else:
+        bridge = "ābi" if conj == 1 else "ēbi" if conj == 2 else "ē" if conj == 3 else "iē"
+    if number == "sg" and person == 1:
+        return stem + bridge[:-1] + "or"
+    return stem + bridge + pass_end
+'''
+          new = '''    if tense == "impf":
+        theme = "ā" if conj == 1 else "ē" if conj in (2, 3) else "iē"
+        impf_pass = {
+            "sg": {1: "bar", 2: ["bāris", "bāre"], 3: "bātur"},
+            "pl": {1: "bāmur", 2: "bāminī", 3: "bantur"},
+        }
+        ending = impf_pass[number][person]
+        if isinstance(ending, (list, tuple)):
+            return [stem + theme + item for item in ending]
+        return stem + theme + ending
+    bridge = "ābi" if conj == 1 else "ēbi" if conj == 2 else "ē" if conj == 3 else "iē"
+    if number == "sg" and person == 1:
+        return stem + bridge[:-1] + "or"
+    return stem + bridge + pass_end
+'''
+          if old not in text:
+              raise SystemExit('target passive-generation block not found')
+          text = text.replace(old, new, 1)
+          p.write_text(text, encoding='utf-8')
+          py_compile.compile('inflection_tables.py', doraise=True)
+          # Spot-check the literal rules that caused the reported regressions.
+          assert '1: "bar"' in text
+          assert '3: "bantur"' in text
+          PY
+      - name: Commit
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add inflection_tables.py
+          git commit -m 'Fix imperfect passive forms in inflection tables'
+          git push origin HEAD:exercise-url-presets
