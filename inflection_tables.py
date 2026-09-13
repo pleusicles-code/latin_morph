@@ -263,6 +263,11 @@ def verb_ind_form(word, info, tense, voice, number, person):
             return stem + "ar"
         if conj in ("3io", 4):
             return stem + "iar"
+    if tense == "fut" and number == "pl" and person == 3:
+        if conj == 3:
+            return stem + "entur"
+        if conj in ("3io", 4):
+            return stem + "ientur"
     if number == "sg" and person == 1:
         return stem + bridge[:-1] + "or"
     return stem + bridge + pass_end
