@@ -210,6 +210,8 @@ def adj_form(word, info, case, number, gender):
     ending = ADJ_3[number][gender].get(case)
     if ending is None:
         return adj_form(word, info, "nom", number, gender)
+    if isinstance(ending, (list, tuple)):
+        return [stem + item for item in ending]
     return stem + ending
 
 SUM = {
