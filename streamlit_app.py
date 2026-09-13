@@ -9,6 +9,26 @@ import utils
 import vocab
 
 
+if not getattr(vocab, "_bevlat_regular_first_conj_stems", False):
+    _original_import_verbs = vocab.import_verbs
+
+    def _bevlat_import_verbs():
+        verb_vocab = _original_import_verbs()
+        for data in verb_vocab.values():
+            if (
+                data.get("voice") == "act"
+                and data.get("conj") == 1
+                and not data.get("irreg")
+                and data.get("pres")
+            ):
+                data.setdefault("perf", data["pres"] + "āv")
+                data.setdefault("ppp", data["pres"] + "āt")
+        return verb_vocab
+
+    vocab.import_verbs = _bevlat_import_verbs
+    vocab._bevlat_regular_first_conj_stems = True
+
+
 if not getattr(st, "_bevlat_global_content_width", False):
     _original_set_page_config = st.set_page_config
 
@@ -167,7 +187,6 @@ if not getattr(_time, "_bevlat_inflection_auto_advance_pause_v2", False):
 # this saved text until new_question() explicitly requests a clear.
 if not getattr(utils, "_bevlat_preserve_incorrect_answer", False):
     _original_submit_and_check_answer = utils.submit_and_check_answer
-
     def _bevlat_submit_and_check_answer(*args, **kwargs):
         submitted_answer = st.session_state.get("answer_input")
         result = _original_submit_and_check_answer(*args, **kwargs)
