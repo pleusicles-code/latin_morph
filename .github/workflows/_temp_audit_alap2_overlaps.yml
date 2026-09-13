@@ -1,0 +1,34 @@
+name: Temporary audit alap2 overlaps
+on:
+  push:
+    branches: [exercise-url-presets]
+    paths: ['.github/workflows/_temp_audit_alap2_overlaps.yml']
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: exercise-url-presets
+      - name: Audit overlaps
+        run: |
+          python - <<'PY'
+          import sys, types, unicodedata
+          st=types.ModuleType('streamlit'); st.cache_data=lambda f:f; sys.modules['streamlit']=st
+          import vocab
+          groups={
+            'nouns': ['aciēs','adventus','aetās','ager','agricola','amīcus','animal','arx','auxilium','caelum','clāmor','comes','custōdia','dea','exitium','fāma','fēmina','ferrum','fidēs','fōrma','fuga','furor','geminī','gēns','ignis','imperātor','īra','iter','iūdex','iūdicium','iūs','iussus','lacrima','latus','lēx','littera','lūx','magistrātus','maiōrēs','malum','manus','moenia','mōs','mulier','numerus','nūntius','oculus','odium','opera','poēta','potestās','praeda','proelium','prōvincia','rēgīna','regiō','religiō','repetītiō','Rōmulus','saeculum','scelus','scientia','sēdēs','sententia','servus','socius','speciēs','spēs','studium','taurus','tēlum','Tiberis','vēritās','victor','victōria','voluntās','vōx','vulgus'],
+            'adjectives': ['aeternus','antīquus','barbarus','beātus','doctus','duo','extrēmus','falsus','fortis','gracilis','illūstris','immortālis','inimīcus','lātus','medius','prīmus','prīvātus','pūblicus','quālis','quantus','rēctus','reliquus','secundus','sōlus','summus','tacitus','tālis','tantus','tertius','tōtus','trēs','ūnus','ūtilis','validus','vērus','senex'],
+            'verbs': ['accēdō','aestimō','appellō','arbitror','ārdeō','armō','cēdō','cēnseō','clāmō','compleō','concurrō','conveniō','currō','doceō','ēveniō','fallō','fīō','fugiō','ignōrō','imperō','īnstituō','interficiō','interrogō','iubeō','legō','mūniō','narrō','nesciō','nōscō','numerō','patior','petō','placeō','relinquō','repetō','restituō','rīdeō','sapiō','sciō','scrībō','sedeō','sentiō','serviō','spērō','studeō','taceō','tangō','tendō','tollō','valeō','volō'],
+          }
+          stores={'nouns':vocab.import_nouns(),'adjectives':vocab.import_adjectives(),'verbs':vocab.import_verbs()}
+          def key(s):
+              return ''.join(c for c in unicodedata.normalize('NFD',s).casefold() if unicodedata.category(c)!='Mn')
+          for g,names in groups.items():
+              existing={key(k):(k,v) for k,v in stores[g].items()}
+              print('\n'+g.upper())
+              for name in names:
+                  if key(name) in existing:
+                      k,v=existing[key(name)]
+                      print(repr(name),'->',repr(k),'repos=',v.get('repo'),'fields=',sorted(v.keys()))
+          PY
