@@ -252,6 +252,10 @@ def verb_ind_form(word, info, tense, voice, number, person):
         bridge = "ābā" if conj == 1 else "ēbā" if conj in (2,3) else "iēbā"
     else:
         bridge = "ābi" if conj == 1 else "ēbi" if conj == 2 else "ē" if conj == 3 else "iē"
+    if tense == "impf" and number == "sg" and person == 1:
+        return stem + bridge[:-1] + "ar"
+    if tense == "impf" and number == "pl" and person == 3:
+        return stem + bridge[:-1] + "antur"
     if number == "sg" and person == 1:
         return stem + bridge[:-1] + "or"
     return stem + bridge + pass_end
