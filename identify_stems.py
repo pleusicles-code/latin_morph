@@ -457,10 +457,11 @@ if st.session_state.current_question:
     prompt_space = st.container(height=72, border=False)
     with prompt_space:
         article = hungarian_article(question["word"])
+        current_entry = ENTRY_BUILDERS[question["target_pos"]](question["word"])
         if question["target_pos"] == "verb":
-            prompt_text = f"Melyek {article} <strong><em>{question['entry']}</em></strong> tövei?"
+            prompt_text = f"Melyek {article} <strong><em>{current_entry}</em></strong> tövei?"
         else:
-            prompt_text = f"Mi {article} <strong><em>{question['entry']}</em></strong> töve?"
+            prompt_text = f"Mi {article} <strong><em>{current_entry}</em></strong> töve?"
         st.markdown(
             f'<div style="margin-top:0.75rem;font-size:1.75rem;line-height:1.25;">{prompt_text}</div>',
             unsafe_allow_html=True,

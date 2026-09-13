@@ -362,9 +362,10 @@ if st.session_state.current_question:
     prompt_space = st.container(height=72, border=False)
     with prompt_space:
         article = hungarian_article(question["word"])
+        current_entry = ENTRY_BUILDERS[question["pos"]](question["word"])
         st.markdown(
             f'<div style="margin-top:0.75rem;font-size:1.75rem;line-height:1.25;">Milyen szófajú szó {article} '
-            f'<strong><em>{question["entry"]}</em></strong>?</div>',
+            f'<strong><em>{current_entry}</em></strong>?</div>',
             unsafe_allow_html=True,
         )
     if selected_answer_index is not None:
