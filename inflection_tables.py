@@ -447,6 +447,9 @@ def verb_ind_form(word, info, tense, voice, number, person):
             return stem + "entur"
         if conj in ("3io", 4):
             return stem + "ientur"
+    if tense == "fut" and number == "sg" and person == 2 and conj in (1, 2):
+        base = stem + ("ābe" if conj == 1 else "ēbe")
+        return [base + "ris", base + "re"]
     if number == "sg" and person == 1:
         return stem + bridge[:-1] + "or"
     return stem + bridge + pass_end
