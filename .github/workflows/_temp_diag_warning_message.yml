@@ -1,0 +1,36 @@
+name: Temporary diagnostic warning message
+on:
+  push:
+    branches: [exercise-url-presets]
+    paths: ['.github/workflows/_temp_diag_warning_message.yml']
+permissions:
+  contents: write
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: exercise-url-presets
+      - name: Patch and validate
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          p=Path('inflection_tables.py')
+          s=p.read_text(encoding='utf-8')
+          old='st.caption("Diagnosztikai oldal a szókincs morfológiai adatainak ellenőrzéséhez.")'
+          new='st.markdown(\'<div style="color:#d32f2f;font-weight:700;">Ez csupán egy diagnosztikai oldal a szókincs morfológiai adatainak ellenőrzéséhez!</div>\', unsafe_allow_html=True)'
+          if old not in s:
+              raise SystemExit('diagnostic caption not found')
+          s=s.replace(old,new,1)
+          p.write_text(s,encoding='utf-8')
+          PY
+          python -m py_compile inflection_tables.py
+          grep -F 'Ez csupán egy diagnosztikai oldal a szókincs morfológiai adatainak ellenőrzéséhez!' inflection_tables.py
+      - name: Commit and push
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add inflection_tables.py
+          git commit -m 'Emphasize diagnostic page warning'
+          git push origin HEAD:exercise-url-presets
