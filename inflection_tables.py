@@ -2,42 +2,82 @@ import streamlit as st
 import pandas as pd
 import unicodedata
 
+import vocab as vocab_module
 from vocab import import_nouns, import_adjectives, import_verbs, import_pronouns, filter_vocab_by_repo
 
 st.set_page_config("BevLat – Ragozási táblák", layout="centered")
 st.markdown("# Ragozási táblák")
-st.caption("Diagnosztikai oldal az alap1 szókincs ragozási adatainak ellenőrzéséhez.")
+st.caption("Diagnosztikai oldal a szókincs morfológiai adatainak ellenőrzéséhez.")
 
 CASES = ["nom", "acc", "gen", "dat", "abl"]
 CASE_LABELS = {"nom":"nom.", "gen":"gen.", "dat":"dat.", "acc":"acc.", "abl":"abl.", "voc":"voc."}
 GENDERS = ["m", "f", "n"]
 
-def repo_entries(vocab):
-    return filter_vocab_by_repo(vocab, "alap1")
-
-nouns = repo_entries(import_nouns())
-adjectives = repo_entries(import_adjectives())
-verbs = repo_entries(import_verbs())
-pronouns = repo_entries(import_pronouns())
+def repo_values(data):
+    value = data.get("repo")
+    if isinstance(value, (list, tuple, set)):
+        return list(value)
+    return [value] if value else []
 
 def sort_key(value):
     normalized = unicodedata.normalize("NFD", str(value).casefold())
     return "".join(ch for ch in normalized if unicodedata.category(ch) != "Mn")
 
+# category, display POS, vocabulary.  Current pronouns belong under the diagnostic
+# "misc" filter; future miscellaneous import functions are picked up automatically.
+sources = [
+    ("nouns", "főnév", import_nouns()),
+    ("adjectives", "melléknév", import_adjectives()),
+    ("verbs", "ige", import_verbs()),
+    ("misc", "névmás", import_pronouns()),
+]
+for function_name, pos_label in (("import_misc", "egyéb"), ("import_adverbs", "határozószó"), ("import_indeclinables", "egyéb")):
+    function = getattr(vocab_module, function_name, None)
+    if callable(function):
+        extra = function()
+        if isinstance(extra, dict):
+            sources.append(("misc", pos_label, extra))
+
+available_repos = sorted(
+    {repo for _, _, vocabulary in sources for data in vocabulary.values() for repo in repo_values(data)},
+    key=lambda repo: (repo != "core", sort_key(repo)),
+)
+if not available_repos:
+    st.warning("Jelenleg nincs repóadat a szókincsben.")
+    st.stop()
+
+default_repo = "alap1" if "alap1" in available_repos else available_repos[0]
+selected_repo = st.selectbox("Repó:", available_repos, index=available_repos.index(default_repo))
+
+pos_labels = {
+    "all": "mind",
+    "nouns": "főnevek",
+    "verbs": "igék",
+    "adjectives": "melléknevek",
+    "misc": "egyéb",
+}
+selected_pos = st.selectbox(
+    "Szófaj:",
+    list(pos_labels),
+    format_func=lambda value: pos_labels[value],
+)
+
 entries = []
-for pos, vocab in (("főnév", nouns), ("melléknév", adjectives), ("ige", verbs), ("névmás", pronouns)):
-    for lemma, data in vocab.items():
+for category, pos, vocabulary in sources:
+    if selected_pos != "all" and category != selected_pos:
+        continue
+    for lemma, data in filter_vocab_by_repo(vocabulary, selected_repo).items():
         display = data.get("lemma_lexical") or lemma
-        entries.append((sort_key(display), sort_key(lemma), pos, lemma, data))
-entries.sort(key=lambda row: (row[0], row[2], row[1]))
+        entries.append((sort_key(display), sort_key(lemma), category, pos, lemma, data))
+entries.sort(key=lambda row: (row[0], row[3], row[1]))
 
 if not entries:
-    st.warning("Az alap1 repóban jelenleg nincs megjeleníthető szó.")
+    st.warning("Ebben a repó- és szófaj-kombinációban jelenleg nincs megjeleníthető szó.")
     st.stop()
 
 option_ids = list(range(len(entries)))
 def option_label(index):
-    _, _, pos, lemma, data = entries[index]
+    _, _, _, pos, lemma, data = entries[index]
     display = data.get("lemma_lexical") or lemma
     alias = sort_key(display)
     label = f"{display} — {pos}"
@@ -45,14 +85,14 @@ def option_label(index):
         label += f" · {alias}"
     return label
 
-selected = st.selectbox("Válassz egy szót:", option_ids, format_func=option_label)
-_, _, pos, lemma, data = entries[selected]
+selected = st.selectbox("Szó:", option_ids, format_func=option_label)
+_, _, category, pos, lemma, data = entries[selected]
 
 meta = []
 if data.get("meaning"):
     meta.append(f"**Jelentés:** {data['meaning']}")
 meta.append(f"**Szófaj:** {pos}")
-meta.append("**Repó:** alap1")
+meta.append(f"**Repó:** {selected_repo}")
 st.markdown("  \n".join(meta))
 
 def join_form(value):
