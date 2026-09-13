@@ -21,9 +21,9 @@ if new_run or "recognize_pos_selected_answer" not in st.session_state:
 questions_asked = st.session_state.question_list
 defaults = st.session_state.default_settings.get(f"{page_id}.py", {})
 
-noun_vocab = {**filter_vocab_by_repo(import_nouns(), "alap1"), **filter_vocab_by_repo(import_nouns(), "alap2")}
-adjective_vocab = {**filter_vocab_by_repo(import_adjectives(), "alap1"), **filter_vocab_by_repo(import_adjectives(), "alap2")}
-verb_vocab = {**filter_vocab_by_repo(import_verbs(), "alap1"), **filter_vocab_by_repo(import_verbs(), "alap2")}
+noun_vocab = {**filter_vocab_by_repo(import_nouns(), "alap1"), **filter_vocab_by_repo(import_nouns(), "alap2"), **filter_vocab_by_repo(import_nouns(), "alap3")}
+adjective_vocab = {**filter_vocab_by_repo(import_adjectives(), "alap1"), **filter_vocab_by_repo(import_adjectives(), "alap2"), **filter_vocab_by_repo(import_adjectives(), "alap3")}
+verb_vocab = {**filter_vocab_by_repo(import_verbs(), "alap1"), **filter_vocab_by_repo(import_verbs(), "alap2"), **filter_vocab_by_repo(import_verbs(), "alap3")}
 
 PARTS_OF_SPEECH = ["noun", "adjective", "verb"]
 POS_LABELS = {

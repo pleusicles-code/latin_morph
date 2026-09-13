@@ -19,7 +19,7 @@ clear_page(page_id)
 
 defaults = st.session_state.default_settings.get(f"{page_id}.py", {})
 
-adj_vocab = {**filter_vocab_by_repo(import_adjectives(), "alap1"), **filter_vocab_by_repo(import_adjectives(), "alap2")}
+adj_vocab = {**filter_vocab_by_repo(import_adjectives(), "alap1"), **filter_vocab_by_repo(import_adjectives(), "alap2"), **filter_vocab_by_repo(import_adjectives(), "alap3")}
 cons_stems = ["vetus","compos", "dīves", "particeps", "pauper", "prīnceps", "sōspes", "superstes"]
 l_stems = ["facilis","difficilis","similis","dissimilis","gracilis","humilis"]
 # for word in adj_vocab.keys():

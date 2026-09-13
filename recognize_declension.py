@@ -23,8 +23,8 @@ if new_run or "recognize_declension_selected_answer" not in st.session_state:
 questions_asked = st.session_state.question_list
 defaults = st.session_state.default_settings.get(f"{page_id}.py", {})
 
-noun_vocab = {**filter_vocab_by_repo(import_nouns(), "alap1"), **filter_vocab_by_repo(import_nouns(), "alap2")}
-adjective_vocab = {**filter_vocab_by_repo(import_adjectives(), "alap1"), **filter_vocab_by_repo(import_adjectives(), "alap2")}
+noun_vocab = {**filter_vocab_by_repo(import_nouns(), "alap1"), **filter_vocab_by_repo(import_nouns(), "alap2"), **filter_vocab_by_repo(import_nouns(), "alap3")}
+adjective_vocab = {**filter_vocab_by_repo(import_adjectives(), "alap1"), **filter_vocab_by_repo(import_adjectives(), "alap2"), **filter_vocab_by_repo(import_adjectives(), "alap3")}
 
 DECLENSIONS = ["1st", "2nd", "3rd", "4th", "5th"]
 PARTS_OF_SPEECH = ["noun", "adjective"]

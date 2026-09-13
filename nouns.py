@@ -14,7 +14,7 @@ from vocab import import_nouns, filter_vocab_by_repo
 st.set_page_config("BevLat – Főnevek", layout="centered")
 
 questions_asked = st.session_state.question_list
-noun_vocab = {**filter_vocab_by_repo(import_nouns(), "alap1"), **filter_vocab_by_repo(import_nouns(), "alap2")}
+noun_vocab = {**filter_vocab_by_repo(import_nouns(), "alap1"), **filter_vocab_by_repo(import_nouns(), "alap2"), **filter_vocab_by_repo(import_nouns(), "alap3")}
 st.session_state.nouns_enforce_macrons = st.session_state.enforce_macrons["nouns_enforce_macrons"]
 
 page_id = "nouns"

@@ -23,7 +23,7 @@ clear_page(page_id)
 
 defaults = st.session_state.default_settings.get(f"{page_id}.py", {})
 
-complete_verb_vocab = {**filter_vocab_by_repo(import_verbs(), "alap1"), **filter_vocab_by_repo(import_verbs(), "alap2")}
+complete_verb_vocab = {**filter_vocab_by_repo(import_verbs(), "alap1"), **filter_vocab_by_repo(import_verbs(), "alap2"), **filter_vocab_by_repo(import_verbs(), "alap3")}
 pres_sys = ["pres","fut","impf"]
 perf_sys = ["perf", "plupf", "fut_pf"]
 

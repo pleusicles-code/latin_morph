@@ -20,7 +20,7 @@ clear_page(page_id)
 
 defaults = st.session_state.default_settings.get(f"{page_id}.py", {})
 
-complete_verb_vocab = {**filter_vocab_by_repo(import_verbs(), "alap1"), **filter_vocab_by_repo(import_verbs(), "alap2")}
+complete_verb_vocab = {**filter_vocab_by_repo(import_verbs(), "alap1"), **filter_vocab_by_repo(import_verbs(), "alap2"), **filter_vocab_by_repo(import_verbs(), "alap3")}
 
 st.title("""Verbal Adjectives""")
 st.html('<h1 style="margin-top: -0.3em; margin-bottom: -0.2em;">Participles and Gerundives</h1>')
