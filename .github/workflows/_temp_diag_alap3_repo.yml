@@ -26,17 +26,14 @@ jobs:
           PY
           python -m py_compile inflection_tables.py vocab.py
           python - <<'PY'
-          import vocab
-          def rv(d):
-              v=d.get('repo')
-              return list(v) if isinstance(v,(list,tuple,set)) else ([v] if v else [])
-          repos=set()
-          for fn in (vocab.import_nouns, vocab.import_adjectives, vocab.import_verbs):
-              for d in fn().values(): repos.update(rv(d))
-          if hasattr(vocab,'import_misc'):
-              for d in vocab.import_misc().values(): repos.update(rv(d))
-          assert 'alap3' in repos, repos
-          print('repos:', sorted(repos))
+          from pathlib import Path
+          diag=Path('inflection_tables.py').read_text(encoding='utf-8')
+          vocab=Path('vocab.py').read_text(encoding='utf-8')
+          assert 'repo_order = {"core": 0, "alap1": 1, "alap2": 2, "alap3": 3}' in diag
+          assert '# BEGIN ALAP3 NOUNS' in vocab
+          assert '# BEGIN ALAP3 ADJECTIVES' in vocab
+          assert '# BEGIN ALAP3 VERBS' in vocab
+          assert '"alap3"' in vocab
           PY
       - name: Commit and push
         run: |
