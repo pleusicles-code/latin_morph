@@ -488,7 +488,18 @@ def add_ending(base, ending):
 
 def sum_form(tense, mood, number, person):
     info = import_verbs()["sum"]
-    return irregular_verb_form(info, tense, "act", mood, number, person)
+    stored = irregular_verb_form(info, tense, "act", mood, number, person)
+    if stored is not None:
+        return stored
+    # The vocabulary stores only some finite forms of sum.  Passive/deponent
+    # pluperfect subjunctives need the imperfect subjunctive of sum.
+    if tense == "impf" and mood == "subj":
+        forms = {
+            "sg": {1: "essem", 2: "essēs", 3: "esset"},
+            "pl": {1: "essēmus", 2: "essētis", 3: "essent"},
+        }
+        return forms[number][person]
+    return None
 
 
 def verb_subj_form(word, info, tense, voice, number, person):
