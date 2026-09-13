@@ -1,4 +1,5 @@
 name: Temporary finish vulgus morphology
+# retry after runner startup failure
 on:
   push:
     branches: [exercise-url-presets]
