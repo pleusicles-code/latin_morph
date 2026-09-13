@@ -443,6 +443,10 @@ def verb_ind_form(word, info, tense, voice, number, person):
         if conj in ("3io", 4):
             return stem + "iar"
     if tense == "fut" and number == "pl" and person == 3:
+        if conj == 1:
+            return stem + "ābuntur"
+        if conj == 2:
+            return stem + "ēbuntur"
         if conj == 3:
             return stem + "entur"
         if conj in ("3io", 4):
