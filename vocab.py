@@ -1945,7 +1945,7 @@ def import_nouns():
      'victōria': {'decl': 1, 'gender': 'f', 'stem': 'victōri', 'meaning': 'győzelem, siker'},
      'voluntās': {'decl': 3, 'gender': 'f', 'stem': 'voluntāt', 'meaning': 'akarat'},
      'vōx': {'decl': 3, 'gender': 'f', 'stem': 'vōc', 'meaning': 'hangzás, hang'},
-     'vulgus': {'decl': '2_neut', 'gender': 'n', 'stem': 'vulg', 'meaning': 'tömeg, sokaság, köznép, csőcselék', 'irreg': {'sg': {'acc': 'vulgus'}}}}
+     'vulgus': {'decl': '2_neut', 'gender': 'n', 'stem': 'vulg', 'meaning': 'tömeg, sokaság, köznép, csőcselék', 'number': 'singular', 'irreg': {'sg': {'acc': 'vulgus', 'voc': None}}}}
     _merge_repo_entries(
         noun_vocab,
         alap2_nouns,
