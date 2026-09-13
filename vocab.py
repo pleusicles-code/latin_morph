@@ -1874,7 +1874,7 @@ def import_nouns():
      'agricola': {'decl': 1, 'gender': 'm', 'stem': 'agricol', 'meaning': 'földművelő, szántóvető'},
      'amīcus': {'decl': '2_us', 'gender': 'm', 'stem': 'amīc', 'meaning': 'barát'},
      'animal': {'decl': '3_istem_neut', 'gender': 'n', 'stem': 'animāl', 'meaning': 'élőlény, állat'},
-     'arx': {'decl': 3, 'gender': 'f', 'stem': 'arc', 'meaning': 'fellegvár, védőfal'},
+     'arx': {'decl': '3_istem', 'gender': 'f', 'stem': 'arc', 'meaning': 'fellegvár, védőfal'},
      'auxilium': {'decl': '2_neut', 'gender': 'n', 'stem': 'auxili', 'meaning': 'segítség, segítő csapatok,haderő'},
      'caelum': {'decl': '2_neut', 'gender': 'n', 'stem': 'cael', 'meaning': 'égbolt, légkör, felvilág, égtáj'},
      'clāmor': {'decl': 3, 'gender': 'm', 'stem': 'clāmōr', 'meaning': 'hangos kiáltás, lárma, moraj'},
@@ -1945,7 +1945,7 @@ def import_nouns():
      'victōria': {'decl': 1, 'gender': 'f', 'stem': 'victōri', 'meaning': 'győzelem, siker'},
      'voluntās': {'decl': 3, 'gender': 'f', 'stem': 'voluntāt', 'meaning': 'akarat'},
      'vōx': {'decl': 3, 'gender': 'f', 'stem': 'vōc', 'meaning': 'hangzás, hang'},
-     'vulgus': {'decl': '2_neut', 'gender': 'n', 'stem': 'vulg', 'meaning': 'tömeg, sokaság, köznép, csőcselék'}}
+     'vulgus': {'decl': '2_neut', 'gender': 'n', 'stem': 'vulg', 'meaning': 'tömeg, sokaság, köznép, csőcselék', 'irreg': {'sg': {'acc': 'vulgus'}}}}
     _merge_repo_entries(
         noun_vocab,
         alap2_nouns,
