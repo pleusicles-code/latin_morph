@@ -1,0 +1,47 @@
+name: Temporary enforce noun number restrictions
+on:
+  push:
+    branches: [exercise-url-presets]
+    paths: ['.github/workflows/_temp_fix_noun_number_restrictions.yml']
+permissions:
+  contents: write
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: exercise-url-presets
+      - name: Patch and validate
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          p=Path('nouns.py')
+          s=p.read_text(encoding='utf-8')
+          marker='''    def inflection_cases_for_noun(noun, number):\n        cases = [case for case in noun_options["case"] if case != "voc"]\n'''
+          replacement='''    def allowed_numbers_for_noun(noun):\n        restriction = noun_vocab[noun].get("number")\n        if restriction == "singular":\n            return ["sg"]\n        if restriction == "plural":\n            return ["pl"]\n        return list(noun_options["number"].keys())\n\n\n    def inflection_cases_for_noun(noun, number):\n        cases = [case for case in noun_options["case"] if case != "voc"]\n'''
+          if marker not in s:
+              raise SystemExit('inflection_cases_for_noun marker not found')
+          s=s.replace(marker,replacement,1)
+          old='''                if noun_info and case not in inflection_cases_for_noun(noun, number):\n                    noun_info = None\n                    case = None\n                if not noun_info:\n                    number = random.choice(list(noun_options["number"].keys()))\n'''
+          new='''                if noun_info and (\n                    number not in allowed_numbers_for_noun(noun)\n                    or case not in inflection_cases_for_noun(noun, number)\n                ):\n                    noun_info = None\n                    case = None\n                if not noun_info:\n                    number = random.choice(allowed_numbers_for_noun(noun))\n'''
+          if old not in s:
+              raise SystemExit('adaptive number-selection block not found')
+          s=s.replace(old,new,1)
+          p.write_text(s,encoding='utf-8')
+          PY
+          python -m py_compile nouns.py
+          python - <<'PY'
+          from pathlib import Path
+          s=Path('nouns.py').read_text(encoding='utf-8')
+          assert 'def allowed_numbers_for_noun(noun):' in s
+          assert 'number = random.choice(allowed_numbers_for_noun(noun))' in s
+          assert 'number not in allowed_numbers_for_noun(noun)' in s
+          PY
+      - name: Commit and push
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add nouns.py
+          git commit -m 'Respect noun number restrictions in adaptive practice'
+          git push origin HEAD:exercise-url-presets
