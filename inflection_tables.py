@@ -426,6 +426,8 @@ def verb_ind_form(word, info, tense, voice, number, person):
             return base + ("or" if conj in (1,3) else "eor" if conj == 2 else "ior")
         if number == "sg" and person == 2 and conj in (3, "3io"):
             return base + "eris"
+        if number == "pl" and person == 3 and conj in (1, 2):
+            vowel = vowel.replace("ā", "a").replace("ē", "e")
         return base + vowel + pass_end
     if tense == "impf":
         bridge = "ābā" if conj == 1 else "ēbā" if conj in (2,3) else "iēbā"
