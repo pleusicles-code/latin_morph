@@ -7,7 +7,7 @@ from vocab import import_nouns, import_adjectives, import_verbs, import_pronouns
 
 st.set_page_config("BevLat – Ragozási táblák", layout="centered")
 st.markdown("# Ragozási táblák")
-st.caption("Diagnosztikai oldal a szókincs morfológiai adatainak ellenőrzéséhez.")
+st.markdown('<div style="color:#d32f2f;font-weight:700;">Ez csupán egy diagnosztikai oldal a szókincs morfológiai adatainak ellenőrzéséhez!</div>', unsafe_allow_html=True)
 
 CASES = ["nom", "acc", "gen", "dat", "abl"]
 CASE_LABELS = {"nom":"nom.", "gen":"gen.", "dat":"dat.", "acc":"acc.", "abl":"abl.", "voc":"voc."}
