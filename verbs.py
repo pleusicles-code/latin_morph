@@ -2359,7 +2359,12 @@ else:
                         parsed_analyses = parse_verb_morphology_analyses(
                             user_answer,
                             selected_tenses=tense_selector,
-                            selected_voices=voice_selector,
+                            # If this verb has no passive paradigm, act. is
+                            # pedagogically redundant and may be omitted even
+                            # when both visible voices are enabled.
+                            selected_voices=(
+                                ["act"] if verb_vocab[verb].get("no_pass") else voice_selector
+                            ),
                             selected_moods=mood_selector,
                             lexical_voice=verb_vocab[verb]["voice"],
                         )
