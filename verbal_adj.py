@@ -203,6 +203,7 @@ if "mālō" in master_irregular_verbs_list:
     master_irregular_verbs_list.remove("mālō")
 exercise_schema = {
     "show_principal_parts": bool_setting(False),
+    "full_regular_first_entry": bool_setting(False),
     "conjugation_selector": list_setting(list(conjugation_dict.keys()), list(conjugation_dict.keys())),
     "ptc_selector": list_setting(master_ptc_list, master_ptc_list),
     "voice_selector": list_setting(master_voice_list, master_voice_list),
@@ -241,6 +242,11 @@ with options_col:
     show_principal_parts = st.checkbox("Show principal parts?",
                                        key=widget_key(page_id, "show_principal_parts"),
                                        help="Select this box to show the verb's principal parts.")
+    full_regular_first_entry = st.checkbox(
+        "Szabályos 1. coniugatiós igék teljes szótári alakjának megjelenítése",
+        key=widget_key(page_id, "full_regular_first_entry"),
+        disabled=not show_principal_parts,
+    )
 
 # with conjugation_col:
 with ptc_options_col:
@@ -279,6 +285,7 @@ with ptc_options_col:
 
 current_exercise_settings = {
     "show_principal_parts": show_principal_parts,
+    "full_regular_first_entry": full_regular_first_entry,
     "conjugation_selector": conjugation_selector,
     "ptc_selector": ptc_selector,
     "voice_selector": voice_selector,
@@ -719,7 +726,20 @@ else:
 
         question = f"For *{verb}*, give the {abbrevs[ptc_type]} in the {abbrevs[gender]}, {abbrevs[case]}, {abbrevs[number]}."
         if show_principal_parts:
-            question += f" The principal parts are: {', '.join([pp for pp in verb_pp.values() if pp is not None])}."
+            data = complete_verb_vocab[verb]
+            regular_first = (
+                data.get("conj") == 1
+                and data.get("voice") == "act"
+                and data.get("pres")
+                and data.get("perf") == data.get("pres") + "āv"
+                and data.get("ppp") == data.get("pres") + "āt"
+                and data.get("irreg", {}).get("irreg") is not True
+            )
+            if full_regular_first_entry and regular_first:
+                principal_parts_text = f"{verb} 1, -āvī, -ātum"
+            else:
+                principal_parts_text = ', '.join([pp for pp in verb_pp.values() if pp is not None])
+            question += f" The principal parts are: {principal_parts_text}."
 
 
     ## DISPLAY QUESTION ##

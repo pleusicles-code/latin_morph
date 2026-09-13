@@ -8,7 +8,7 @@ import streamlit as st
 import streamlit.components.v1 as components
 
 from utils import clear_page, new_question, remove_macrons, reset, save_defaults, clear_defaults, auto_advance_delay
-from exercise_presets import (list_setting, resolve_exercise_settings, initialize_widget_state,
+from exercise_presets import (bool_setting, list_setting, resolve_exercise_settings, initialize_widget_state,
                               widget_key, url_preset_active, exercise_link_popover)
 from vocab import import_nouns, import_adjectives, import_verbs, filter_vocab_by_repo
 
@@ -62,6 +62,7 @@ def feedback_box(content, state):
 
 exercise_schema = {
     "selected_pos": list_setting(PARTS_OF_SPEECH, PARTS_OF_SPEECH),
+    "full_regular_first_entry": bool_setting(False),
 }
 exercise_settings = resolve_exercise_settings(page_id, exercise_schema, defaults)
 initialize_widget_state(page_id, exercise_settings)
@@ -138,6 +139,14 @@ def verb_dictionary_entry(verb):
     conj_label = 3 if conj == "3io" else conj
 
     if conj == 1 and data.get("voice") == "act":
+        regular_first = (
+            data.get("pres")
+            and data.get("perf") == data.get("pres") + "āv"
+            and data.get("ppp") == data.get("pres") + "āt"
+            and data.get("irreg", {}).get("irreg") is not True
+        )
+        if full_regular_first_entry and regular_first:
+            return f"{verb} 1, -āvī, -ātum"
         return f"{verb} 1"
 
     parts = [f"{verb} {conj_label}"]
@@ -191,14 +200,21 @@ VOCABULARIES = {
 
 option_expander = st.expander("Beállítások", expanded=True)
 with option_expander:
-    selected_pos = st.multiselect(
-        "Válaszd ki, mely szófajokat szeretnéd gyakorolni (alapértelmezés szerint mindegyik ki van választva):",
-        options=PARTS_OF_SPEECH,
-        format_func=lambda x: POS_LABELS[x],
-        key=widget_key(page_id, "selected_pos"),
-    )
+    settings_main_col, settings_options_col = st.columns([3, 2])
+    with settings_main_col:
+        selected_pos = st.multiselect(
+            "Válaszd ki, mely szófajokat szeretnéd gyakorolni (alapértelmezés szerint mindegyik ki van választva):",
+            options=PARTS_OF_SPEECH,
+            format_func=lambda x: POS_LABELS[x],
+            key=widget_key(page_id, "selected_pos"),
+        )
+    with settings_options_col:
+        full_regular_first_entry = st.checkbox(
+            "Szabályos 1. coniugatiós igék teljes szótári alakjának megjelenítése",
+            key=widget_key(page_id, "full_regular_first_entry"),
+        )
 
-    current_settings = {"selected_pos": selected_pos}
+    current_settings = {"selected_pos": selected_pos, "full_regular_first_entry": full_regular_first_entry}
 
     if st.user.is_logged_in:
         set_defaults_col, clear_defaults_col, link_col = st.columns(3)
@@ -215,12 +231,13 @@ with option_expander:
             )
 
         with clear_defaults_col:
-            generic_settings = {"selected_pos": PARTS_OF_SPEECH}
+            generic_settings = {"selected_pos": PARTS_OF_SPEECH, "full_regular_first_entry": False}
             settings_changed = current_settings != generic_settings
 
             def reset_stem_defaults():
                 clear_defaults(page_id)
                 st.session_state.identify_stems_selected_pos = list(PARTS_OF_SPEECH)
+                st.session_state.identify_stems_full_regular_first_entry = False
 
             st.button(
                 "Alapbeállítások",

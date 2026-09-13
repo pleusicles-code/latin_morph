@@ -765,8 +765,15 @@ def verb_dictionary_entry(verb):
     conj_label = 3 if conj == "3io" else conj
     head = f"{verb} {conj_label}" if conj_label is not None else verb
 
-    # For regular 1st-conjugation verbs, the compact dictionary entry is just lemma + conjugation.
+    # For genuinely regular 1st-conjugation verbs, optionally show the predictable perfect/supine endings.
     if conj == 1 and not data.get("irreg"):
+        regular_first = (
+            data.get("pres")
+            and data.get("perf") == data.get("pres") + "āv"
+            and data.get("ppp") == data.get("pres") + "āt"
+        )
+        if full_regular_first_entry and regular_first:
+            return f"{head}, -āvī, -ātum"
         return head
 
     # The identify-stems exercise uses perfect + supine for ordinary active verbs.
@@ -848,6 +855,7 @@ exercise_schema = {
     "indicate_multiple_answers": bool_setting(False),
     "award_partial_credit": bool_setting(False),
     "show_principal_parts": bool_setting(True),
+    "full_regular_first_entry": bool_setting(False),
     "show_stems": bool_setting(False),
     "conjugation_selector": list_setting(list(conjugation_dict.keys()), list(conjugation_dict.keys())),
     "tense_selector": list_setting(master_tense_list, master_tense_list),
@@ -934,6 +942,11 @@ with options_col:
     show_principal_parts = st.checkbox("Szótári alak megjelenítése?",
                                         help="Az ige szótári alakjának megjelenítése.",
                                         key=widget_key(page_id, "show_principal_parts"))
+    full_regular_first_entry = st.checkbox(
+        "Szabályos 1. coniugatiós igék teljes szótári alakjának megjelenítése",
+        key=widget_key(page_id, "full_regular_first_entry"),
+        disabled=not show_principal_parts,
+    )
     show_stems = st.checkbox("Tövek megjelenítése?",
                              help="Az ige töveinek megjelenítése a kérdés alatt.",
                              key=widget_key(page_id, "show_stems"))
@@ -1019,6 +1032,7 @@ current_exercise_settings = {
     "indicate_multiple_answers": indicate_multiple_answers,
     "award_partial_credit": award_partial_credit,
     "show_principal_parts": show_principal_parts,
+    "full_regular_first_entry": full_regular_first_entry,
     "show_stems": show_stems,
     "conjugation_selector": conjugation_selector,
     "tense_selector": tense_selector,
