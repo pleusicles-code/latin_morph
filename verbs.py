@@ -1212,12 +1212,12 @@ verb_endings = {
             "subj": {
                 "sg": {
                     1: "erim",
-                    2: ["eris","erīs"],
+                    2: "eris",
                     3: "erit"
                 },
                 "pl": {
-                    1: ["erimus", "erīmus"],
-                    2: ["eritis", "erītis"],
+                    1: "erimus",
+                    2: "eritis",
                     3: "erint"
                 }
             }
@@ -1234,12 +1234,12 @@ verb_endings = {
             "ind": {
                 "sg": {
                     1: "erō",
-                    2: ["eris","erīs"],
+                    2: "eris",
                     3: "erit"
                 },
                 "pl": {
-                    1: ["erimus", "erīmus"],
-                    2: ["eritis", "erītis"],
+                    1: "erimus",
+                    2: "eritis",
                     3: "erint"
                 }
             }

@@ -512,7 +512,7 @@ def verb_subj_form(word, info, tense, voice, number, person):
         stem = info.get("perf")
         if not stem:
             return None
-        endings_perf = {"sg":{1:"erim",2:["eris","erīs"],3:"erit"},"pl":{1:["erimus","erīmus"],2:["eritis","erītis"],3:"erint"}}
+        endings_perf = {"sg":{1:"erim",2:"eris",3:"erit"},"pl":{1:"erimus",2:"eritis",3:"erint"}}
         return add_ending(stem, endings_perf[number][person])
     if tense == "plupf" and effective_voice == "act":
         stem = info.get("perf")
