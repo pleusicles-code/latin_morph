@@ -1,0 +1,27 @@
+name: Temporary run dictionary diagnostic patch
+on:
+  push:
+    branches: [exercise-url-presets]
+    paths: ['.github/workflows/_temp_run_dictionary_diag_patch.yml']
+permissions:
+  contents: write
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: exercise-url-presets
+      - name: Apply patch
+        run: python _temp_patch_dictionary_diag.py
+      - name: Validate
+        run: |
+          python -m py_compile inflection_tables.py
+          grep -q 'Szótári alak' inflection_tables.py
+      - name: Commit
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add inflection_tables.py
+          git commit -m 'Show dictionary entries in vocabulary diagnostic'
+          git push origin HEAD:exercise-url-presets
