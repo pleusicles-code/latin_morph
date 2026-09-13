@@ -1,0 +1,37 @@
+name: Temporary analyze alap3 overlaps
+on:
+  push:
+    branches: [exercise-url-presets]
+    paths: ['.github/workflows/_temp_analyze_alap3_overlap.yml']
+permissions:
+  contents: read
+jobs:
+  analyze:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: exercise-url-presets
+      - name: Analyze overlaps
+        run: |
+          python - <<'PY'
+          import ast
+          from pathlib import Path
+          src = Path('vocab.py').read_text(encoding='utf-8')
+          tree = ast.parse(src)
+          wanted = {
+            'import_nouns': ['agnus','Athēnae','auris','avis','bōs','cibus','collis','color','coniūrātiō','cor','cornū','corōna','culpa','cupīdō','decus','dictātor','dolor','epistola','famēs','flōs','foedus','fōns','frīgus','grex','haruspex','ingenium','invidia','lapis','legiō','līmen','lūmen','lyra','marītus','mēnsa','mēnsis','mercātor','mīrāculum','negōtium','nūmen','onus','opīniō','ops','opus','ōra','ōtium','pectus','perīculum','pēs','pōns','praetor','prōdigium','prōverbium','prūdentia','radius','requiēs','rūs','sīdus','silentium','societās','soror','sors','spatium','spīritus','supplicium','unda','ūsus','vātēs','versus','vigilia','voluptās','vōtum'],
+            'import_adjectives': ['aeger','almus','audāx','avidus','benignus','candidus','citus','cupidus','dīversus','dīves','dubius','dūrus','frequēns','grātus','impius','integer','levis','miser','nūdus','obscūrus','pār','paucus','pauper','perpetuus','proprius','pūrus','rārus','sollemnis','superus','varius','vetus','vīcīnus','virēns'],
+            'import_verbs': ['accūsō','advertō','agitō','alō','aperiō','appāreō','appetō','arceō','audeō','augeō','careō','caveō','circumdō','claudō','colligō','commūnicō','coniūrō','cōnstō','creō','crēscō','cupiō','damnō','dēbeō','decet','dēcrēscō','dīligō','doleō','dormiō','dubitō','egeō','ēligō','ēripiō','exerceō','expediō','exspectō','fundō','horreō','hortor','imitor','impellō','impōnō','invideō','lavō','mandō','ministrō','misceō','moneō','notō','observō','obstō','occidō','occīdō','occupō','optō','ōrō','parcō','pāreō','parō','pateō','perdō','pereō','portō','praedicō','praedīcō','praesum','proficīscor','pulsō','pūrgō','queror','rapiō','reperiō','requīrō','ruō','saliō','sēcēdō','secō','simulō','sinō','spīrō','statuō','stupeō','sūmō','superō','supersum','tegō','tremō','tueor','vagor'],
+          }
+          for node in tree.body:
+            if isinstance(node, ast.FunctionDef) and node.name in wanted:
+              keys=set()
+              for sub in ast.walk(node):
+                if isinstance(sub, ast.Assign) and len(sub.targets)==1 and isinstance(sub.targets[0], ast.Name) and isinstance(sub.value, ast.Dict):
+                  if sub.targets[0].id.endswith('_vocab') or sub.targets[0].id.startswith('alap'):
+                    for k in sub.value.keys:
+                      if isinstance(k, ast.Constant) and isinstance(k.value,str): keys.add(k.value)
+              overlap=[x for x in wanted[node.name] if x in keys]
+              print(node.name, len(overlap), overlap)
+          PY
