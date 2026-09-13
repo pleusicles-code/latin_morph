@@ -325,6 +325,51 @@ def reset_recognition_score():
     st.session_state.recognize_declension_recent_categories = []
 
 
+def score_bar_color(percent):
+    percent = max(0.0, min(100.0, percent))
+    if percent <= 50:
+        # red -> orange
+        t = percent / 50.0
+        start = (198, 57, 57)
+        end = (230, 126, 34)
+    elif percent <= 80:
+        # orange -> yellow
+        t = (percent - 50.0) / 30.0
+        start = (230, 126, 34)
+        end = (224, 190, 52)
+    else:
+        # yellow -> green
+        t = (percent - 80.0) / 20.0
+        start = (224, 190, 52)
+        end = (55, 145, 80)
+    rgb = tuple(round(a + (b - a) * t) for a, b in zip(start, end))
+    return f"rgb{rgb}"
+
+
+def render_score_panel():
+    total = st.session_state.total_questions
+    score = st.session_state.current_score
+    percent = (100.0 * score / total) if total else 0.0
+    score_text = f"{score} / {total}"
+    percent_text = f"{percent:.0f}%" if total else "—"
+    bar_html = ""
+    if total >= 6:
+        color = score_bar_color(percent)
+        bar_html = (
+            '<div style="height:0.42rem;background:rgba(128,128,128,0.18);border-radius:0.3rem;'
+            'overflow:hidden;margin-top:0.38rem;">'
+            f'<div style="height:100%;width:{percent:.2f}%;background:{color};"></div></div>'
+        )
+    st.markdown(
+        '<div style="min-height:2.35rem;display:flex;align-items:center;justify-content:space-between;'
+        'gap:0.8rem;padding:0.32rem 0.15rem 0.12rem 0.15rem;">'
+        f'<span style="font-size:1.05rem;">Pontszám: <strong>{score_text}</strong></span>'
+        f'<span style="font-size:1.05rem;font-weight:700;">{percent_text}</span>'
+        '</div>' + bar_html,
+        unsafe_allow_html=True,
+    )
+
+
 st.session_state.gen_func = gen_question
 
 pool_available = bool(available_questions_by_category())
@@ -399,10 +444,15 @@ with control_row:
     with results_col:
         st.container(height=48, border=False)
     with score_col:
-        st.button("Pontszám törlése", "recognize_declension_reset", on_click=reset_recognition_score, width="stretch")
-        st.markdown(
-                f'<div style="text-align:right;">Jelenlegi pontszám: <strong>{st.session_state.current_score}</strong> / <strong>{st.session_state.total_questions}</strong></div>',
-                unsafe_allow_html=True,
+        score_display_col, restart_col = st.columns([2, 1], gap="small", vertical_alignment="top")
+        with score_display_col:
+            render_score_panel()
+        with restart_col:
+            st.button(
+                "Újrakezdés",
+                "recognize_declension_reset",
+                on_click=reset_recognition_score,
+                width="stretch",
             )
 
 if not st.session_state.auto_advance:
