@@ -574,6 +574,15 @@ else:
         return vocative_forms != nominative_forms
 
 
+    def allowed_numbers_for_noun(noun):
+        restriction = noun_vocab[noun].get("number")
+        if restriction == "singular":
+            return ["sg"]
+        if restriction == "plural":
+            return ["pl"]
+        return list(noun_options["number"].keys())
+
+
     def inflection_cases_for_noun(noun, number):
         cases = [case for case in noun_options["case"] if case != "voc"]
         if number == "sg" and noun_has_distinct_sg_vocative(noun):
@@ -728,11 +737,14 @@ else:
                             if v["decl"] == decl and not v.get("irreg", {}).get("irreg")
                         }
                     noun = random.choice(list(avail_nouns))
-                if noun_info and case not in inflection_cases_for_noun(noun, number):
+                if noun_info and (
+                    number not in allowed_numbers_for_noun(noun)
+                    or case not in inflection_cases_for_noun(noun, number)
+                ):
                     noun_info = None
                     case = None
                 if not noun_info:
-                    number = random.choice(list(noun_options["number"].keys()))
+                    number = random.choice(allowed_numbers_for_noun(noun))
                     available_cases, case_weights = inflection_case_weights(noun, number)
                     case = ""
                     while case == "" or (
