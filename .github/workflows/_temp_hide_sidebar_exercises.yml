@@ -1,0 +1,51 @@
+name: Temporary hide sidebar exercises
+on:
+  push:
+    branches: [exercise-url-presets]
+    paths: ['.github/workflows/_temp_hide_sidebar_exercises.yml']
+permissions:
+  contents: write
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: exercise-url-presets
+      - name: Patch and validate
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          p=Path('latin_morph.py')
+          s=p.read_text(encoding='utf-8')
+          for line in [
+              'st.sidebar.page_link(adj_page)\n',
+              'st.sidebar.page_link(verbal_adj_page)\n',
+              'st.sidebar.page_link(pronouns_page)\n',
+          ]:
+              if line not in s:
+                  raise SystemExit(f'missing expected sidebar line: {line.strip()}')
+              s=s.replace(line, '', 1)
+          p.write_text(s,encoding='utf-8')
+          PY
+          python -m py_compile latin_morph.py
+          python - <<'PY'
+          from pathlib import Path
+          s=Path('latin_morph.py').read_text(encoding='utf-8')
+          # Keep page definitions/navigation registration for easy restoration and direct routing.
+          for marker in ['adj_page = st.Page(', 'verbal_adj_page = st.Page(', 'pronouns_page = st.Page(']:
+              assert marker in s
+          for line in [
+              'st.sidebar.page_link(adj_page)',
+              'st.sidebar.page_link(verbal_adj_page)',
+              'st.sidebar.page_link(pronouns_page)',
+          ]:
+              assert line not in s
+          PY
+      - name: Commit and push
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add latin_morph.py
+          git commit -m 'Temporarily hide unreworked exercises from sidebar'
+          git push origin HEAD:exercise-url-presets
