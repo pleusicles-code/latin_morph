@@ -1,0 +1,60 @@
+name: Temporary short-i perfect endings
+on:
+  push:
+    branches: [exercise-url-presets]
+    paths: ['.github/workflows/_temp_short_i_perfect_endings.yml']
+permissions:
+  contents: write
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: exercise-url-presets
+      - name: Patch all long-i perfect ending alternatives and validate
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          replacements = {
+              'verbs.py': {
+                  '["eris","erīs"]': '"eris"',
+                  '["erimus", "erīmus"]': '"erimus"',
+                  '["eritis", "erītis"]': '"eritis"',
+              },
+              'inflection_tables.py': {
+                  '["eris","erīs"]': '"eris"',
+                  '["erimus","erīmus"]': '"erimus"',
+                  '["eritis","erītis"]': '"eritis"',
+              },
+          }
+          for filename, mapping in replacements.items():
+              p = Path(filename)
+              s = p.read_text(encoding='utf-8')
+              for old, new in mapping.items():
+                  s = s.replace(old, new)
+              p.write_text(s, encoding='utf-8')
+          PY
+          python -m py_compile verbs.py inflection_tables.py vocab.py
+          if grep -R -n --include='*.py' -E 'erīs|erīmus|erītis' .; then
+            echo 'Long-i perfect ending traces remain in Python source' >&2
+            exit 1
+          fi
+          python - <<'PY'
+          from pathlib import Path
+          v = Path('verbs.py').read_text(encoding='utf-8')
+          d = Path('inflection_tables.py').read_text(encoding='utf-8')
+          assert '2: "eris"' in v
+          assert '1: "erimus"' in v
+          assert '2: "eritis"' in v
+          assert '2:"eris"' in d or '2: "eris"' in d
+          assert '1:"erimus"' in d or '1: "erimus"' in d
+          assert '2:"eritis"' in d or '2: "eritis"' in d
+          PY
+      - name: Commit and push
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add verbs.py inflection_tables.py
+          git commit -m 'Use short i in perfect finite endings'
+          git push origin HEAD:exercise-url-presets
