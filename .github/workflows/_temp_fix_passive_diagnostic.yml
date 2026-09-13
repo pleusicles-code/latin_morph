@@ -1,0 +1,43 @@
+name: Temporary fix passive diagnostic forms
+on:
+  push:
+    branches: [exercise-url-presets]
+permissions:
+  contents: write
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: exercise-url-presets
+      - name: Patch diagnostic passive forms
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import py_compile
+          p = Path('inflection_tables.py')
+          text = p.read_text(encoding='utf-8')
+          old = '        return base + vowel + pass_end\n    if tense == "impf":\n'
+          new = '        if number == "sg" and person == 2 and conj in (3, "3io"):\n            return base + "eris"\n        return base + vowel + pass_end\n    if tense == "impf":\n'
+          if old not in text:
+              raise SystemExit('present passive insertion point not found')
+          text = text.replace(old, new, 1)
+          old2 = '    if number == "sg" and person == 1:\n        return stem + bridge[:-1] + "or"\n    return stem + bridge + pass_end\n'
+          new2 = '    if tense == "fut" and number == "sg" and person == 1:\n        if conj == 3:\n            return stem + "ar"\n        if conj in ("3io", 4):\n            return stem + "iar"\n    if number == "sg" and person == 1:\n        return stem + bridge[:-1] + "or"\n    return stem + bridge + pass_end\n'
+          if old2 not in text:
+              raise SystemExit('future passive insertion point not found')
+          text = text.replace(old2, new2, 1)
+          p.write_text(text, encoding='utf-8')
+          py_compile.compile('inflection_tables.py', doraise=True)
+          assert 'return base + "eris"' in text
+          assert 'return stem + "ar"' in text
+          assert 'return stem + "iar"' in text
+          PY
+      - name: Commit
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add inflection_tables.py
+          git commit -m 'Fix present and future passive diagnostic forms'
+          git push origin HEAD:exercise-url-presets
