@@ -1,0 +1,49 @@
+name: Temporary fix recognize declension score panel
+on:
+  push:
+    branches: [exercise-url-presets]
+    paths: ['.github/workflows/_temp_fix_recognize_declension_score.yml']
+permissions:
+  contents: write
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: exercise-url-presets
+      - name: Patch and validate
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          p=Path('recognize_declension.py')
+          s=p.read_text(encoding='utf-8')
+          marker='''def reset_recognition_score():\n    reset()\n    st.session_state.recognize_declension_recent_categories = []\n\n\n'''
+          addition='''def reset_recognition_score():\n    reset()\n    st.session_state.recognize_declension_recent_categories = []\n\n\ndef score_bar_color(percent):\n    percent = max(0.0, min(100.0, percent))\n    if percent <= 50:\n        # red -> orange\n        t = percent / 50.0\n        start = (198, 57, 57)\n        end = (230, 126, 34)\n    elif percent <= 80:\n        # orange -> yellow\n        t = (percent - 50.0) / 30.0\n        start = (230, 126, 34)\n        end = (224, 190, 52)\n    else:\n        # yellow -> green\n        t = (percent - 80.0) / 20.0\n        start = (224, 190, 52)\n        end = (55, 145, 80)\n    rgb = tuple(round(a + (b - a) * t) for a, b in zip(start, end))\n    return f"rgb{rgb}"\n\n\ndef render_score_panel():\n    total = st.session_state.total_questions\n    score = st.session_state.current_score\n    percent = (100.0 * score / total) if total else 0.0\n    score_text = f"{score} / {total}"\n    percent_text = f"{percent:.0f}%" if total else "—"\n    bar_html = ""\n    if total >= 6:\n        color = score_bar_color(percent)\n        bar_html = (\n            '<div style="height:0.42rem;background:rgba(128,128,128,0.18);border-radius:0.3rem;'\n            'overflow:hidden;margin-top:0.38rem;">'\n            f'<div style="height:100%;width:{percent:.2f}%;background:{color};"></div></div>'\n        )\n    st.markdown(\n        '<div style="min-height:2.35rem;display:flex;align-items:center;justify-content:space-between;'\n        'gap:0.8rem;padding:0.32rem 0.15rem 0.12rem 0.15rem;">'\n        f'<span style="font-size:1.05rem;">Pontszám: <strong>{score_text}</strong></span>'\n        f'<span style="font-size:1.05rem;font-weight:700;">{percent_text}</span>'\n        '</div>' + bar_html,\n        unsafe_allow_html=True,\n    )\n\n\n'''
+          if marker not in s:
+              raise SystemExit('score helper marker not found')
+          s=s.replace(marker,addition,1)
+          old='''    with score_col:\n        st.button("Pontszám törlése", "recognize_declension_reset", on_click=reset_recognition_score, width="stretch")\n        st.markdown(\n                f'<div style="text-align:right;">Jelenlegi pontszám: <strong>{st.session_state.current_score}</strong> / <strong>{st.session_state.total_questions}</strong></div>',\n                unsafe_allow_html=True,\n            )\n'''
+          new='''    with score_col:\n        score_display_col, restart_col = st.columns([2, 1], gap="small", vertical_alignment="top")\n        with score_display_col:\n            render_score_panel()\n        with restart_col:\n            st.button(\n                "Újrakezdés",\n                "recognize_declension_reset",\n                on_click=reset_recognition_score,\n                width="stretch",\n            )\n'''
+          if old not in s:
+              raise SystemExit('old score panel not found')
+          s=s.replace(old,new,1)
+          p.write_text(s,encoding='utf-8')
+          PY
+          python -m py_compile recognize_declension.py
+          python - <<'PY'
+          from pathlib import Path
+          s=Path('recognize_declension.py').read_text(encoding='utf-8')
+          assert 'def render_score_panel()' in s
+          assert 'if total >= 6:' in s
+          assert '"Újrakezdés"' in s
+          assert 'score_display_col, restart_col = st.columns([2, 1]' in s
+          assert 'Pontszám törlése' not in s
+          PY
+      - name: Commit and push
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add recognize_declension.py
+          git commit -m 'Add score panel to recognize declension'
+          git push origin HEAD:exercise-url-presets
