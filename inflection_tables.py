@@ -394,10 +394,9 @@ def verb_ind_form(word, info, tense, voice, number, person):
         stem = info.get("ppp")
         if not stem:
             return None
-        endings = ["us","a","um"] if number == "sg" else ["ī","ae","a"]
         aux_tense = {"perf":"pres","plupf":"impf","fut_pf":"fut"}[tense]
         aux = SUM[aux_tense][number][person-1]
-        return [stem + ending + " " + aux for ending in endings]
+        return stem + "us 3 " + aux
     stem = regular_present_stem(info)
     conj = info.get("conj")
     if stem is None or conj not in REG_IND:
@@ -546,15 +545,11 @@ def verb_subj_form(word, info, tense, voice, number, person):
         stem = info.get("ppp")
         if not stem:
             return None
-        if number == "sg":
-            participles = [stem+x for x in ("us","a","um")]
-        else:
-            participles = [stem+x for x in ("ī","ae","a")]
         aux_tense = "pres" if tense == "perf" else "impf"
         aux = sum_form(aux_tense, "subj", number, person)
         if aux is None:
             return None
-        return [ptc + " " + aux for ptc in participles]
+        return stem + "us 3 " + aux
     return None
 
 
