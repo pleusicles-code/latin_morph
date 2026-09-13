@@ -1344,6 +1344,19 @@ def import_verbs():
     )
     # END ALAP2 VERBS
 
+    # Verbs for which BevLat deliberately suppresses ordinary passive practice.
+    # Impersonal/passive edge cases are outside the intended exercise scope.
+    active_only_verbs = {
+        "fugiō", "veniō",
+        "abeō", "cadō", "eō", "faciō", "intrō", "lateō", "maneō", "pugnō",
+        "respondeō", "stō", "triumphō", "vīvō",
+        "accēdō", "ārdeō", "cēdō", "concurrō", "conveniō", "currō", "ēveniō",
+        "placeō", "sapiō", "sedeō", "taceō", "valeō", "volō [repül]",
+    }
+    for verb in active_only_verbs:
+        if verb in verb_vocab:
+            verb_vocab[verb]["no_pass"] = True
+
     return verb_vocab
 
 
