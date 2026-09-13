@@ -247,6 +247,8 @@ def verb_ind_form(word, info, tense, voice, number, person):
             vowel = "ī" if not (number == "pl" and person == 3) else "iu"
         if number == "sg" and person == 1:
             return base + ("or" if conj in (1,3) else "eor" if conj == 2 else "ior")
+        if number == "sg" and person == 2 and conj in (3, "3io"):
+            return base + "eris"
         return base + vowel + pass_end
     if tense == "impf":
         bridge = "ābā" if conj == 1 else "ēbā" if conj in (2,3) else "iēbā"
@@ -256,6 +258,11 @@ def verb_ind_form(word, info, tense, voice, number, person):
         return stem + bridge[:-1] + "ar"
     if tense == "impf" and number == "pl" and person == 3:
         return stem + bridge[:-1] + "antur"
+    if tense == "fut" and number == "sg" and person == 1:
+        if conj == 3:
+            return stem + "ar"
+        if conj in ("3io", 4):
+            return stem + "iar"
     if number == "sg" and person == 1:
         return stem + bridge[:-1] + "or"
     return stem + bridge + pass_end
