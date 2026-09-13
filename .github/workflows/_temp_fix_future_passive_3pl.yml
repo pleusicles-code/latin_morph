@@ -1,0 +1,40 @@
+name: Temporary fix future passive 3pl diagnostics
+on:
+  push:
+    branches: [exercise-url-presets]
+    paths: ['.github/workflows/_temp_fix_future_passive_3pl.yml']
+permissions:
+  contents: write
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: exercise-url-presets
+      - name: Patch and validate
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          p=Path('inflection_tables.py')
+          s=p.read_text(encoding='utf-8')
+          old='''    if tense == "fut" and number == "pl" and person == 3:\n        if conj == 3:\n            return stem + "entur"\n        if conj in ("3io", 4):\n            return stem + "ientur"'''
+          new='''    if tense == "fut" and number == "pl" and person == 3:\n        if conj == 1:\n            return stem + "ābuntur"\n        if conj == 2:\n            return stem + "ēbuntur"\n        if conj == 3:\n            return stem + "entur"\n        if conj in ("3io", 4):\n            return stem + "ientur"'''
+          if old not in s:
+              raise SystemExit('target future passive 3pl block not found')
+          p.write_text(s.replace(old,new,1),encoding='utf-8')
+          PY
+          python -m py_compile inflection_tables.py verbs.py vocab.py
+          python - <<'PY'
+          from pathlib import Path
+          s=Path('inflection_tables.py').read_text(encoding='utf-8')
+          assert 'return stem + "ābuntur"' in s
+          assert 'return stem + "ēbuntur"' in s
+          PY
+      - name: Commit and push
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add inflection_tables.py
+          git commit -m 'Fix future passive third plurals in diagnostics'
+          git push origin HEAD:exercise-url-presets
