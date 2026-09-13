@@ -123,7 +123,7 @@ def noun_dictionary_entry(noun, data):
 def adjective_dictionary_entry(adjective, data):
     decl = data.get("decl")
     noms = data.get("noms")
-    if decl == (1, 2) and adjective.endswith("er") and adjective != "pauper":
+    if decl == (1, 2) and adjective.endswith("er"):
         stem = data["stem"]
         return f"{adjective}, {stem}a, {stem}um"
     if noms and len(noms) == 3 and str(noms[0]).endswith("er"):

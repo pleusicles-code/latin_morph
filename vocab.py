@@ -3338,6 +3338,11 @@ def import_adjectives():
     # ordinary 3rd-declension adjectives otherwise follow the strong i-stem pattern.
     for word in ('dīves', 'pauper', 'vetus'):
         adjective_vocab[word]['irreg'] = copy.deepcopy(alap3_adjectives[word]['irreg'])
+    # pauper is a one-ending 3rd-declension adjective; the legacy core entry
+    # incorrectly classified it with 1st/2nd-declension -er adjectives.
+    adjective_vocab['pauper']['decl'] = 3
+    adjective_vocab['pauper']['stem'] = 'pauper'
+    adjective_vocab['pauper']['noms'] = ('pauper',)
     # END ALAP3 ADJECTIVES
 
 
