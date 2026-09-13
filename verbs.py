@@ -2312,6 +2312,11 @@ else:
             )
             if show_principal_parts:
                 question_html += f' <em>({html.escape(verb_dictionary_entry(verb))})</em>'
+            if indicate_multiple_answers and len(recognition_correct_analyses) > 1:
+                question_html += (
+                    '<br><span style="font-size:1rem;color:#7c3aed;">'
+                    'Több helyes válaszlehetőség van.</span>'
+                )
         else:
             article = hungarian_article(verb_label)
             question_html = (
@@ -2320,7 +2325,12 @@ else:
             )
 
         stems = verb_stem_display(verb) if show_stems else []
-        prompt_height = 114 if stems else 82
+        multiple_answer_notice = (
+            exercise_type == "recognize"
+            and indicate_multiple_answers
+            and len(recognition_correct_analyses) > 1
+        )
+        prompt_height = (142 if stems else 110) if multiple_answer_notice else (114 if stems else 82)
         prompt_space = st.container(height=prompt_height, border=False)
         with prompt_space:
             st.markdown(
