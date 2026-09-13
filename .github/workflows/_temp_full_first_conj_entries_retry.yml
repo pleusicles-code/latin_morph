@@ -1,0 +1,84 @@
+name: Retry full regular first-conjugation entries
+on:
+  push:
+    branches: [exercise-url-presets]
+    paths: ['.github/workflows/_temp_full_first_conj_entries_retry.yml']
+permissions:
+  contents: write
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: exercise-url-presets
+      - name: Patch and validate
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          LABEL='Szabályos 1. coniugatiós igék teljes szótári alakjának megjelenítése'
+
+          # verbs
+          p=Path('verbs.py'); s=p.read_text()
+          s=s.replace('    "show_principal_parts": bool_setting(True),\n', '    "show_principal_parts": bool_setting(True),\n    "full_regular_first_entry": bool_setting(False),\n',1)
+          s=s.replace('''    show_principal_parts = st.checkbox("Szótári alak megjelenítése?",\n                                        help="Az ige szótári alakjának megjelenítése.",\n                                        key=widget_key(page_id, "show_principal_parts"))\n''','''    show_principal_parts = st.checkbox("Szótári alak megjelenítése?",\n                                        help="Az ige szótári alakjának megjelenítése.",\n                                        key=widget_key(page_id, "show_principal_parts"))\n    full_regular_first_entry = st.checkbox(\n        "'''+LABEL+'''",\n        key=widget_key(page_id, "full_regular_first_entry"),\n        disabled=not show_principal_parts,\n    )\n''',1)
+          s=s.replace('    "show_principal_parts": show_principal_parts,\n', '    "show_principal_parts": show_principal_parts,\n    "full_regular_first_entry": full_regular_first_entry,\n',1)
+          old='''    # For regular 1st-conjugation verbs, the compact dictionary entry is just lemma + conjugation.\n    if conj == 1 and not data.get("irreg"):\n        return head\n'''
+          new='''    # For genuinely regular 1st-conjugation verbs, optionally show the predictable perfect/supine endings.\n    if conj == 1 and not data.get("irreg"):\n        regular_first = (\n            data.get("pres")\n            and data.get("perf") == data.get("pres") + "āv"\n            and data.get("ppp") == data.get("pres") + "āt"\n        )\n        if full_regular_first_entry and regular_first:\n            return f"{head}, -āvī, -ātum"\n        return head\n'''
+          if old not in s: raise SystemExit('verbs compact entry block missing')
+          s=s.replace(old,new,1); p.write_text(s)
+
+          # helper for recognize_pos / identify_stems
+          for filename in ['recognize_pos.py','identify_stems.py']:
+              p=Path(filename); s=p.read_text()
+              s=s.replace('from exercise_presets import (list_setting,', 'from exercise_presets import (bool_setting, list_setting,',1)
+              s=s.replace('    "selected_pos": list_setting(PARTS_OF_SPEECH, PARTS_OF_SPEECH),\n}', '    "selected_pos": list_setting(PARTS_OF_SPEECH, PARTS_OF_SPEECH),\n    "full_regular_first_entry": bool_setting(False),\n}',1)
+              old='''    if conj == 1 and data.get("voice") == "act":\n        return f"{verb} 1"'''
+              new='''    if conj == 1 and data.get("voice") == "act":\n        regular_first = (\n            data.get("pres")\n            and data.get("perf") == data.get("pres") + "āv"\n            and data.get("ppp") == data.get("pres") + "āt"\n            and data.get("irreg", {}).get("irreg") is not True\n        )\n        if full_regular_first_entry and regular_first:\n            return f"{verb} 1, -āvī, -ātum"\n        return f"{verb} 1"'''
+              if old not in s: raise SystemExit(filename+' dictionary block missing')
+              s=s.replace(old,new,1)
+              needle='''with option_expander:\n    selected_pos = st.multiselect(\n        "Válaszd ki, mely szófajokat szeretnéd gyakorolni (alapértelmezés szerint mindegyik ki van választva):",\n        options=PARTS_OF_SPEECH,\n        format_func=lambda x: POS_LABELS[x],\n        key=widget_key(page_id, "selected_pos"),\n    )\n'''
+              replacement='''with option_expander:\n    settings_main_col, settings_options_col = st.columns([3, 2])\n    with settings_main_col:\n        selected_pos = st.multiselect(\n            "Válaszd ki, mely szófajokat szeretnéd gyakorolni (alapértelmezés szerint mindegyik ki van választva):",\n            options=PARTS_OF_SPEECH,\n            format_func=lambda x: POS_LABELS[x],\n            key=widget_key(page_id, "selected_pos"),\n        )\n    with settings_options_col:\n        full_regular_first_entry = st.checkbox(\n            "'''+LABEL+'''",\n            key=widget_key(page_id, "full_regular_first_entry"),\n        )\n'''
+              if needle not in s: raise SystemExit(filename+' settings lead block missing')
+              s=s.replace(needle,replacement,1)
+              s=s.replace('current_settings = {"selected_pos": selected_pos}', 'current_settings = {"selected_pos": selected_pos, "full_regular_first_entry": full_regular_first_entry}',1)
+              s=s.replace('generic_settings = {"selected_pos": PARTS_OF_SPEECH}', 'generic_settings = {"selected_pos": PARTS_OF_SPEECH, "full_regular_first_entry": False}',1)
+              if filename=='recognize_pos.py':
+                  s=s.replace('st.session_state.recognize_pos_selected_pos = list(PARTS_OF_SPEECH)', 'st.session_state.recognize_pos_selected_pos = list(PARTS_OF_SPEECH)\n                st.session_state.recognize_pos_full_regular_first_entry = False',1)
+              else:
+                  s=s.replace('st.session_state.identify_stems_selected_pos = list(PARTS_OF_SPEECH)', 'st.session_state.identify_stems_selected_pos = list(PARTS_OF_SPEECH)\n                st.session_state.identify_stems_full_regular_first_entry = False',1)
+              p.write_text(s)
+
+          # verbal_adj
+          p=Path('verbal_adj.py'); s=p.read_text()
+          s=s.replace('    "show_principal_parts": bool_setting(False),\n', '    "show_principal_parts": bool_setting(False),\n    "full_regular_first_entry": bool_setting(False),\n',1)
+          s=s.replace('''    show_principal_parts = st.checkbox("Show principal parts?",\n                                       key=widget_key(page_id, "show_principal_parts"),\n                                       help="Select this box to show the verb's principal parts.")\n''','''    show_principal_parts = st.checkbox("Show principal parts?",\n                                       key=widget_key(page_id, "show_principal_parts"),\n                                       help="Select this box to show the verb's principal parts.")\n    full_regular_first_entry = st.checkbox(\n        "'''+LABEL+'''",\n        key=widget_key(page_id, "full_regular_first_entry"),\n        disabled=not show_principal_parts,\n    )\n''',1)
+          s=s.replace('    "show_principal_parts": show_principal_parts,\n', '    "show_principal_parts": show_principal_parts,\n    "full_regular_first_entry": full_regular_first_entry,\n',1)
+          old='''        if show_principal_parts:\n            question += f" The principal parts are: {', '.join([pp for pp in verb_pp.values() if pp is not None])}."'''
+          new='''        if show_principal_parts:\n            data = complete_verb_vocab[verb]\n            regular_first = (\n                data.get("conj") == 1\n                and data.get("voice") == "act"\n                and data.get("pres")\n                and data.get("perf") == data.get("pres") + "āv"\n                and data.get("ppp") == data.get("pres") + "āt"\n                and data.get("irreg", {}).get("irreg") is not True\n            )\n            if full_regular_first_entry and regular_first:\n                principal_parts_text = f"{verb} 1, -āvī, -ātum"\n            else:\n                principal_parts_text = ', '.join([pp for pp in verb_pp.values() if pp is not None])\n            question += f" The principal parts are: {principal_parts_text}."'''
+          if old not in s: raise SystemExit('verbal_adj principal-parts block missing')
+          s=s.replace(old,new,1); p.write_text(s)
+          PY
+          python -m py_compile verbs.py verbal_adj.py recognize_pos.py identify_stems.py
+          python - <<'PY'
+          from pathlib import Path
+          label='Szabályos 1. coniugatiós igék teljes szótári alakjának megjelenítése'
+          for f in ['verbs.py','verbal_adj.py','recognize_pos.py','identify_stems.py']:
+              s=Path(f).read_text()
+              assert label in s, f
+              assert 'full_regular_first_entry' in s, f
+              assert '-āvī, -ātum' in s, f
+              assert 'data.get("perf") == data.get("pres") + "āv"' in s, f
+              assert 'data.get("ppp") == data.get("pres") + "āt"' in s, f
+          assert 'disabled=not show_principal_parts' in Path('verbs.py').read_text()
+          assert 'disabled=not show_principal_parts' in Path('verbal_adj.py').read_text()
+          assert 'settings_main_col, settings_options_col = st.columns([3, 2])' in Path('recognize_pos.py').read_text()
+          assert 'settings_main_col, settings_options_col = st.columns([3, 2])' in Path('identify_stems.py').read_text()
+          PY
+      - name: Commit and push
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add verbs.py verbal_adj.py recognize_pos.py identify_stems.py
+          git commit -m 'Add full regular first-conjugation dictionary entries'
+          git push origin HEAD:exercise-url-presets
