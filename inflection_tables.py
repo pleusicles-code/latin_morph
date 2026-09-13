@@ -46,7 +46,7 @@ if not available_repos:
     st.warning("Jelenleg nincs repóadat a szókincsben.")
     st.stop()
 
-default_repo = "alap1" if "alap1" in available_repos else available_repos[0]
+default_repo = "alap2" if "alap2" in available_repos else ("alap1" if "alap1" in available_repos else available_repos[0])
 selected_repo = st.selectbox("Repó:", available_repos, index=available_repos.index(default_repo))
 
 pos_labels = {
