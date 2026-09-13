@@ -457,10 +457,16 @@ if pos == "főnév":
     if distinct_vocative:
         noun_cases.append("voc")
     noun_cases.extend(["acc", "gen", "dat", "abl"])
-    table = {"sg.": [], "pl.": []}
+    restriction = data.get("number")
+    numbers = [("sg", "sg."), ("pl", "pl.")]
+    if restriction == "singular":
+        numbers = [("sg", "sg.")]
+    elif restriction == "plural":
+        numbers = [("pl", "pl.")]
+    table = {label: [] for _, label in numbers}
     for case in noun_cases:
-        table["sg."].append(join_form(noun_form(lemma, data, case, "sg")))
-        table["pl."].append(join_form(noun_form(lemma, data, case, "pl")))
+        for number, label in numbers:
+            table[label].append(join_form(noun_form(lemma, data, case, number)))
     st.table(pd.DataFrame(table, index=[CASE_LABELS[c] for c in noun_cases]))
 
 elif pos == "melléknév":
