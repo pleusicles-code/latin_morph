@@ -38,9 +38,10 @@ for function_name, pos_label in (("import_misc", "egyéb"), ("import_adverbs", "
         if isinstance(extra, dict):
             sources.append(("misc", pos_label, extra))
 
+repo_order = {"core": 0, "alap1": 1, "alap2": 2, "alap3": 3}
 available_repos = sorted(
     {repo for _, _, vocabulary in sources for data in vocabulary.values() for repo in repo_values(data)},
-    key=lambda repo: (repo != "core", sort_key(repo)),
+    key=lambda repo: (repo_order.get(repo, 100), sort_key(repo)),
 )
 if not available_repos:
     st.warning("Jelenleg nincs repóadat a szókincsben.")
