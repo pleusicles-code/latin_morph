@@ -1,0 +1,54 @@
+name: Temporary fix arx vulgus
+on:
+  push:
+    branches: [exercise-url-presets]
+    paths: ['.github/workflows/_temp_fix_arx_vulgus.yml']
+permissions:
+  contents: write
+jobs:
+  fix:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: exercise-url-presets
+      - name: Fix vocabulary data
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import py_compile
+          p=Path('vocab.py')
+          text=p.read_text(encoding='utf-8')
+          old_arx="'arx': {'decl': 3, 'gender': 'f', 'stem': 'arc', 'meaning': 'fellegvár, védőfal'}"
+          new_arx="'arx': {'decl': '3_istem', 'gender': 'f', 'stem': 'arc', 'meaning': 'fellegvár, védőfal'}"
+          old_vulgus="'vulgus': {'decl': '2_neut', 'gender': 'n', 'stem': 'vulg', 'meaning': 'tömeg, sokaság, köznép, csőcselék'}"
+          new_vulgus="'vulgus': {'decl': '2_neut', 'gender': 'n', 'stem': 'vulg', 'meaning': 'tömeg, sokaság, köznép, csőcselék', 'irreg': {'sg': {'acc': 'vulgus'}}}"
+          if old_arx not in text: raise SystemExit('arx entry not found')
+          if old_vulgus not in text: raise SystemExit('vulgus entry not found')
+          text=text.replace(old_arx,new_arx,1).replace(old_vulgus,new_vulgus,1)
+          p.write_text(text,encoding='utf-8')
+          py_compile.compile('vocab.py',doraise=True)
+          PY
+      - name: Validate data and generated forms
+        run: |
+          python - <<'PY'
+          import sys,types
+          st=types.ModuleType('streamlit'); st.cache_data=lambda f:f; sys.modules['streamlit']=st
+          import vocab
+          nouns=vocab.filter_vocab_by_repo(vocab.import_nouns(),'alap2')
+          assert nouns['arx']['decl']=='3_istem'
+          assert nouns['arx']['stem']+'ium'=='arcium'
+          assert nouns['vulgus']['decl']=='2_neut'
+          assert nouns['vulgus']['gender']=='n'
+          assert nouns['vulgus']['irreg']['sg']['acc']=='vulgus'
+          print('arx:', nouns['arx'])
+          print('vulgus:', nouns['vulgus'])
+          PY
+          python -m py_compile vocab.py inflection_tables.py nouns.py
+      - name: Commit
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add vocab.py
+          git commit -m 'Fix arx and vulgus noun morphology'
+          git push origin HEAD:exercise-url-presets
