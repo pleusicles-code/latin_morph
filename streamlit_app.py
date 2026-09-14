@@ -84,6 +84,29 @@ if not getattr(st, "_bevlat_hungarian_select_placeholders", False):
     st._bevlat_hungarian_select_placeholders = True
 
 
+if not getattr(st, "_bevlat_noun_verb_exercise_type_labels", False):
+    _previous_radio = st.radio
+
+    def _bevlat_exercise_type_radio(label, *args, **kwargs):
+        if kwargs.get("key") in {"nouns_exercise_type", "verbs_exercise_type"}:
+            original_format_func = kwargs.get("format_func")
+
+            def format_exercise_type(value):
+                labels = {
+                    "inflect": "Képzés",
+                    "recognize": "Felismerés",
+                }
+                if value in labels:
+                    return labels[value]
+                return original_format_func(value) if original_format_func else value
+
+            kwargs["format_func"] = format_exercise_type
+        return _previous_radio(label, *args, **kwargs)
+
+    st.radio = _bevlat_exercise_type_radio
+    st._bevlat_noun_verb_exercise_type_labels = True
+
+
 if not getattr(st, "_bevlat_inflection_table_popover", False):
     _original_popover = st.popover
     _inflection_popover_labels = {"Ragozási táblázat", "View chart"}
