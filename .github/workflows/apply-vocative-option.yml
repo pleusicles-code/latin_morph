@@ -1,0 +1,81 @@
+name: Apply noun vocative option
+
+on:
+  push:
+    branches: [exercise-url-presets]
+    paths: [.github/workflows/apply-vocative-option.yml]
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: exercise-url-presets
+      - name: Patch nouns.py
+        shell: python
+        run: |
+          from pathlib import Path
+
+          path = Path('nouns.py')
+          text = path.read_text()
+
+          replacements = [
+              (
+                  '    "show_stem": bool_setting(False),\n    "declension": list_setting(DEFAULT_DECLENSIONS, DECLENSION_URL_CHOICES),',
+                  '    "show_stem": bool_setting(False),\n    "include_vocative": bool_setting(False),\n    "declension": list_setting(DEFAULT_DECLENSIONS, DECLENSION_URL_CHOICES),'
+              ),
+              (
+                  '    declension = st.multiselect(\n        "Válaszd ki, mely declinatiókat szeretnéd gyakorolni (alapértelmezés szerint mindegyik ki van választva):",\n        options=DEFAULT_DECLENSIONS,\n        format_func=lambda x: DECLENSION_LABELS[x],\n        help="Ha a kiválasztott declinatiók között rendhagyó főnevek is vannak, külön megadhatod, melyeket szeretnéd bevonni a gyakorlásba.",\n        key=widget_key(page_id, "declension"),\n    )',
+                  '    declension = st.multiselect(\n        "Válaszd ki, mely declinatiókat szeretnéd gyakorolni (alapértelmezés szerint mindegyik ki van választva):",\n        options=DEFAULT_DECLENSIONS,\n        format_func=lambda x: DECLENSION_LABELS[x],\n        help="Ha a kiválasztott declinatiók között rendhagyó főnevek is vannak, külön megadhatod, melyeket szeretnéd bevonni a gyakorlásba.",\n        key=widget_key(page_id, "declension"),\n    )\n    include_vocative = st.checkbox(\n        "Vocativusszal együtt?",\n        help="Ha be van jelölve, a program a nominativustól eltérő vocativusi alakokat is gyakoroltatja.",\n        key=widget_key(page_id, "include_vocative"),\n    )'
+              ),
+              (
+                  '    "show_stem": show_stem,\n    "declension": declension,',
+                  '    "show_stem": show_stem,\n    "include_vocative": include_vocative,\n    "declension": declension,'
+              ),
+              (
+                  '        "show_stem": False,\n        "declension": DEFAULT_DECLENSIONS,',
+                  '        "show_stem": False,\n        "include_vocative": False,\n        "declension": DEFAULT_DECLENSIONS,'
+              ),
+              (
+                  '        "show_stem": show_stem,\n        "declension": declension,',
+                  '        "show_stem": show_stem,\n        "include_vocative": include_vocative,\n        "declension": declension,'
+              ),
+              (
+                  '        st.session_state.nouns_show_stem = False\n        st.session_state.nouns_declension = DEFAULT_DECLENSIONS',
+                  '        st.session_state.nouns_show_stem = False\n        st.session_state.nouns_include_vocative = False\n        st.session_state.nouns_declension = DEFAULT_DECLENSIONS'
+              ),
+              (
+                  '        if number == "sg" and noun_has_distinct_sg_vocative(noun):\n            cases.append("voc")',
+                  '        if include_vocative and number == "sg" and noun_has_distinct_sg_vocative(noun):\n            cases.append("voc")'
+              ),
+          ]
+
+          for old, new in replacements:
+              count = text.count(old)
+              if count != 1:
+                  raise RuntimeError(f'Expected exactly one occurrence, found {count}: {old[:80]!r}')
+              text = text.replace(old, new, 1)
+
+          # The same vocative condition exists once in inflection and once in recognition;
+          # after the first targeted replacement above, patch the remaining occurrence too.
+          old = '        if number == "sg" and noun_has_distinct_sg_vocative(noun):\n            cases.append("voc")'
+          new = '        if include_vocative and number == "sg" and noun_has_distinct_sg_vocative(noun):\n            cases.append("voc")'
+          count = text.count(old)
+          if count != 1:
+              raise RuntimeError(f'Expected one remaining recognition occurrence, found {count}')
+          text = text.replace(old, new, 1)
+
+          path.write_text(text)
+      - name: Commit patch
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          rm .github/workflows/apply-vocative-option.yml
+          git add nouns.py .github/workflows/apply-vocative-option.yml
+          git commit -m "Add optional vocative practice for nouns"
+          git push origin HEAD:exercise-url-presets
