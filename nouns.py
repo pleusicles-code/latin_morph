@@ -121,6 +121,7 @@ exercise_schema = {
     "show_declension": bool_setting(False),
     "show_third_group": bool_setting(False),
     "show_stem": bool_setting(False),
+    "include_vocative": bool_setting(False),
     "declension": list_setting(DEFAULT_DECLENSIONS, DECLENSION_URL_CHOICES),
     "irregs_include": list_setting(["deus"] if "deus" in master_irregular_nouns_list else [], master_irregular_nouns_list),
     "irregs_only": choice_setting("No", ["No", "Yes"]),
@@ -228,6 +229,11 @@ with col_declension:
         help="Ha a kiválasztott declinatiók között rendhagyó főnevek is vannak, külön megadhatod, melyeket szeretnéd bevonni a gyakorlásba.",
         key=widget_key(page_id, "declension"),
     )
+    include_vocative = st.checkbox(
+        "Vocativusszal együtt?",
+        help="Ha be van jelölve, a program a nominativustól eltérő vocativusi alakokat is gyakoroltatja.",
+        key=widget_key(page_id, "include_vocative"),
+    )
 
 
 active_vocab = {}
@@ -284,6 +290,7 @@ current_exercise_settings = {
     "show_declension": show_declension,
     "show_third_group": show_third_group,
     "show_stem": show_stem,
+    "include_vocative": include_vocative,
     "declension": declension,
     "irregs_include": irregs_include,
     "irregs_only": irregs_only,
@@ -299,6 +306,7 @@ if st.user.is_logged_in:
         "show_declension": False,
         "show_third_group": False,
         "show_stem": False,
+        "include_vocative": False,
         "declension": DEFAULT_DECLENSIONS,
         "irregs_include": [],
         "irregs_only": "No",
@@ -312,6 +320,7 @@ if st.user.is_logged_in:
         "show_declension": show_declension,
         "show_third_group": show_third_group,
         "show_stem": show_stem,
+        "include_vocative": include_vocative,
         "declension": declension,
         "irregs_include": irregs_include,
         "irregs_only": irregs_only,
@@ -328,6 +337,7 @@ if st.user.is_logged_in:
         st.session_state.nouns_show_declension = False
         st.session_state.nouns_show_third_group = False
         st.session_state.nouns_show_stem = False
+        st.session_state.nouns_include_vocative = False
         st.session_state.nouns_declension = DEFAULT_DECLENSIONS
         st.session_state.nouns_irregs_include = []
         st.session_state.nouns_irregs_only = "No"
@@ -585,7 +595,7 @@ else:
 
     def inflection_cases_for_noun(noun, number):
         cases = [case for case in noun_options["case"] if case != "voc"]
-        if number == "sg" and noun_has_distinct_sg_vocative(noun):
+        if include_vocative and number == "sg" and noun_has_distinct_sg_vocative(noun):
             cases.append("voc")
         return cases
 
@@ -865,7 +875,7 @@ else:
 
     def recognition_cases_for_noun(noun, number):
         cases = [case for case in noun_options["case"] if case != "voc"]
-        if number == "sg" and noun_has_distinct_sg_vocative(noun):
+        if include_vocative and number == "sg" and noun_has_distinct_sg_vocative(noun):
             cases.append("voc")
         return cases
 
