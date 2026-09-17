@@ -199,6 +199,7 @@ recognize_pos_page = st.Page("recognize_pos.py", title="Szófaj felismerése")
 recognize_declension_page = st.Page("recognize_declension.py", title="Declinatio felismerése")
 identify_stems_page = st.Page("identify_stems.py", title="Tövek felismerése")
 nouns_page = st.Page("nouns.py", title="Főnevek")
+agreement_page = st.Page("agreement.py", title="Egyeztetés")
 verbs_page = st.Page("verbs.py", title="Igék")
 pronouns_page = st.Page("pronouns.py", title="Névmások")
 adj_page = st.Page("adjectives.py", title="Melléknevek és határozószók")
@@ -214,7 +215,8 @@ nav_dict = {"**BevLat**": [main_page, account_page, about_page, faq_page],
                                 recognize_pos_page,
                                 recognize_declension_page,
                                 identify_stems_page,
-                                nouns_page, 
+                                nouns_page,
+                                agreement_page,
                                 verbs_page, 
                                 adj_page,
                                 verbal_adj_page, 
@@ -244,6 +246,7 @@ st.sidebar.page_link(recognize_pos_page)
 st.sidebar.page_link(recognize_declension_page)
 st.sidebar.page_link(identify_stems_page)
 st.sidebar.page_link(nouns_page)
+st.sidebar.page_link(agreement_page)
 st.sidebar.page_link(verbs_page)
 st.sidebar.markdown("**Eszközök**")
 st.sidebar.page_link(data_page)
