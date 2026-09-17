@@ -1,4 +1,5 @@
 import streamlit as st
+import utils
 
 
 if not hasattr(st, "_bevlat_original_expander"):
@@ -19,6 +20,20 @@ if not hasattr(st, "_bevlat_original_expander"):
     st.expander = _bevlat_expander
 
 
+# Every actual question change should keep the settings panel collapsed on
+# the following rerun. This covers both manual clicks and auto-advance.
+if not hasattr(utils, "_bevlat_original_new_question"):
+    utils._bevlat_original_new_question = utils.new_question
+
+    def _bevlat_new_question(*args, **kwargs):
+        st.session_state["_bevlat_collapse_settings_once"] = True
+        return utils._bevlat_original_new_question(*args, **kwargs)
+
+    utils.new_question = _bevlat_new_question
+
+
+# Keep button-level detection as a fallback for exercise-specific question
+# buttons whose callback does not use utils.new_question.
 if not hasattr(st, "_bevlat_original_button"):
     st._bevlat_original_button = st.button
 
