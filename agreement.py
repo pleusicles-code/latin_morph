@@ -56,8 +56,8 @@ source = source.replace(
     '"include_vocative": bool_setting(False),\n    "include_degrees": bool_setting(False),\n    "declension": list_setting(DEFAULT_DECLENSIONS, DECLENSION_URL_CHOICES),\n    "adjective_declension": list_setting(DEFAULT_ADJECTIVE_DECLENSIONS, ADJECTIVE_DECLENSION_URL_CHOICES),'
 )
 
-old_selector = '''    declension = st.multiselect(\n        "Válaszd ki, mely declinatiókat szeretnéd gyakorolni (alapértelmezés szerint mindegyik ki van választva):",\n        options=DEFAULT_DECLENSIONS,\n        format_func=lambda x: DECLENSION_LABELS[x],\n        help="Ha a kiválasztott declinatiók között rendhagyó főnevek is vannak, külön megadhatod, melyeket szeretnéd bevonni a gyakorlásba.",\n        key=widget_key(page_id, "declension"),\n    )\n    include_vocative = st.checkbox(\n        "Vocativusszal együtt?",\n        help="Ha be van jelölve, a program a nominativustól eltérő vocativusi alakokat is gyakoroltatja.",\n        key=widget_key(page_id, "include_vocative"),\n    )'''
-new_selector = '''    st.markdown("**Főnevek:** Válaszd ki, mely declinatiókat szeretnéd gyakorolni (alapértelmezés szerint mindegyik ki van választva):")\n    declension = st.multiselect(\n        "Főnevek declinatiói",\n        options=DEFAULT_DECLENSIONS,\n        format_func=lambda x: DECLENSION_LABELS[x],\n        help="Ha a kiválasztott declinatiók között rendhagyó főnevek is vannak, külön megadhatod, melyeket szeretnéd bevonni a gyakorlásba.",\n        key=widget_key(page_id, "declension"),\n        label_visibility="collapsed",\n    )\n    st.markdown("**Melléknevek:** Válaszd ki, mely declinatiókat szeretnéd gyakorolni (alapértelmezés szerint mindegyik ki van választva):")\n    adjective_declension = st.multiselect(\n        "Melléknevek declinatiói",\n        options=DEFAULT_ADJECTIVE_DECLENSIONS,\n        format_func=lambda x: ADJECTIVE_DECLENSION_LABELS[x],\n        key=widget_key(page_id, "adjective_declension"),\n        label_visibility="collapsed",\n    )\n    include_vocative = st.checkbox(\n        "Vocativusszal együtt?",\n        help="Ha be van jelölve, a program a nominativustól eltérő vocativusi alakokat is gyakoroltatja.",\n        key=widget_key(page_id, "include_vocative"),\n    )\n    include_degrees = st.checkbox(\n        "Fokozott melléknevek is?",\n        disabled=True,\n        key=widget_key(page_id, "include_degrees"),\n    )'''
+old_selector = '''    declension = st.multiselect(\n        "Válaszd ki, mely declinatiókat szeretnéd gyakorolni (alapértelmezés szerint mindegyik ki van választva):",\n        options=DEFAULT_DECLENSIONS,\n        format_func=lambda x: DECLENSION_LABELS[x],\n        help="Ha a kiválasztott declinatiók között rendhagyó főnevek is vannak, külön megadhatod, melyeket szeretnéd bevonni a gyakorlásba.\",\n        key=widget_key(page_id, "declension"),\n    )\n    include_vocative = st.checkbox(\n        "Vocativusszal együtt?",\n        help="Ha be van jelölve, a program a nominativustól eltérő vocativusi alakokat is gyakoroltatja.\",\n        key=widget_key(page_id, "include_vocative"),\n    )'''
+new_selector = '''    st.markdown("**Főnevek:** Válaszd ki, mely declinatiókat szeretnéd gyakorolni (alapértelmezés szerint mindegyik ki van választva):")\n    declension = st.multiselect(\n        "Főnevek declinatiói",\n        options=DEFAULT_DECLENSIONS,\n        format_func=lambda x: DECLENSION_LABELS[x],\n        help="Ha a kiválasztott declinatiók között rendhagyó főnevek is vannak, külön megadhatod, melyeket szeretnéd bevonni a gyakorlásba.\",\n        key=widget_key(page_id, "declension"),\n        label_visibility="collapsed",\n    )\n    st.markdown("**Melléknevek:** Válaszd ki, mely declinatiókat szeretnéd gyakorolni (alapértelmezés szerint mindegyik ki van választva):")\n    adjective_declension = st.multiselect(\n        "Melléknevek declinatiói",\n        options=DEFAULT_ADJECTIVE_DECLENSIONS,\n        format_func=lambda x: ADJECTIVE_DECLENSION_LABELS[x],\n        key=widget_key(page_id, "adjective_declension"),\n        label_visibility="collapsed",\n    )\n    include_vocative = st.checkbox(\n        "Vocativusszal együtt?",\n        help="Ha be van jelölve, a program a nominativustól eltérő vocativusi alakokat is gyakoroltatja.\",\n        key=widget_key(page_id, "include_vocative"),\n    )\n    include_degrees = st.checkbox(\n        "Fokozott melléknevek is?",\n        disabled=True,\n        key=widget_key(page_id, "include_degrees"),\n    )'''
 source = source.replace(old_selector, new_selector)
 
 # Persist the two new settings alongside the cloned noun settings.
@@ -94,10 +94,7 @@ if exercise_type == "inflect":
         if info.get("decl") != 3:
             return None
         noms = info.get("noms")
-        if isinstance(noms, (tuple, list)):
-            endings = len(noms)
-        else:
-            endings = 1
+        endings = len(noms) if isinstance(noms, (tuple, list)) else 1
         return {1: "3_1", 2: "3_2", 3: "3_3"}.get(endings, "3_1")
 
     active_adj_vocab = {
@@ -190,7 +187,6 @@ if exercise_type == "inflect":
                 ending = endings[gender][case]
             return stem + ending
 
-        # Positive-degree third-declension adjectives.
         if case == "gen":
             return stem + "is"
         if case == "dat":
@@ -202,6 +198,30 @@ if exercise_type == "inflect":
                 return _adjective_nom_sg(adj, gender)
             return stem + "em"
         return _adjective_nom_sg(adj, gender)
+
+    def _noun_dictionary_entry(noun):
+        genitive = _noun_form(noun, "gen")
+        if isinstance(genitive, list):
+            if str(noun_vocab[noun].get("decl", "")).startswith("2") and noun.endswith(("ius", "ium")):
+                genitive = genitive[0]
+            else:
+                genitive = "/".join(genitive)
+        gender = noun_vocab[noun]["gender"]
+        return f"{noun}, {genitive} {gender}." if genitive else f"{noun} {gender}."
+
+    def _adjective_dictionary_entry(adj):
+        info = adj_vocab[adj]
+        noms = info.get("irreg", {}).get("forms", {}).get("sg", {}).get("nom") or info.get("noms")
+        if noms:
+            if not isinstance(noms, (tuple, list)):
+                noms = [noms]
+            forms = list(noms)
+            if info.get("decl") == 3 and len(forms) == 1 and forms[0] != adj:
+                forms.insert(0, adj)
+            return ", ".join(str(form) for form in forms)
+        if info.get("decl") == (1, 2):
+            return f"{adj}, {info['stem']}a, {info['stem']}um"
+        return adj
 
     def _forms_list(form):
         return form if isinstance(form, list) else [form]
@@ -257,10 +277,15 @@ if exercise_type == "inflect":
         answer_options = _pair_answer_options(noun_target, adjective_target)
         st.session_state.correct_answer = answer_options
 
-        case_label = noun_options["case"][case]
+        noun_prompt = _noun_dictionary_entry(noun) if show_dictionary_entry else noun_nom
+        adjective_prompt = _adjective_dictionary_entry(adjective) if show_dictionary_entry else adjective_nom
+        noun_article = hungarian_article(noun)
+        adjective_article = hungarian_article(adjective)
+        case_prompt = f"{noun_options['case'][case]}ban"
         question_html = (
-            f'Add meg a <strong><em>{html.escape(noun_nom)} {html.escape(adjective_nom)}</em></strong> '
-            f'szavak <strong>singularis {case_label}</strong> alakját!'
+            f'Add meg {noun_article} <strong>{html.escape(noun_prompt)}</strong> és '
+            f'{adjective_article} <strong>{html.escape(adjective_prompt)}</strong> szavak alkotta '
+            f'jelzős szerkezetet <strong>{html.escape(case_prompt)}</strong>!'
         )
         prompt_space = st.container(height=82, border=False)
         with prompt_space:
