@@ -7,15 +7,12 @@ if not hasattr(st, "_bevlat_original_expander"):
 
     def _bevlat_expander(label, *args, **kwargs):
         is_settings = label in ("Beállítások", "Settings")
-        auto_advancing = bool(
-            st.session_state.get("auto_advance_trigger")
-            and st.session_state.get("answer_checked")
-        )
+        practice_active = bool(st.session_state.get("current_question"))
         collapse_once = bool(
             st.session_state.pop("_bevlat_collapse_settings_once", False)
         ) if is_settings else False
 
-        if is_settings and (auto_advancing or collapse_once):
+        if is_settings and (practice_active or collapse_once):
             args = list(args)
             if args:
                 args[0] = False
