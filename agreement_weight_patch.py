@@ -127,6 +127,17 @@ def apply_pair_weighting(source):
             k=1,
         )[0]
         return random.choice(pools[category])
+
+    def _am_weighted_target(noun, adjective, gender):
+        targets = []
+        weights = []
+        for number in _am_allowed_numbers(noun, adjective):
+            for case in _am_cases(noun, adjective, number, gender):
+                targets.append((number, case))
+                weights.append(0.7 if number == "sg" and case == "nom" else 1.0)
+        if not targets:
+            return None, None
+        return random.choices(targets, weights=weights, k=1)[0]
 '''
 
     middle_marker = '''    def _am_question():\n        if not active_vocab or not active_adj_vocab:\n            return None\n        noun = random.choice(list(active_vocab))\n        adjective = random.choice(list(active_adj_vocab))\n        gender = noun_vocab[noun]["gender"]\n'''
@@ -134,5 +145,11 @@ def apply_pair_weighting(source):
     if middle_marker not in source:
         raise RuntimeError("Could not locate agreement pair generator for weighting")
     source = source.replace(middle_marker, middle_replacement, 1)
+
+    middle_target_marker = '''        numbers = _am_allowed_numbers(noun, adjective)\n        if not numbers:\n            return None\n        number = random.choice(numbers)\n        case = random.choice(_am_cases(noun, adjective, number, gender))\n'''
+    middle_target_replacement = '''        number, case = _am_weighted_target(noun, adjective, gender)\n        if number is None:\n            return None\n'''
+    if middle_target_marker not in source:
+        raise RuntimeError("Could not locate agreement target generator for weighting")
+    source = source.replace(middle_target_marker, middle_target_replacement, 1)
 
     return source
