@@ -62,7 +62,7 @@ def apply_pair_weighting(source):
 '''
 
     inflect_marker = '''    def _pair_question():\n        if not active_vocab or not active_adj_vocab:\n            return None\n        noun = random.choice(list(active_vocab))\n        gender = noun_vocab[noun]["gender"]\n        adjective = random.choice(list(active_adj_vocab))\n'''
-    inflect_replacement = inflect_helper + '''\n    def _pair_question():\n        if not active_vocab or not active_adj_vocab:\n            return None\n        noun, adjective = _weighted_agreement_pair()\n        gender = noun_vocab[noun]["gender"]\n'''
+    inflect_replacement = inflect_helper + '''\n    def _pair_question():\n        if not active_vocab or not active_adj_vocab:\n            return None\n        noun, adjective = _weighted_agreement_pair()\n        raw_gender = noun_vocab[noun]["gender"]\n        gender = random.choice(["m", "f"]) if raw_gender == "m/f" else raw_gender\n'''
     if inflect_marker not in source:
         raise RuntimeError("Could not locate inflection pair generator for weighting")
     source = source.replace(inflect_marker, inflect_replacement, 1)
@@ -130,7 +130,7 @@ def apply_pair_weighting(source):
 '''
 
     middle_marker = '''    def _am_question():\n        if not active_vocab or not active_adj_vocab:\n            return None\n        noun = random.choice(list(active_vocab))\n        adjective = random.choice(list(active_adj_vocab))\n        gender = noun_vocab[noun]["gender"]\n'''
-    middle_replacement = middle_helper + '''\n    def _am_question():\n        if not active_vocab or not active_adj_vocab:\n            return None\n        noun, adjective = _am_weighted_pair()\n        gender = noun_vocab[noun]["gender"]\n'''
+    middle_replacement = middle_helper + '''\n    def _am_question():\n        if not active_vocab or not active_adj_vocab:\n            return None\n        noun, adjective = _am_weighted_pair()\n        raw_gender = noun_vocab[noun]["gender"]\n        gender = random.choice(["m", "f"]) if raw_gender == "m/f" else raw_gender\n'''
     if middle_marker not in source:
         raise RuntimeError("Could not locate agreement pair generator for weighting")
     source = source.replace(middle_marker, middle_replacement, 1)
