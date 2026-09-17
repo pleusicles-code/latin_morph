@@ -284,9 +284,12 @@ source = source.replace(
             if noun_decl_key:
                 noun_parts.append(f"{DECLENSION_NUMBER_LABELS[noun_decl_key]} declinatiós")
             if show_third_group:
-                noun_group = third_declension_group(noun)
-                if noun_group:
-                    noun_parts.append(noun_group)
+                if noun_decl_value in (3, "3_neut"):
+                    noun_parts.append("msh.-tövű")
+                elif noun_decl_value == "3_istem_neut" or noun_vocab[noun].get("true_i_stem") is True:
+                    noun_parts.append("erős i-tövű")
+                elif noun_decl_value == "3_istem":
+                    noun_parts.append("gyenge i-tövű")
 
             adjective_parts = []
             adjective_group = _agreement_adjective_group(adjective)
@@ -304,7 +307,10 @@ source = source.replace(
                 supplementary.append("<strong>Melléknév:</strong> " + ", ".join(adjective_parts))
 
         if show_stem:
-            noun_stem = html.escape(display_noun_stem(noun))
+            noun_stem_raw = str(noun_vocab[noun].get("stem", ""))
+            if str(noun_vocab[noun].get("decl", "")).startswith("5"):
+                noun_stem_raw += "e"
+            noun_stem = html.escape(noun_stem_raw)
             adjective_stem = html.escape(str(adj_vocab[adjective].get("stem", "")))
             supplementary.append(
                 f'<strong>Tő:</strong> <em>{noun_stem}-</em> (főnév), <em>{adjective_stem}-</em> (melléknév)'
