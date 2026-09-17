@@ -29,7 +29,14 @@ if not hasattr(st, "_bevlat_original_button"):
             "New Question",
             "Click here for the first question!",
         )
-        if label in new_question_labels:
+        button_key = str(kwargs.get("key") or "")
+        is_new_question_button = (
+            label in new_question_labels
+            or button_key == "question_button"
+            or button_key.endswith("_question_button")
+        )
+
+        if is_new_question_button:
             original_on_click = kwargs.get("on_click")
 
             def collapse_then_call(*callback_args, **callback_kwargs):
