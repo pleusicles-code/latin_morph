@@ -268,43 +268,42 @@ source = source.replace(
 ''',
 '''        supplementary = []
 
-        if show_declension:
-            noun_decl_key = ""
-            noun_decl_value = noun_vocab[noun].get("decl")
-            for key, value in declension_dict.items():
-                if isinstance(value, list):
-                    if noun_decl_value in value:
-                        noun_decl_key = key
-                        break
-                elif noun_decl_value == value:
+        noun_decl_key = ""
+        noun_decl_value = noun_vocab[noun].get("decl")
+        for key, value in declension_dict.items():
+            if isinstance(value, list):
+                if noun_decl_value in value:
                     noun_decl_key = key
                     break
+            elif noun_decl_value == value:
+                noun_decl_key = key
+                break
 
-            noun_parts = []
+        noun_parts = []
+        adjective_parts = []
+
+        if show_declension:
             if noun_decl_key:
                 noun_parts.append(f"{DECLENSION_NUMBER_LABELS[noun_decl_key]} declinatiós")
-            if show_third_group:
-                if noun_decl_value in (3, "3_neut"):
-                    noun_parts.append("msh.-tövű")
-                elif noun_decl_value == "3_istem_neut" or noun_vocab[noun].get("true_i_stem") is True:
-                    noun_parts.append("erős i-tövű")
-                elif noun_decl_value == "3_istem":
-                    noun_parts.append("gyenge i-tövű")
 
-            adjective_parts = []
             adjective_group = _agreement_adjective_group(adjective)
             if adjective_group == "1_2":
                 adjective_parts.append("1–2. declinatiós")
             elif adjective_group and adjective_group.startswith("3_"):
                 adjective_parts.append("3. declinatiós")
-                if show_third_group:
-                    ending_count = {"3_1": "1 végű", "3_2": "2 végű", "3_3": "3 végű"}[adjective_group]
-                    adjective_parts.append(ending_count)
 
-            if noun_parts:
-                supplementary.append("<strong>Főnév:</strong> " + ", ".join(noun_parts))
-            if adjective_parts:
-                supplementary.append("<strong>Melléknév:</strong> " + ", ".join(adjective_parts))
+        if show_third_group:
+            if noun_decl_value in (3, "3_neut"):
+                noun_parts.append("msh.-tövű")
+            elif noun_decl_value == "3_istem_neut" or noun_vocab[noun].get("true_i_stem") is True:
+                noun_parts.append("erős i-tövű")
+            elif noun_decl_value == "3_istem":
+                noun_parts.append("gyenge i-tövű")
+
+            adjective_group = _agreement_adjective_group(adjective)
+            if adjective_group and adjective_group.startswith("3_"):
+                ending_count = {"3_1": "1 végű", "3_2": "2 végű", "3_3": "3 végű"}[adjective_group]
+                adjective_parts.append(ending_count)
 
         if show_stem:
             noun_stem_raw = str(noun_vocab[noun].get("stem", ""))
@@ -312,9 +311,13 @@ source = source.replace(
                 noun_stem_raw += "e"
             noun_stem = html.escape(noun_stem_raw)
             adjective_stem = html.escape(str(adj_vocab[adjective].get("stem", "")))
-            supplementary.append(
-                f'<strong>Tő:</strong> <em>{noun_stem}-</em> (főnév), <em>{adjective_stem}-</em> (melléknév)'
-            )
+            noun_parts.append(f'a töve <em>{noun_stem}-</em>')
+            adjective_parts.append(f'a töve <em>{adjective_stem}-</em>')
+
+        if noun_parts:
+            supplementary.append("<strong>Főnév:</strong> " + ", ".join(noun_parts))
+        if adjective_parts:
+            supplementary.append("<strong>Melléknév:</strong> " + ", ".join(adjective_parts))
 
         prompt_height = 112 if supplementary else 82
         prompt_space = st.container(height=prompt_height, border=False)
