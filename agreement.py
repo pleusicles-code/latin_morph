@@ -258,4 +258,73 @@ source = source.replace(
 '''
 )
 
+source = source.replace(
+'''        prompt_space = st.container(height=82, border=False)
+        with prompt_space:
+            st.markdown(
+                f'<div style="margin-top:0.75rem;font-size:1.75rem;line-height:1.25;">{question_html}</div>',
+                unsafe_allow_html=True,
+            )
+''',
+'''        supplementary = []
+
+        if show_declension:
+            noun_decl_key = ""
+            noun_decl_value = noun_vocab[noun].get("decl")
+            for key, value in declension_dict.items():
+                if isinstance(value, list):
+                    if noun_decl_value in value:
+                        noun_decl_key = key
+                        break
+                elif noun_decl_value == value:
+                    noun_decl_key = key
+                    break
+
+            noun_parts = []
+            if noun_decl_key:
+                noun_parts.append(f"{DECLENSION_NUMBER_LABELS[noun_decl_key]} declinatiós")
+            if show_third_group:
+                noun_group = third_declension_group(noun)
+                if noun_group:
+                    noun_parts.append(noun_group)
+
+            adjective_parts = []
+            adjective_group = _agreement_adjective_group(adjective)
+            if adjective_group == "1_2":
+                adjective_parts.append("1–2. declinatiós")
+            elif adjective_group and adjective_group.startswith("3_"):
+                adjective_parts.append("3. declinatiós")
+                if show_third_group:
+                    ending_count = {"3_1": "1 végű", "3_2": "2 végű", "3_3": "3 végű"}[adjective_group]
+                    adjective_parts.append(ending_count)
+
+            if noun_parts:
+                supplementary.append("<strong>Főnév:</strong> " + ", ".join(noun_parts))
+            if adjective_parts:
+                supplementary.append("<strong>Melléknév:</strong> " + ", ".join(adjective_parts))
+
+        if show_stem:
+            noun_stem = html.escape(display_noun_stem(noun))
+            adjective_stem = html.escape(str(adj_vocab[adjective].get("stem", "")))
+            supplementary.append(
+                f'<strong>Tő:</strong> <em>{noun_stem}-</em> (főnév), <em>{adjective_stem}-</em> (melléknév)'
+            )
+
+        prompt_height = 112 if supplementary else 82
+        prompt_space = st.container(height=prompt_height, border=False)
+        with prompt_space:
+            st.markdown(
+                f'<div style="margin-top:0.75rem;font-size:1.75rem;line-height:1.25;">{question_html}</div>',
+                unsafe_allow_html=True,
+            )
+            if supplementary:
+                st.markdown(
+                    '<div style="font-size:1.15rem;line-height:1.35;margin-top:0.35rem;">'
+                    + " &nbsp;·&nbsp; ".join(supplementary)
+                    + "</div>",
+                    unsafe_allow_html=True,
+                )
+'''
+)
+
 exec(compile(source, str(Path(__file__).with_name("agreement_impl.py")), "exec"))
