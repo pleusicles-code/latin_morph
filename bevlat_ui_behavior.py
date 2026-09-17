@@ -6,9 +6,16 @@ if not hasattr(st, "_bevlat_original_expander"):
     st._bevlat_original_expander = st.expander
 
     def _bevlat_expander(label, *args, **kwargs):
-        if label in ("Beállítások", "Settings") and st.session_state.pop(
-            "_bevlat_collapse_settings_once", False
-        ):
+        is_settings = label in ("Beállítások", "Settings")
+        auto_advancing = bool(
+            st.session_state.get("auto_advance_trigger")
+            and st.session_state.get("answer_checked")
+        )
+        collapse_once = bool(
+            st.session_state.pop("_bevlat_collapse_settings_once", False)
+        ) if is_settings else False
+
+        if is_settings and (auto_advancing or collapse_once):
             args = list(args)
             if args:
                 args[0] = False
@@ -20,20 +27,16 @@ if not hasattr(st, "_bevlat_original_expander"):
     st.expander = _bevlat_expander
 
 
-# Every actual question change should keep the settings panel collapsed on
-# the following rerun. This covers both manual clicks and auto-advance.
 if not hasattr(utils, "_bevlat_original_new_question"):
     utils._bevlat_original_new_question = utils.new_question
 
-    def _bevlat_new_question(*args, **kwargs):
+    def _bevlat_new_question(gen_question):
         st.session_state["_bevlat_collapse_settings_once"] = True
-        return utils._bevlat_original_new_question(*args, **kwargs)
+        return utils._bevlat_original_new_question(gen_question)
 
     utils.new_question = _bevlat_new_question
 
 
-# Keep button-level detection as a fallback for exercise-specific question
-# buttons whose callback does not use utils.new_question.
 if not hasattr(st, "_bevlat_original_button"):
     st._bevlat_original_button = st.button
 
