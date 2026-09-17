@@ -251,4 +251,11 @@ source = source.replace(
 '''
 )
 
+source = source.replace(
+'''        adjective_prompt = _adjective_dictionary_entry(adjective) if show_dictionary_entry else adjective_nom
+''',
+'''        adjective_prompt = _adjective_dictionary_entry(adjective) if show_dictionary_entry else adjective
+'''
+)
+
 exec(compile(source, str(Path(__file__).with_name("agreement_impl.py")), "exec"))
