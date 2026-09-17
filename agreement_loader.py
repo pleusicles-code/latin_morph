@@ -1,4 +1,5 @@
 from pathlib import Path
+from itertools import permutations
 from agreement_middle_patch import apply_middle_mode
 
 stage = Path(__file__).with_name("agreement_stage.py").read_text(encoding="utf-8")
