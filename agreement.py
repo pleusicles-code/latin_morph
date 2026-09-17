@@ -1,12 +1,8 @@
 from pathlib import Path
 import textwrap
 
-# Agreement exercise scaffold: execute an isolated clone of the noun exercise.
-# The source clone lives in agreement_base.py so agreement-specific work can
-# diverge without changing nouns.py.
 source = Path(__file__).with_name("agreement_base.py").read_text(encoding="utf-8")
 
-# Give the cloned page its own identity and settings namespace.
 source = source.replace('from vocab import import_nouns, filter_vocab_by_repo',
                         'from vocab import import_nouns, import_adjectives, filter_vocab_by_repo')
 source = source.replace('st.set_page_config("BevLat – Főnevek", layout="centered")',
@@ -21,8 +17,6 @@ source = source.replace(
     'adj_vocab = {**filter_vocab_by_repo(import_adjectives(), "alap1"), **filter_vocab_by_repo(import_adjectives(), "alap2"), **filter_vocab_by_repo(import_adjectives(), "alap3")}'
 )
 
-# agreement_base.py still refers to the shared macron preference dictionary.
-# Seed the agreement-specific key from the noun default for now.
 if '"agreement_enforce_macrons"' in source:
     source = source.replace(
         'st.session_state.agreement_enforce_macrons = st.session_state.enforce_macrons["agreement_enforce_macrons"]',
@@ -30,22 +24,20 @@ if '"agreement_enforce_macrons"' in source:
         'st.session_state.agreement_enforce_macrons = st.session_state.enforce_macrons["agreement_enforce_macrons"]'
     )
 
-# Agreement-specific exercise types. Until the middle mode is implemented, it
-# follows the noun-inflection path; recognition retains the cloned behaviour.
 source = source.replace(
     '"exercise_type": choice_setting("inflect", ["inflect", "recognize"]),',
     '"exercise_type": choice_setting("inflect", ["inflect", "agreement", "recognize"]),'
 )
 source = source.replace(
+    '"show_dictionary_entry": bool_setting(True),',
+    '"show_dictionary_entry": bool_setting(True),\n    "abbreviate_adjective_dictionary": bool_setting(True),'
+)
+source = source.replace(
     'options=["inflect", "recognize"],\n            format_func=lambda value: {\n                "inflect": "Ragozás",\n                "recognize": "Alakfelismerés",\n            }[value],',
     'options=["inflect", "agreement", "recognize"],\n            format_func=lambda value: {\n                "inflect": "Ragozás",\n                "agreement": "Egyeztetés",\n                "recognize": "Alakfelismerés",\n            }[value],'
 )
-source = source.replace(
-    'if exercise_type == "inflect":',
-    'if exercise_type in ("inflect", "agreement"):'
-)
+source = source.replace('if exercise_type == "inflect":', 'if exercise_type in ("inflect", "agreement"):')
 
-# Adjective declension selector and future degree option.
 adjective_constants = '''\nADJECTIVE_DECLENSION_LABELS = {\n    "1_2": "1-2.",\n    "3_1": "3. (1végű)",\n    "3_2": "3. (2végű)",\n    "3_3": "3. (3végű)",\n}\nDEFAULT_ADJECTIVE_DECLENSIONS = list(ADJECTIVE_DECLENSION_LABELS.keys())\nADJECTIVE_DECLENSION_URL_CHOICES = {key: key for key in DEFAULT_ADJECTIVE_DECLENSIONS}\n'''
 source = source.replace(
     'DEFAULT_DECLENSIONS = list(declension_dict.keys())\nDECLENSION_URL_CHOICES = {',
@@ -60,23 +52,35 @@ old_selector = '''    declension = st.multiselect(\n        "Válaszd ki, mely d
 new_selector = '''    st.markdown("**Főnevek:** Válaszd ki, mely declinatiókat szeretnéd gyakorolni (alapértelmezés szerint mindegyik ki van választva):")\n    declension = st.multiselect(\n        "Főnevek declinatiói",\n        options=DEFAULT_DECLENSIONS,\n        format_func=lambda x: DECLENSION_LABELS[x],\n        help="Ha a kiválasztott declinatiók között rendhagyó főnevek is vannak, külön megadhatod, melyeket szeretnéd bevonni a gyakorlásba.",\n        key=widget_key(page_id, "declension"),\n        label_visibility="collapsed",\n    )\n    st.markdown("**Melléknevek:** Válaszd ki, mely declinatiókat szeretnéd gyakorolni (alapértelmezés szerint mindegyik ki van választva):")\n    adjective_declension = st.multiselect(\n        "Melléknevek declinatiói",\n        options=DEFAULT_ADJECTIVE_DECLENSIONS,\n        format_func=lambda x: ADJECTIVE_DECLENSION_LABELS[x],\n        key=widget_key(page_id, "adjective_declension"),\n        label_visibility="collapsed",\n    )\n    include_vocative = st.checkbox(\n        "Vocativusszal együtt?",\n        help="Ha be van jelölve, a program a nominativustól eltérő vocativusi alakokat is gyakoroltatja.",\n        key=widget_key(page_id, "include_vocative"),\n    )\n    include_degrees = st.checkbox(\n        "Fokozott melléknevek is?",\n        disabled=True,\n        key=widget_key(page_id, "include_degrees"),\n    )'''
 source = source.replace(old_selector, new_selector)
 
-# Persist the two new settings alongside the cloned noun settings.
+old_dictionary_checkbox = '''    show_dictionary_entry = st.checkbox(\n        "Szótári alak megjelenítése?",\n        help="A teljes szótári alak megjelenítése; ennek genitivusából a tő is meghatározható.",\n        key=widget_key(page_id, "show_dictionary_entry"),\n    )'''
+new_dictionary_checkbox = old_dictionary_checkbox + '''\n    abbreviate_adjective_dictionary = st.checkbox(\n        "Rövidített melléknévi szótári alakok",\n        key=widget_key(page_id, "abbreviate_adjective_dictionary"),\n        disabled=not show_dictionary_entry,\n    )'''
+source = source.replace(old_dictionary_checkbox, new_dictionary_checkbox)
+
 source = source.replace(
     '"include_vocative": include_vocative,\n    "declension": declension,',
     '"include_vocative": include_vocative,\n    "include_degrees": include_degrees,\n    "declension": declension,\n    "adjective_declension": adjective_declension,'
+)
+source = source.replace(
+    '"show_dictionary_entry": show_dictionary_entry,\n    "show_declension": show_declension,',
+    '"show_dictionary_entry": show_dictionary_entry,\n    "abbreviate_adjective_dictionary": abbreviate_adjective_dictionary,\n    "show_declension": show_declension,'
+)
+source = source.replace(
+    '"show_dictionary_entry": True,\n        "show_declension": False,',
+    '"show_dictionary_entry": True,\n        "abbreviate_adjective_dictionary": True,\n        "show_declension": False,'
 )
 source = source.replace(
     '"include_vocative": False,\n        "declension": DEFAULT_DECLENSIONS,',
     '"include_vocative": False,\n        "include_degrees": False,\n        "declension": DEFAULT_DECLENSIONS,\n        "adjective_declension": DEFAULT_ADJECTIVE_DECLENSIONS,'
 )
 source = source.replace(
+    'st.session_state.agreement_show_dictionary_entry = True',
+    'st.session_state.agreement_show_dictionary_entry = True\n        st.session_state.agreement_abbreviate_adjective_dictionary = True'
+)
+source = source.replace(
     'st.session_state.agreement_include_vocative = False\n        st.session_state.agreement_declension = DEFAULT_DECLENSIONS',
     'st.session_state.agreement_include_vocative = False\n        st.session_state.agreement_include_degrees = False\n        st.session_state.agreement_declension = DEFAULT_DECLENSIONS\n        st.session_state.agreement_adjective_declension = DEFAULT_ADJECTIVE_DECLENSIONS'
 )
 
-# Replace the cloned noun quiz only for the first mode (Ragozás). The other two
-# modes continue through the original cloned code until their mechanics are
-# specified separately.
 quiz_marker = 'if len(declension) == 0 and not st.session_state.current_question:'
 marker_index = source.find(quiz_marker)
 if marker_index == -1:
@@ -209,7 +213,7 @@ if exercise_type == "inflect":
         gender = noun_vocab[noun]["gender"]
         return f"{noun}, {genitive} {gender}." if genitive else f"{noun} {gender}."
 
-    def _adjective_dictionary_entry(adj):
+    def _adjective_nominatives(adj):
         info = adj_vocab[adj]
         noms = info.get("irreg", {}).get("forms", {}).get("sg", {}).get("nom") or info.get("noms")
         if noms:
@@ -218,10 +222,27 @@ if exercise_type == "inflect":
             forms = list(noms)
             if info.get("decl") == 3 and len(forms) == 1 and forms[0] != adj:
                 forms.insert(0, adj)
-            return ", ".join(str(form) for form in forms)
+            return forms
         if info.get("decl") == (1, 2):
-            return f"{adj}, {info['stem']}a, {info['stem']}um"
-        return adj
+            return [adj, info["stem"] + "a", info["stem"] + "um"]
+        return [adj]
+
+    def _adjective_dictionary_entry(adj):
+        info = adj_vocab[adj]
+        forms = _adjective_nominatives(adj)
+        group = _agreement_adjective_group(adj)
+
+        if group == "3_1":
+            genitive = info.get("stem", "") + "is"
+            return f"{adj} ({genitive})"
+
+        if abbreviate_adjective_dictionary:
+            if info.get("decl") == (1, 2) and adj.endswith("er"):
+                return ", ".join(str(form) for form in forms)
+            ending_count = 3 if info.get("decl") == (1, 2) else len(forms)
+            return f"{adj} {ending_count}"
+
+        return ", ".join(str(form) for form in forms)
 
     def _forms_list(form):
         return form if isinstance(form, list) else [form]
@@ -281,7 +302,7 @@ if exercise_type == "inflect":
         adjective_prompt = _adjective_dictionary_entry(adjective) if show_dictionary_entry else adjective_nom
         noun_article = hungarian_article(noun)
         adjective_article = hungarian_article(adjective)
-        case_prompt = f"{noun_options['case'][case]}ban"
+        case_prompt = f"singularis {noun_options['case'][case]}ban"
         question_html = (
             f'Add meg {noun_article} <strong>{html.escape(noun_prompt)}</strong> és '
             f'{adjective_article} <strong>{html.escape(adjective_prompt)}</strong> szavak alkotta '
