@@ -7,9 +7,9 @@ source = Path(__file__).with_name("agreement_base.py").read_text(encoding="utf-8
 
 # Give the cloned page its own identity and settings namespace.
 source = source.replace('st.set_page_config("BevLat – Főnevek", layout="centered")',
-                        'st.set_page_config("BevLat – Egyeztetés", layout="centered")')
+                        'st.set_page_config("BevLat – Főnév és melléknév egyeztetése", layout="centered")')
 source = source.replace('page_id = "nouns"', 'page_id = "agreement"')
-source = source.replace('st.markdown("# Főnevek")', 'st.markdown("# Egyeztetés")')
+source = source.replace('st.markdown("# Főnevek")', 'st.markdown("# Főnév és melléknév egyeztetése")')
 source = source.replace('"nouns.py"', '"agreement.py"')
 source = source.replace('nouns_', 'agreement_')
 
