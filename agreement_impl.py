@@ -90,15 +90,15 @@ source = source.replace(
             key=widget_key(page_id, "print_macrons"),
         )
         if exercise_type == "agreement":
+            enforce_answer_macrons_key = widget_key(page_id, "enforce_answer_macrons")
+            if not print_macrons:
+                st.session_state[enforce_answer_macrons_key] = False
             enforce_answer_macrons = st.checkbox(
                 "Hosszú magánhangzók ellenőrzése a válaszban",
                 help="Ha be van kapcsolva, a válaszban is pontosan jelölni kell a hosszú magánhangzókat.",
-                key=widget_key(page_id, "enforce_answer_macrons"),
+                key=enforce_answer_macrons_key,
                 disabled=not print_macrons,
             )
-            if not print_macrons:
-                st.session_state[widget_key(page_id, "enforce_answer_macrons")] = False
-                enforce_answer_macrons = False
             if enforce_answer_macrons:
                 st.markdown("A hosszú magánhangzók innen másolhatók:")
                 st.code("āēīōū", language=None)
