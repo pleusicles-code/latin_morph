@@ -115,6 +115,38 @@ source = source.replace(
 '''
 )
 
+# Agreement mode uses the recognition-style option branch. Patch that branch directly,
+# because apply_middle_mode() intentionally disables the earlier inflect/agreement routing.
+_agreement_macron_options_old = '''        print_macrons = st.checkbox(
+            "Hosszú magánhangzók jelölése?",
+            help="Ha be van kapcsolva, a kérdésben szereplő alakok jelölik a magánhangzók hosszúságát, és a választ ennek figyelembevételével kell megadni. Ha ki van kapcsolva, ugyanaz az írott alak rövid és hosszú magánhangzóval képzett alakokat is jelölhet, ezért több helyes elemzés is lehetséges.",
+            key=widget_key(page_id, "print_macrons"),
+        )
+'''
+_agreement_macron_options_new = '''        print_macrons = st.checkbox(
+            "Hosszú magánhangzók jelölése a kérdésben",
+            help="Ha be van kapcsolva, a kérdésben szereplő alakok jelölik a magánhangzók hosszúságát. Ez az alak lehetséges nyelvtani elemzéseit is pontosíthatja.",
+            key=widget_key(page_id, "print_macrons"),
+        )
+        if exercise_type == "agreement":
+            enforce_answer_macrons_key = widget_key(page_id, "enforce_answer_macrons")
+            if not print_macrons:
+                st.session_state[enforce_answer_macrons_key] = False
+            enforce_answer_macrons = st.checkbox(
+                "Hosszú magánhangzók ellenőrzése a válaszban",
+                help="Ha be van kapcsolva, a válaszban is pontosan jelölni kell a hosszú magánhangzókat.",
+                key=enforce_answer_macrons_key,
+                disabled=not print_macrons,
+            )
+            if enforce_answer_macrons:
+                st.markdown("A hosszú magánhangzók innen másolhatók:")
+                st.code("āēīōū", language=None)
+'''
+if _agreement_macron_options_old not in source:
+    raise RuntimeError("Could not locate recognition-style macron options for Agreement")
+source = source.replace(_agreement_macron_options_old, _agreement_macron_options_new, 1)
+
+
 
 adjective_constants = '''\nADJECTIVE_DECLENSION_LABELS = {\n    "1_2": "1-2.",\n    "3_1": "3. (1végű)",\n    "3_2": "3. (2végű)",\n    "3_3": "3. (3végű)",\n}\nDEFAULT_ADJECTIVE_DECLENSIONS = list(ADJECTIVE_DECLENSION_LABELS.keys())\nADJECTIVE_DECLENSION_URL_CHOICES = {key: key for key in DEFAULT_ADJECTIVE_DECLENSIONS}\n'''
 source = source.replace(
