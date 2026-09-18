@@ -335,7 +335,11 @@ if not getattr(st, "_bevlat_deferred_answer_input_clear", False):
     def _bevlat_deferred_clear_text_input(*args, **kwargs):
         key = kwargs.get("key")
         if key == "answer_input":
-            if st.session_state.pop("_bevlat_clear_answer_input", False):
+            if st.session_state.pop("_bevlat_new_question_render_pending", False):
+                st.session_state.pop("answer_input", None)
+                st.session_state.pop("_bevlat_last_incorrect_answer", None)
+                st.session_state.pop("_bevlat_clear_answer_input", None)
+            elif st.session_state.pop("_bevlat_clear_answer_input", False):
                 st.session_state.pop("answer_input", None)
                 st.session_state.pop("_bevlat_last_incorrect_answer", None)
             elif (
