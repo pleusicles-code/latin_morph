@@ -398,6 +398,28 @@ elif exercise_type == "agreement":
             def submit_agreement_answer():
                 raw_answer = st.session_state.get("answer_input") or ""
                 answer_tokens = tokenize_morphology_answer(raw_answer)
+
+                # Be forgiving if the learner supplies the noun together with the adjective.
+                # Match the displayed noun independently of macron enforcement, since the noun
+                # itself is not part of what is being graded.
+                if len(answer_tokens) > 1:
+                    noun_key = _am_surface(displayed_noun_form, False).casefold()
+                    for index, token in enumerate(answer_tokens):
+                        if _am_surface(token, False).casefold() == noun_key:
+                            answer_tokens.pop(index)
+                            break
+
+                # Repeated identical adjective forms do not add information.  A learner may,
+                # for example, write "aeternum aeternum" to signal nom./acc. ambiguity.
+                deduplicated_tokens = []
+                seen_answer_tokens = set()
+                for token in answer_tokens:
+                    token_key = token.casefold()
+                    if token_key not in seen_answer_tokens:
+                        seen_answer_tokens.add(token_key)
+                        deduplicated_tokens.append(token)
+                answer_tokens = deduplicated_tokens
+
                 if answer_tokens:
                     st.session_state.answer_input = " ".join(answer_tokens)
 
