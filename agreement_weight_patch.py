@@ -134,7 +134,13 @@ def apply_pair_weighting(source):
         for number in _am_allowed_numbers(noun, adjective):
             for case in _am_cases(noun, adjective, number, gender):
                 targets.append((number, case))
-                weights.append(0.7 if number == "sg" and case == "nom" else 1.0)
+                if number == "sg" and case == "nom":
+                    weight = 0.7
+                elif number == "pl" and case in ("dat", "abl"):
+                    weight = 0.5
+                else:
+                    weight = 1.0
+                weights.append(weight)
         if not targets:
             return None, None
         return random.choices(targets, weights=weights, k=1)[0]
