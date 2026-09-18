@@ -341,6 +341,7 @@ if not getattr(st, "_bevlat_deferred_answer_input_clear", False):
             elif (
                 st.session_state.get("answer_checked", False)
                 and "_bevlat_last_incorrect_answer" in st.session_state
+                and "Partially correct" not in str(st.session_state.get("result_message", ""))
             ):
                 st.session_state["answer_input"] = st.session_state["_bevlat_last_incorrect_answer"]
         return _previous_text_input_for_clear(*args, **kwargs)
