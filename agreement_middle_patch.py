@@ -722,6 +722,23 @@ def apply_recognition_base(source):
             for case in _ar_cases(noun, adjective, number, gender):
                 noun_forms = _ar_forms(build_noun([noun, case, number]))
                 adjective_forms = _ar_forms(_ar_adjective_form(adjective, case, gender, number))
+
+                if number == "pl" and case == "acc":
+                    if len(noun_forms) > 1:
+                        canonical_noun_forms = [
+                            form for form in noun_forms
+                            if not str(form).endswith("īs")
+                        ]
+                        if canonical_noun_forms:
+                            noun_forms = canonical_noun_forms
+                    if len(adjective_forms) > 1:
+                        canonical_adjective_forms = [
+                            form for form in adjective_forms
+                            if not str(form).endswith("īs")
+                        ]
+                        if canonical_adjective_forms:
+                            adjective_forms = canonical_adjective_forms
+
                 for noun_form in noun_forms:
                     for adjective_form in adjective_forms:
                         if noun_form is None or adjective_form is None:
