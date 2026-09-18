@@ -707,6 +707,9 @@ def apply_recognition_base(source):
         return value if preserve_macrons else remove_macrons(value)
 
     def recognition_gen_question():
+        if st.session_state.pop("_agreement_clear_partial_answer_on_next", False):
+            st.session_state.pop("answer_input", None)
+            st.session_state.pop("_bevlat_last_incorrect_answer", None)
         noun, adjective = _ar_weighted_pair()
         if not noun or not adjective:
             return None
@@ -911,6 +914,15 @@ def apply_recognition_base(source):
     if old_recognition not in source:
         raise RuntimeError("Could not locate noun recognition display block")
     source = source.replace(old_recognition, new_recognition, 1)
+
+    partial_result_old = '                        st.session_state.result_message = "**Partially correct.**"\n'
+    partial_result_new = (
+        '                        st.session_state.result_message = "**Partially correct.**"\n'
+        '                        st.session_state["_agreement_clear_partial_answer_on_next"] = True\n'
+    )
+    if partial_result_old not in source:
+        raise RuntimeError("Could not locate partial recognition result marker")
+    source = source.replace(partial_result_old, partial_result_new, 1)
 
     old_curr = r'''        curr_question = {
             "pos": "noun",
