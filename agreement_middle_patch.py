@@ -515,7 +515,7 @@ def apply_recognition_base(source):
             case, number = ("acc", "sg")
         else:
             case, number = random.choice(list(displayed_analyses))
-        st.session_state.nouns_recognition_displayed_form = displayed_form
+        st.session_state.agreement_recognition_displayed_form = displayed_form
         return [noun, case, number]
 '''
     old_generator = textwrap.indent(old_generator, "    ")
@@ -766,7 +766,7 @@ def apply_recognition_base(source):
     source = source.replace(old_intro, new_intro, 1)
 
     old_recognition = r'''        else:
-            displayed_form = st.session_state.get("nouns_recognition_displayed_form")
+            displayed_form = st.session_state.get("agreement_recognition_displayed_form")
             if not displayed_form:
                 displayed_form = correct_answer
                 if isinstance(displayed_form, list):
