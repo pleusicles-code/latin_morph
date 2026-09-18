@@ -1,4 +1,5 @@
 from itertools import permutations
+import textwrap
 
 
 def apply_middle_mode(source):
@@ -517,6 +518,7 @@ def apply_recognition_base(source):
         st.session_state.nouns_recognition_displayed_form = displayed_form
         return [noun, case, number]
 '''
+    old_generator = textwrap.indent(old_generator, "    ")
     new_generator = r'''    def _ar_adjective_group(adj):
         info = adj_vocab[adj]
         if info.get("decl") == (1, 2):
@@ -731,6 +733,7 @@ def apply_recognition_base(source):
         st.session_state.agreement_recognition_displayed_phrase = phrase
         return [noun, case, number]
 '''
+    new_generator = textwrap.indent(new_generator, "    ")
     if old_generator not in source:
         raise RuntimeError("Could not locate noun recognition generator for agreement recognition")
     source = source.replace(old_generator, new_generator, 1)
@@ -740,6 +743,7 @@ def apply_recognition_base(source):
         noun_prompt = build_dictionary_entry(noun) if show_dictionary_entry else noun
         noun_decl = noun_vocab.get(noun)["decl"]
 '''
+    old_intro = textwrap.indent(old_intro, "    ")
     new_intro = r'''        adjective = st.session_state.get("agreement_recognition_adjective")
         gender = st.session_state.get("agreement_recognition_gender")
         displayed_phrase = st.session_state.get("agreement_recognition_displayed_phrase", "")
@@ -749,6 +753,7 @@ def apply_recognition_base(source):
         adjective_prompt = _ar_adjective_dictionary_entry(adjective) if show_dictionary_entry else adjective
         noun_decl = noun_vocab.get(noun)["decl"]
 '''
+    new_intro = textwrap.indent(new_intro, "    ")
     if old_intro not in source:
         raise RuntimeError("Could not locate recognition question introduction")
     source = source.replace(old_intro, new_intro, 1)
@@ -822,6 +827,7 @@ def apply_recognition_base(source):
                 else:
                     supplementary.append(multiple_answer_message)
 '''
+    old_recognition = textwrap.indent(old_recognition, "    ")
     new_recognition = r'''        else:
             print_macrons = st.session_state[widget_key(page_id, "print_macrons")]
             question_html = (
@@ -894,6 +900,7 @@ def apply_recognition_base(source):
             if multiple_answer_message:
                 supplementary.append(multiple_answer_message)
 '''
+    new_recognition = textwrap.indent(new_recognition, "    ")
     if old_recognition not in source:
         raise RuntimeError("Could not locate noun recognition display block")
     source = source.replace(old_recognition, new_recognition, 1)
@@ -902,10 +909,12 @@ def apply_recognition_base(source):
             "pos": "noun",
             "word": noun,
 '''
+    old_curr = textwrap.indent(old_curr, "    ")
     new_curr = r'''        curr_question = {
             "pos": "agreement_recognize" if exercise_type == "recognize" else "noun",
             "word": [noun, adjective] if exercise_type == "recognize" else noun,
 '''
+    new_curr = textwrap.indent(new_curr, "    ")
     if old_curr not in source:
         raise RuntimeError("Could not locate recognition logging block")
     source = source.replace(old_curr, new_curr, 1)
