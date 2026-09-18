@@ -168,14 +168,26 @@ elif exercise_type == "agreement":
         return _am_adjective_nom_sg(adj, gender)
 
     def _am_noun_dictionary_entry(noun):
-        genitive = _am_noun_form(noun, "gen", "sg")
+        info = noun_vocab[noun]
+        plural_only = info.get("number") == "plural"
+        genitive_number = "pl" if plural_only else "sg"
+        genitive = _am_noun_form(noun, "gen", genitive_number)
         if isinstance(genitive, list):
-            if str(noun_vocab[noun].get("decl", "")).startswith("2") and noun.endswith(("ius", "ium")):
+            if (
+                not plural_only
+                and str(info.get("decl", "")).startswith("2")
+                and noun.endswith(("ius", "ium"))
+            ):
                 genitive = genitive[0]
             else:
                 genitive = "/".join(genitive)
-        gender = noun_vocab[noun]["gender"]
-        return f"{noun}, {genitive} {gender}." if genitive else f"{noun} {gender}."
+        gender = info["gender"]
+        number_label = " pl." if plural_only else ""
+        return (
+            f"{noun}, {genitive} {gender}.{number_label}"
+            if genitive
+            else f"{noun} {gender}.{number_label}"
+        )
 
     def _am_adjective_nominatives(adj):
         info = adj_vocab[adj]
