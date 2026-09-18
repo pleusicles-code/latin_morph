@@ -248,6 +248,14 @@ elif exercise_type == "agreement":
         noun_forms = _am_forms_list(_am_noun_form(noun, case, number))
         if not noun_forms:
             return None
+        if number == "pl" and case == "acc":
+            es_forms = [form for form in noun_forms if str(form).endswith("ēs")]
+            if es_forms:
+                noun_forms = es_forms
+            else:
+                non_is_forms = [form for form in noun_forms if not str(form).endswith("īs")]
+                if non_is_forms:
+                    noun_forms = non_is_forms
         noun_form = random.choice(noun_forms)
         return {
             "noun": noun,
