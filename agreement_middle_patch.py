@@ -483,7 +483,7 @@ else:
     return source
 
 
-def apply_recognition_mode(source):
+def apply_recognition_base(source):
     old_generator = r'''    def recognition_gen_question():
         noun, _, _ = adap_gen_question()
         print_macrons = st.session_state[widget_key(page_id, "print_macrons")]
@@ -911,3 +911,15 @@ def apply_recognition_mode(source):
     source = source.replace(old_curr, new_curr, 1)
 
     return source
+
+
+def apply_recognition_mode(source):
+    needle = 'exec(compile(source, str(Path(__file__).with_name("agreement_base.py")), "exec"))'
+    replacement = (
+        'from agreement_middle_patch import apply_recognition_base\n'
+        'source = apply_recognition_base(source)\n'
+        + needle
+    )
+    if needle not in source:
+        raise RuntimeError("Could not locate agreement base execution point for recognition mode")
+    return source.replace(needle, replacement, 1)
