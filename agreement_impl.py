@@ -37,6 +37,84 @@ source = source.replace(
     'options=["inflect", "agreement", "recognize"],\n            format_func=lambda value: {\n                "inflect": "Ragozás",\n                "agreement": "Egyeztetés",\n                "recognize": "Alakfelismerés",\n            }[value],'
 )
 source = source.replace('if exercise_type == "inflect":', 'if exercise_type in ("inflect", "agreement"):')
+source = source.replace(
+    '''    if exercise_type in ("inflect", "agreement"):
+        st.checkbox(
+            "Hosszú magánhangzók ellenőrzése?",
+            help="Ha be van jelölve, a hosszú magánhangzók hibás jelölése hibás válasznak számít. Ha nincs bejelölve, a hosszúságjelek használhatók, de a program nem értékeli őket.",
+            key="agreement_enforce_macrons",
+            on_change=send_setting,
+            args=(switch_noun_macrons,),
+            kwargs={"streamlit_page": "agreement.py", "setting_name": "agreement_enforce_macrons"},
+        )
+        macrons = st.session_state.agreement_enforce_macrons
+
+        if macrons:
+            st.markdown("A hosszú magánhangzók innen másolhatók:")
+            st.code("āēīōū", language=None)
+    else:
+        print_macrons = st.checkbox(
+            "Hosszú magánhangzók jelölése?",
+            help="Ha be van kapcsolva, a kérdésben szereplő alakok jelölik a magánhangzók hosszúságát, és a választ ennek figyelembevételével kell megadni. Ha ki van kapcsolva, ugyanaz az írott alak rövid és hosszú magánhangzóval képzett alakokat is jelölhet, ezért több helyes elemzés is lehetséges.",
+            key=widget_key(page_id, "print_macrons"),
+        )
+        indicate_multiple_answers = st.checkbox(
+            "Több helyes válaszlehetőség jelzése?",
+            help="Ha be van kapcsolva, a kérdés külön jelzi, ha az adott alaknak több helyes elemzése van.",
+            key=widget_key(page_id, "indicate_multiple_answers"),
+        )
+        award_partial_credit = st.checkbox(
+            "Részpont adása?",
+            help="Ha be van kapcsolva, a részben helyes válasz fél pontot ér; különben csak a teljesen helyes válaszért jár pont.",
+            key=widget_key(page_id, "award_partial_credit"),
+        )
+''',
+    '''    if exercise_type == "inflect":
+        st.checkbox(
+            "Hosszú magánhangzók ellenőrzése?",
+            help="Ha be van jelölve, a hosszú magánhangzók hibás jelölése hibás válasznak számít. Ha nincs bejelölve, a hosszúságjelek használhatók, de a program nem értékeli őket.",
+            key="agreement_enforce_macrons",
+            on_change=send_setting,
+            args=(switch_noun_macrons,),
+            kwargs={"streamlit_page": "agreement.py", "setting_name": "agreement_enforce_macrons"},
+        )
+        macrons = st.session_state.agreement_enforce_macrons
+
+        if macrons:
+            st.markdown("A hosszú magánhangzók innen másolhatók:")
+            st.code("āēīōū", language=None)
+    else:
+        print_macrons = st.checkbox(
+            "Hosszú magánhangzók jelölése a kérdésben",
+            help="Ha be van kapcsolva, a kérdésben szereplő alakok jelölik a magánhangzók hosszúságát. Ez az alak lehetséges nyelvtani elemzéseit is pontosíthatja.",
+            key=widget_key(page_id, "print_macrons"),
+        )
+        if exercise_type == "agreement":
+            enforce_answer_macrons = st.checkbox(
+                "Hosszú magánhangzók ellenőrzése a válaszban",
+                help="Ha be van kapcsolva, a válaszban is pontosan jelölni kell a hosszú magánhangzókat.",
+                key=widget_key(page_id, "enforce_answer_macrons"),
+                disabled=not print_macrons,
+            )
+            if not print_macrons:
+                st.session_state[widget_key(page_id, "enforce_answer_macrons")] = False
+                enforce_answer_macrons = False
+            if enforce_answer_macrons:
+                st.markdown("A hosszú magánhangzók innen másolhatók:")
+                st.code("āēīōū", language=None)
+        indicate_multiple_answers = st.checkbox(
+            "Több helyes válaszlehetőség jelzése?",
+            help="Ha be van kapcsolva, a kérdés külön jelzi, ha az adott alaknak több helyes elemzése van.",
+            key=widget_key(page_id, "indicate_multiple_answers"),
+        )
+        award_partial_credit = st.checkbox(
+            "Részpont adása?",
+            help="Ha be van kapcsolva, a részben helyes válasz fél pontot ér; különben csak a teljesen helyes válaszért jár pont.",
+            key=widget_key(page_id, "award_partial_credit"),
+        )
+'''
+)
+
 
 adjective_constants = '''\nADJECTIVE_DECLENSION_LABELS = {\n    "1_2": "1-2.",\n    "3_1": "3. (1végű)",\n    "3_2": "3. (2végű)",\n    "3_3": "3. (3végű)",\n}\nDEFAULT_ADJECTIVE_DECLENSIONS = list(ADJECTIVE_DECLENSION_LABELS.keys())\nADJECTIVE_DECLENSION_URL_CHOICES = {key: key for key in DEFAULT_ADJECTIVE_DECLENSIONS}\n'''
 source = source.replace(
