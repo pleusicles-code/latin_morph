@@ -920,6 +920,8 @@ def apply_recognition_base(source):
         '                        st.session_state.result_message = "**Partially correct.**"\n'
         '                        st.session_state["_agreement_clear_partial_answer_on_next"] = True\n'
     )
+    partial_result_old = textwrap.indent(partial_result_old, "    ")
+    partial_result_new = textwrap.indent(partial_result_new, "    ")
     if partial_result_old not in source:
         raise RuntimeError("Could not locate partial recognition result marker")
     source = source.replace(partial_result_old, partial_result_new, 1)
