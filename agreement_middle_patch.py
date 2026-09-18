@@ -676,7 +676,7 @@ def apply_recognition_base(source):
         available = [category for category, pairs in pools.items() if pairs]
         if not available:
             return None, None
-        weights = {"different": 0.60, "third_mixed": 0.25, "same": 0.15}
+        weights = {"different": 0.60, "third_mixed": 0.30, "same": 0.10}
         category = random.choices(
             available, weights=[weights[item] for item in available], k=1
         )[0]
