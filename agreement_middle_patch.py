@@ -409,16 +409,38 @@ elif exercise_type == "agreement":
                             answer_tokens.pop(index)
                             break
 
-                # Repeated identical adjective forms do not add information.  A learner may,
-                # for example, write "aeternum aeternum" to signal nom./acc. ambiguity.
-                deduplicated_tokens = []
-                seen_answer_tokens = set()
-                for token in answer_tokens:
-                    token_key = token.casefold()
-                    if token_key not in seen_answer_tokens:
-                        seen_answer_tokens.add(token_key)
-                        deduplicated_tokens.append(token)
-                answer_tokens = deduplicated_tokens
+                # Repeated identical adjective forms are accepted only when the displayed
+                # noun has multiple analyses which genuinely converge on the same adjective form.
+                answer_token_keys = [token.casefold() for token in answer_tokens]
+                has_duplicate_answer_token = len(answer_token_keys) != len(set(answer_token_keys))
+
+                analysis_adjective_surfaces = set()
+                for possible_number, possible_case in matching_analyses:
+                    analysis_form = _am_adjective_form(
+                        adjective, possible_case, gender, possible_number
+                    )
+                    for item in _am_forms_list(analysis_form):
+                        analysis_adjective_surfaces.add(
+                            _am_surface(item, print_macrons).casefold()
+                        )
+
+                duplicate_answer_allowed = (
+                    len(matching_analyses) > 1
+                    and len(analysis_adjective_surfaces) == 1
+                )
+                duplicate_answer_not_allowed = (
+                    has_duplicate_answer_token and not duplicate_answer_allowed
+                )
+
+                if duplicate_answer_allowed and has_duplicate_answer_token:
+                    deduplicated_tokens = []
+                    seen_answer_tokens = set()
+                    for token in answer_tokens:
+                        token_key = token.casefold()
+                        if token_key not in seen_answer_tokens:
+                            seen_answer_tokens.add(token_key)
+                            deduplicated_tokens.append(token)
+                    answer_tokens = deduplicated_tokens
 
                 if answer_tokens:
                     st.session_state.answer_input = " ".join(answer_tokens)
