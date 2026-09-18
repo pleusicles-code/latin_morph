@@ -3,7 +3,7 @@ import pandas as pd
 import unicodedata
 
 import vocab as vocab_module
-from vocab import import_nouns, import_adjectives, import_verbs, import_pronouns, filter_vocab_by_repo
+from vocab import import_nouns, import_adjectives, import_verbs, import_pronouns, filter_vocab_by_repo, filter_vocab_by_repos
 
 st.set_page_config("BevLat – Ragozási táblák", layout="centered")
 st.markdown("# Ragozási táblák")
@@ -48,7 +48,10 @@ if not available_repos:
     st.stop()
 
 default_repo = "alap2" if "alap2" in available_repos else ("alap1" if "alap1" in available_repos else available_repos[0])
-selected_repo = st.selectbox("Lista:", available_repos, index=available_repos.index(default_repo))
+repo_options = list(available_repos)
+if {"alap1", "alap2", "alap3"}.issubset(set(available_repos)):
+    repo_options.append("alap1-3")
+selected_repo = st.selectbox("Lista:", repo_options, index=repo_options.index(default_repo))
 
 pos_labels = {
     "all": "mind",
@@ -67,7 +70,12 @@ entries = []
 for category, pos, vocabulary in sources:
     if selected_pos != "all" and category != selected_pos:
         continue
-    for lemma, data in filter_vocab_by_repo(vocabulary, selected_repo).items():
+    selected_vocabulary = (
+        filter_vocab_by_repos(vocabulary, {"alap1", "alap2", "alap3"})
+        if selected_repo == "alap1-3"
+        else filter_vocab_by_repo(vocabulary, selected_repo)
+    )
+    for lemma, data in selected_vocabulary.items():
         display = data.get("lemma_lexical") or lemma
         entries.append((sort_key(display), sort_key(lemma), category, pos, lemma, data))
 entries.sort(key=lambda row: (row[0], row[3], row[1]))
