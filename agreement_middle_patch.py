@@ -747,7 +747,12 @@ def apply_recognition_base(source):
                             f"{_ar_surface(noun_form, print_macrons)} "
                             f"{_ar_surface(adjective_form, print_macrons)}"
                         )
-                        weight = 0.7 if number == "sg" and case == "nom" else 1.0
+                        if number == "sg" and case == "nom":
+                            weight = 0.7
+                        elif number == "pl" and case in ("dat", "abl"):
+                            weight = 0.5
+                        else:
+                            weight = 1.0
                         candidates.append((phrase, case, number, weight))
 
         if not candidates:
