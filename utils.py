@@ -63,6 +63,11 @@ def new_question(gen_question):
     '''
 
 #    try:
+    was_partial = "Partially correct" in str(st.session_state.get("result_message", ""))
+    if was_partial:
+        st.session_state.pop("answer_input", None)
+        st.session_state.pop("_bevlat_last_incorrect_answer", None)
+
     st.session_state.answer_checked = False
     st.session_state.answer_to_check = ""
     st.session_state["_bevlat_clear_answer_input"] = True
