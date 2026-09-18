@@ -1,6 +1,6 @@
 from pathlib import Path
 from itertools import permutations
-from agreement_middle_patch import apply_middle_mode
+from agreement_middle_patch import apply_middle_mode, apply_recognition_mode
 from agreement_weight_patch import apply_pair_weighting
 
 
@@ -52,6 +52,7 @@ needle = 'exec(compile(source, str(Path(__file__).with_name("agreement_impl.py")
 replacement = (
     'source = apply_middle_mode(source)\n'
     'source = apply_pair_weighting(source)\n'
+    'source = apply_recognition_mode(source)\n'
     'source = apply_multiple_answer_hint(source)\n'
     'source = apply_weak_istem_is_ambiguity(source)\n'
     'source = apply_colored_partial_feedback(source)\n'
