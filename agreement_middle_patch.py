@@ -481,3 +481,433 @@ else:
 
     source = source.replace(marker, agreement_branch, 1)
     return source
+
+
+def apply_recognition_mode(source):
+    old_generator = r'''    def recognition_gen_question():
+        noun, _, _ = adap_gen_question()
+        print_macrons = st.session_state[widget_key(page_id, "print_macrons")]
+        form_analyses = {}
+
+        for possible_number in noun_options["number"]:
+            for possible_case in recognition_cases_for_noun(noun, possible_number):
+                possible_form = build_noun([noun, possible_case, possible_number])
+                if possible_form is None:
+                    continue
+                possible_forms = possible_form if isinstance(possible_form, list) else [possible_form]
+                for form in possible_forms:
+                    displayed = normalize_noun_surface(form, print_macrons)
+                    form_analyses.setdefault(displayed, set()).add((possible_case, possible_number))
+
+        displayed_forms = list(form_analyses)
+        diagnostic_nom = is_diagnostic_sg_nom(noun, print_macrons)
+        displayed_nom = normalize_noun_surface(noun, print_macrons)
+        form_weights = [1 if diagnostic_nom and form == displayed_nom else 9 for form in displayed_forms]
+        displayed_form = random.choices(displayed_forms, weights=form_weights, k=1)[0]
+        displayed_analyses = set(form_analyses[displayed_form])
+        if (
+            noun == "deus"
+            and normalize_noun_surface(displayed_form, print_macrons)
+            == normalize_noun_surface("deum", print_macrons)
+            and ("acc", "sg") in displayed_analyses
+        ):
+            case, number = ("acc", "sg")
+        else:
+            case, number = random.choice(list(displayed_analyses))
+        st.session_state.nouns_recognition_displayed_form = displayed_form
+        return [noun, case, number]
+'''
+    new_generator = r'''    def _ar_adjective_group(adj):
+        info = adj_vocab[adj]
+        if info.get("decl") == (1, 2):
+            return "1_2"
+        if info.get("decl") != 3:
+            return None
+        noms = info.get("noms")
+        endings = len(noms) if isinstance(noms, (tuple, list)) else 1
+        return {1: "3_1", 2: "3_2", 3: "3_3"}.get(endings, "3_1")
+
+    def _ar_gendered_form(form, gender):
+        if not isinstance(form, (tuple, list)):
+            return form
+        if not form:
+            return None
+        if gender == "n":
+            return form[-1]
+        if len(form) in (1, 2):
+            return form[0]
+        return form[0] if gender == "m" else form[1]
+
+    def _ar_adjective_nom_sg(adj, gender):
+        info = adj_vocab[adj]
+        noms = info.get("noms")
+        if noms:
+            return _ar_gendered_form(noms, gender)
+        if info.get("decl") == (1, 2):
+            if gender == "m":
+                return adj
+            return info["stem"] + ("a" if gender == "f" else "um")
+        return adj if gender != "n" else _ar_gendered_form(info.get("noms", (adj,)), gender)
+
+    def _ar_adjective_form(adj, case, gender, number):
+        info = adj_vocab[adj]
+        if number == "sg" and case in ("nom", "voc"):
+            nom = _ar_adjective_nom_sg(adj, gender)
+            if case == "voc" and info.get("decl") == (1, 2) and gender == "m" and adj.endswith("us"):
+                if adj.endswith("ius"):
+                    return info["stem"][:-1] + "ī"
+                if adj == "meus":
+                    return "mī"
+                return info["stem"] + "e"
+            return nom
+
+        stem = info["stem"]
+        if info.get("decl") == (1, 2):
+            endings = {
+                "sg": {
+                    "f": {"gen": "ae", "dat": "ae", "acc": "am", "abl": "ā"},
+                    "m": {"gen": "ī", "dat": "ō", "acc": "um", "abl": "ō"},
+                    "n": {"gen": "ī", "dat": "ō", "acc": "um", "abl": "ō"},
+                },
+                "pl": {
+                    "f": {"nom": "ae", "gen": "ārum", "dat": "īs", "acc": "ās", "abl": "īs", "voc": "ae"},
+                    "m": {"nom": "ī", "gen": "ōrum", "dat": "īs", "acc": "ōs", "abl": "īs", "voc": "ī"},
+                    "n": {"nom": "a", "gen": "ōrum", "dat": "īs", "acc": "a", "abl": "īs", "voc": "a"},
+                },
+            }
+            return stem + endings[number][gender][case]
+
+        if number == "pl":
+            cons = bool(info.get("cons_stem"))
+            if case == "gen":
+                return stem + ("um" if cons else "ium")
+            if case in ("dat", "abl"):
+                return stem + "ibus"
+            if gender == "n" and case in ("nom", "acc", "voc"):
+                return stem + ("a" if cons else "ia")
+            if gender != "n":
+                if case in ("nom", "voc"):
+                    return stem + "ēs"
+                if case == "acc":
+                    return stem + "ēs" if cons else [stem + "īs", stem + "ēs"]
+
+        if case == "gen":
+            return stem + "is"
+        if case == "dat":
+            return stem + "ī"
+        if case == "abl":
+            return stem + ("e" if info.get("cons_stem") else "ī")
+        if case == "acc":
+            if gender == "n":
+                return _ar_adjective_nom_sg(adj, gender)
+            return stem + "em"
+        return _ar_adjective_nom_sg(adj, gender)
+
+    def _ar_adjective_dictionary_entry(adj):
+        info = adj_vocab[adj]
+        noms = info.get("noms")
+        forms = list(noms) if isinstance(noms, (tuple, list)) else ([noms] if noms else [])
+        group = _ar_adjective_group(adj)
+        if group == "3_1":
+            return f"{adj} ({info.get('stem', '')}is)"
+        if abbreviate_adjective_dictionary:
+            if info.get("decl") == (1, 2) and adj.endswith("er"):
+                if not forms:
+                    forms = [adj, info["stem"] + "a", info["stem"] + "um"]
+                return ", ".join(str(form) for form in forms)
+            return f"{adj} {3 if info.get('decl') == (1, 2) else max(1, len(forms))}"
+        if not forms and info.get("decl") == (1, 2):
+            forms = [adj, info["stem"] + "a", info["stem"] + "um"]
+        return ", ".join(str(form) for form in forms) if forms else adj
+
+    def _ar_pair_category(noun, adjective):
+        noun_decl = noun_vocab[noun].get("decl")
+        adj_decl = adj_vocab[adjective].get("decl")
+        if noun_decl == 1:
+            noun_family = "1"
+        elif str(noun_decl).startswith("2"):
+            noun_family = "2"
+        elif str(noun_decl).startswith("3") or noun_decl == 3:
+            noun_family = "3"
+        elif str(noun_decl).startswith("4") or noun_decl == 4:
+            noun_family = "4"
+        elif str(noun_decl).startswith("5"):
+            noun_family = "5"
+        else:
+            noun_family = str(noun_decl)
+        same_family = (
+            noun_family in ("1", "2") if adj_decl == (1, 2)
+            else noun_family == "3" if adj_decl == 3
+            else False
+        )
+        if not same_family:
+            return "different"
+        if adj_decl == 3 and noun_family == "3":
+            strong_i_stem = (
+                noun_decl == "3_istem_neut"
+                or noun_vocab[noun].get("true_i_stem") is True
+            )
+            if not strong_i_stem:
+                return "third_mixed"
+        return "same"
+
+    def _ar_weighted_pair():
+        pools = {"different": [], "third_mixed": [], "same": []}
+        for noun in active_vocab:
+            for adjective in active_adj_vocab:
+                pools[_ar_pair_category(noun, adjective)].append((noun, adjective))
+        available = [category for category, pairs in pools.items() if pairs]
+        if not available:
+            return None, None
+        weights = {"different": 0.60, "third_mixed": 0.25, "same": 0.15}
+        category = random.choices(
+            available, weights=[weights[item] for item in available], k=1
+        )[0]
+        return random.choice(pools[category])
+
+    def _ar_allowed_numbers(noun, adjective):
+        restriction = noun_vocab[noun].get("number")
+        if restriction == "singular":
+            numbers = ["sg"]
+        elif restriction == "plural":
+            numbers = ["pl"]
+        else:
+            numbers = ["sg", "pl"]
+        if adj_vocab[adjective].get("no_pl"):
+            numbers = [number for number in numbers if number != "pl"]
+        return numbers
+
+    def _ar_cases(noun, adjective, number, gender):
+        cases = [case for case in noun_options["case"] if case != "voc"]
+        if include_vocative:
+            noun_voc = build_noun([noun, "voc", number])
+            noun_nom = build_noun([noun, "nom", number])
+            adj_voc = _ar_adjective_form(adjective, "voc", gender, number)
+            adj_nom = _ar_adjective_form(adjective, "nom", gender, number)
+            if noun_voc != noun_nom or adj_voc != adj_nom:
+                cases.append("voc")
+        return cases
+
+    def _ar_forms(value):
+        if value is None:
+            return []
+        return value if isinstance(value, list) else [value]
+
+    def _ar_surface(value, preserve_macrons):
+        value = unicodedata.normalize("NFC", str(value))
+        return value if preserve_macrons else remove_macrons(value)
+
+    def recognition_gen_question():
+        noun, adjective = _ar_weighted_pair()
+        if not noun or not adjective:
+            return None
+        raw_gender = noun_vocab[noun]["gender"]
+        gender = random.choice(["m", "f"]) if raw_gender == "m/f" else raw_gender
+        print_macrons = st.session_state[widget_key(page_id, "print_macrons")]
+
+        candidates = []
+        for number in _ar_allowed_numbers(noun, adjective):
+            for case in _ar_cases(noun, adjective, number, gender):
+                noun_forms = _ar_forms(build_noun([noun, case, number]))
+                adjective_forms = _ar_forms(_ar_adjective_form(adjective, case, gender, number))
+                for noun_form in noun_forms:
+                    for adjective_form in adjective_forms:
+                        if noun_form is None or adjective_form is None:
+                            continue
+                        phrase = (
+                            f"{_ar_surface(noun_form, print_macrons)} "
+                            f"{_ar_surface(adjective_form, print_macrons)}"
+                        )
+                        weight = 0.7 if number == "sg" and case == "nom" else 1.0
+                        candidates.append((phrase, case, number, weight))
+
+        if not candidates:
+            return None
+        phrase, case, number, _ = random.choices(
+            candidates, weights=[item[3] for item in candidates], k=1
+        )[0]
+        st.session_state.agreement_recognition_adjective = adjective
+        st.session_state.agreement_recognition_gender = gender
+        st.session_state.agreement_recognition_displayed_phrase = phrase
+        return [noun, case, number]
+'''
+    if old_generator not in source:
+        raise RuntimeError("Could not locate noun recognition generator for agreement recognition")
+    source = source.replace(old_generator, new_generator, 1)
+
+    old_intro = r'''        st.session_state["correct_answer"] = correct_answer = build_noun(st.session_state.current_question)
+
+        noun_prompt = build_dictionary_entry(noun) if show_dictionary_entry else noun
+        noun_decl = noun_vocab.get(noun)["decl"]
+'''
+    new_intro = r'''        adjective = st.session_state.get("agreement_recognition_adjective")
+        gender = st.session_state.get("agreement_recognition_gender")
+        displayed_phrase = st.session_state.get("agreement_recognition_displayed_phrase", "")
+        st.session_state["correct_answer"] = correct_answer = displayed_phrase
+
+        noun_prompt = build_dictionary_entry(noun) if show_dictionary_entry else noun
+        adjective_prompt = _ar_adjective_dictionary_entry(adjective) if show_dictionary_entry else adjective
+        noun_decl = noun_vocab.get(noun)["decl"]
+'''
+    if old_intro not in source:
+        raise RuntimeError("Could not locate recognition question introduction")
+    source = source.replace(old_intro, new_intro, 1)
+
+    old_recognition = r'''        else:
+            displayed_form = st.session_state.get("nouns_recognition_displayed_form")
+            if not displayed_form:
+                displayed_form = correct_answer
+                if isinstance(displayed_form, list):
+                    displayed_form = random.choice(displayed_form)
+                if not st.session_state[widget_key(page_id, "print_macrons")]:
+                    displayed_form = remove_macrons(displayed_form)
+
+            article = hungarian_article(displayed_form)
+            question_html = (
+                f'Milyen alak lehet {article} '
+                f'<strong><em>{html.escape(displayed_form)}</em></strong>?'
+            )
+            if show_dictionary_entry:
+                question_html += f' <em>({html.escape(build_dictionary_entry(noun))})</em>'
+            if show_declension and show_stem:
+                decl_text = f"Ez egy {DECLENSION_NUMBER_LABELS[decl]} declinatiós"
+                if third_group:
+                    decl_text += f" {third_group}"
+                supplementary.append(f"{decl_text} szó, a töve {stem_html}")
+            elif show_declension:
+                decl_text = f"Ez egy {DECLENSION_NUMBER_LABELS[decl]} declinatiós"
+                if third_group:
+                    decl_text += f" {third_group} szó."
+                else:
+                    decl_text += " szó."
+                supplementary.append(decl_text)
+            elif show_stem:
+                supplementary.append(f"A szó töve {stem_html}")
+
+            print_macrons = st.session_state[widget_key(page_id, "print_macrons")]
+            comparable_displayed_form = normalize_noun_surface(displayed_form, print_macrons)
+            matching_analyses = set()
+            for possible_number in noun_options["number"]:
+                for possible_case in recognition_cases_for_noun(noun, possible_number):
+                    possible_form = build_noun([noun, possible_case, possible_number])
+                    if possible_form is None:
+                        continue
+                    possible_forms = possible_form if isinstance(possible_form, list) else [possible_form]
+                    for form in possible_forms:
+                        comparable_form = normalize_noun_surface(form, print_macrons)
+                        if comparable_form == comparable_displayed_form:
+                            matching_analyses.add((possible_number, possible_case))
+                            break
+
+            optional_analyses = (
+                optional_noun_recognition_analyses(noun, displayed_form, print_macrons)
+                & matching_analyses
+            )
+            required_analyses = matching_analyses - optional_analyses
+
+            supplementary.append(
+                "A magánhangzók hosszúsága jelölve van."
+                if print_macrons
+                else "A magánhangzók hosszúsága nincs jelölve."
+            )
+            multiple_answer_message = None
+            if st.session_state[widget_key(page_id, "indicate_multiple_answers")]:
+                if len(required_analyses) > 1:
+                    multiple_answer_message = '<span style="color:#7c3aed;">Több helyes válaszlehetőség van.</span>'
+            else:
+                multiple_answer_message = "Több helyes válaszlehetőség is lehet."
+            if multiple_answer_message:
+                if show_dictionary_entry and show_declension and show_stem:
+                    supplementary.append(f"<br>{multiple_answer_message}")
+                else:
+                    supplementary.append(multiple_answer_message)
+'''
+    new_recognition = r'''        else:
+            print_macrons = st.session_state[widget_key(page_id, "print_macrons")]
+            question_html = (
+                f'Milyen alakban állhat a <strong><em>{html.escape(displayed_phrase)}</em></strong> '
+                f'jelzős kifejezés?'
+            )
+            if show_dictionary_entry:
+                question_html += (
+                    f' <em>({html.escape(build_dictionary_entry(noun))} · '
+                    f'{html.escape(_ar_adjective_dictionary_entry(adjective))})</em>'
+                )
+
+            noun_parts = []
+            adjective_parts = []
+            if show_declension:
+                noun_parts.append(f"{DECLENSION_NUMBER_LABELS[decl]} declinatiós")
+                adjective_group = _ar_adjective_group(adjective)
+                if adjective_group == "1_2":
+                    adjective_parts.append("1–2. declinatiós")
+                elif adjective_group and adjective_group.startswith("3_"):
+                    adjective_parts.append("3. declinatiós")
+            if show_third_group:
+                if third_group:
+                    noun_parts.append(third_group)
+                adjective_group = _ar_adjective_group(adjective)
+                if adjective_group and adjective_group.startswith("3_"):
+                    adjective_parts.append(
+                        {"3_1": "1 végű", "3_2": "2 végű", "3_3": "3 végű"}[adjective_group]
+                    )
+            if show_stem:
+                noun_parts.append(f'a töve <em>{html.escape(display_noun_stem(noun))}-</em>')
+                adjective_parts.append(
+                    f'a töve <em>{html.escape(str(adj_vocab[adjective].get("stem", "")))}-</em>'
+                )
+            if noun_parts:
+                supplementary.append("<strong>Főnév:</strong> " + ", ".join(noun_parts))
+            if adjective_parts:
+                supplementary.append("<strong>Melléknév:</strong> " + ", ".join(adjective_parts))
+
+            matching_analyses = set()
+            for possible_number in _ar_allowed_numbers(noun, adjective):
+                for possible_case in _ar_cases(noun, adjective, possible_number, gender):
+                    noun_forms = _ar_forms(build_noun([noun, possible_case, possible_number]))
+                    adjective_forms = _ar_forms(
+                        _ar_adjective_form(adjective, possible_case, gender, possible_number)
+                    )
+                    for noun_form in noun_forms:
+                        for adjective_form in adjective_forms:
+                            possible_phrase = (
+                                f"{_ar_surface(noun_form, print_macrons)} "
+                                f"{_ar_surface(adjective_form, print_macrons)}"
+                            )
+                            if possible_phrase == displayed_phrase:
+                                matching_analyses.add((possible_number, possible_case))
+
+            optional_analyses = set()
+            required_analyses = matching_analyses
+
+            supplementary.append(
+                "A magánhangzók hosszúsága jelölve van."
+                if print_macrons
+                else "A magánhangzók hosszúsága nincs jelölve."
+            )
+            multiple_answer_message = None
+            if st.session_state[widget_key(page_id, "indicate_multiple_answers")]:
+                if len(required_analyses) > 1:
+                    multiple_answer_message = '<span style="color:#7c3aed;">Több helyes válaszlehetőség van.</span>'
+            else:
+                multiple_answer_message = "Több helyes válaszlehetőség is lehet."
+            if multiple_answer_message:
+                supplementary.append(multiple_answer_message)
+'''
+    if old_recognition not in source:
+        raise RuntimeError("Could not locate noun recognition display block")
+    source = source.replace(old_recognition, new_recognition, 1)
+
+    old_curr = r'''        curr_question = {
+            "pos": "noun",
+            "word": noun,
+'''
+    new_curr = r'''        curr_question = {
+            "pos": "agreement_recognize" if exercise_type == "recognize" else "noun",
+            "word": [noun, adjective] if exercise_type == "recognize" else noun,
+'''
+    if old_curr not in source:
+        raise RuntimeError("Could not locate recognition logging block")
+    source = source.replace(old_curr, new_curr, 1)
+
+    return source
