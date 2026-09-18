@@ -79,6 +79,7 @@ def new_question(gen_question):
     st.session_state.pop("answer_credit_override", None)
 
     st.session_state.current_question = gen_question()
+    st.session_state["_bevlat_new_question_render_pending"] = True
     # except:
     #     # st.write("Your selected options have resulted in an impossibility: try selecting some additional options.")
     #     st.write("Something went wrong.")
