@@ -182,12 +182,7 @@ elif exercise_type == "agreement":
             else:
                 genitive = "/".join(genitive)
         gender = info["gender"]
-        number_label = " pl." if plural_only else ""
-        return (
-            f"{noun}, {genitive} {gender}.{number_label}"
-            if genitive
-            else f"{noun} {gender}.{number_label}"
-        )
+        return f"{noun}, {genitive} {gender}." if genitive else f"{noun} {gender}."
 
     def _am_adjective_nominatives(adj):
         info = adj_vocab[adj]
