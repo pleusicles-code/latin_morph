@@ -50,8 +50,8 @@ def apply_pair_weighting(source):
 
         category_weights = {
             "different": 0.60,
-            "third_mixed": 0.25,
-            "same": 0.15,
+            "third_mixed": 0.30,
+            "same": 0.10,
         }
         category = random.choices(
             available,
@@ -118,8 +118,8 @@ def apply_pair_weighting(source):
 
         category_weights = {
             "different": 0.60,
-            "third_mixed": 0.25,
-            "same": 0.15,
+            "third_mixed": 0.30,
+            "same": 0.10,
         }
         category = random.choices(
             available,
