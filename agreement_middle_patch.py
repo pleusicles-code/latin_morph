@@ -529,6 +529,13 @@ def apply_recognition_base(source):
         endings = len(noms) if isinstance(noms, (tuple, list)) else 1
         return {1: "3_1", 2: "3_2", 3: "3_3"}.get(endings, "3_1")
 
+    active_adj_vocab = {
+        adj: info for adj, info in adj_vocab.items()
+        if _ar_adjective_group(adj) in adjective_declension
+        and not info.get("no_sg")
+        and info.get("decl") in ((1, 2), 3)
+    }
+
     def _ar_gendered_form(form, gender):
         if not isinstance(form, (tuple, list)):
             return form
