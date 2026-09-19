@@ -177,25 +177,25 @@ ADJECTIVES = {word: data for word, data in adjective_vocab.items() if adjective_
 
 option_expander = st.expander("Beállítások", expanded=True)
 with option_expander:
-    col_declension, col_pos = st.columns(2)
-    with col_declension:
+    settings_main_col, settings_options_col = st.columns([3, 2])
+    with settings_main_col:
         declension = st.multiselect(
             "Válaszd ki, mely declinatiókat szeretnéd gyakorolni (alapértelmezés szerint mindegyik ki van választva):",
             options=DECLENSIONS,
             format_func=lambda x: DECLENSION_LABELS[x],
             key=widget_key(page_id, "declension"),
         )
-    with col_pos:
         selected_pos = st.multiselect(
             "Válaszd ki, mely szófajokat szeretnéd gyakorolni (alapértelmezés szerint mindegyik ki van választva):",
             options=PARTS_OF_SPEECH,
             format_func=lambda x: PART_OF_SPEECH_LABELS[x],
             key=widget_key(page_id, "selected_pos"),
         )
-    abbreviate_adjective_dictionary = st.checkbox(
-        "Rövidített melléknévi szótári alakok",
-        key=widget_key(page_id, "abbreviate_adjective_dictionary"),
-    )
+    with settings_options_col:
+        abbreviate_adjective_dictionary = st.checkbox(
+            "Rövidített melléknévi szótári alakok",
+            key=widget_key(page_id, "abbreviate_adjective_dictionary"),
+        )
     current_settings = {"declension": declension, "selected_pos": selected_pos, "abbreviate_adjective_dictionary": abbreviate_adjective_dictionary}
     if st.user.is_logged_in:
         set_defaults_col, clear_defaults_col, link_col = st.columns(3)
