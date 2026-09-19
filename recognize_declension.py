@@ -6,7 +6,7 @@ from datetime import datetime as dt, timezone
 import streamlit as st
 
 from utils import clear_page, new_question, reset, save_defaults, clear_defaults, auto_advance_delay
-from exercise_presets import (list_setting, resolve_exercise_settings, initialize_widget_state,
+from exercise_presets import (bool_setting, list_setting, resolve_exercise_settings, initialize_widget_state,
                               widget_key, url_preset_active, exercise_link_popover)
 from vocab import import_nouns, import_adjectives, filter_vocab_by_repo
 
@@ -67,6 +67,7 @@ def feedback_box(content, state):
 exercise_schema = {
     "declension": list_setting(DECLENSIONS, DECLENSIONS),
     "selected_pos": list_setting(PARTS_OF_SPEECH, PARTS_OF_SPEECH),
+    "abbreviate_adjective_dictionary": bool_setting(True),
 }
 exercise_settings = resolve_exercise_settings(page_id, exercise_schema, defaults)
 initialize_widget_state(page_id, exercise_settings)
@@ -117,13 +118,16 @@ def adjective_dictionary_entry(adjective):
     if noms and len(noms) == 3 and str(noms[0]).endswith("er"):
         return ", ".join(noms)
     if decl == (1, 2):
-        return f"{adjective} 3"
+        if abbreviate_adjective_dictionary:
+            return f"{adjective} 3"
+        stem = data.get("stem", "")
+        return f"{adjective}, {stem}a, {stem}um"
     if decl == 3:
         if noms:
             if len(noms) == 3:
                 return ", ".join(noms)
             if len(noms) == 2:
-                return f"{adjective} 2"
+                return f"{adjective} 2" if abbreviate_adjective_dictionary else ", ".join(noms)
             if len(noms) == 1:
                 return f"{adjective} 1"
         return f"{adjective} 1"
@@ -188,7 +192,11 @@ with option_expander:
             format_func=lambda x: PART_OF_SPEECH_LABELS[x],
             key=widget_key(page_id, "selected_pos"),
         )
-    current_settings = {"declension": declension, "selected_pos": selected_pos}
+    abbreviate_adjective_dictionary = st.checkbox(
+        "Rövidített melléknévi szótári alakok",
+        key=widget_key(page_id, "abbreviate_adjective_dictionary"),
+    )
+    current_settings = {"declension": declension, "selected_pos": selected_pos, "abbreviate_adjective_dictionary": abbreviate_adjective_dictionary}
     if st.user.is_logged_in:
         set_defaults_col, clear_defaults_col, link_col = st.columns(3)
         with set_defaults_col:
@@ -199,12 +207,13 @@ with option_expander:
                 disabled=preset_active,
             )
         with clear_defaults_col:
-            generic_settings = {"declension": DECLENSIONS, "selected_pos": PARTS_OF_SPEECH}
+            generic_settings = {"declension": DECLENSIONS, "selected_pos": PARTS_OF_SPEECH, "abbreviate_adjective_dictionary": True}
             settings_changed = current_settings != generic_settings
             def reset_recognition_defaults():
                 clear_defaults(page_id)
                 st.session_state[widget_key(page_id, "declension")] = list(DECLENSIONS)
                 st.session_state[widget_key(page_id, "selected_pos")] = list(PARTS_OF_SPEECH)
+                st.session_state[widget_key(page_id, "abbreviate_adjective_dictionary")] = True
             st.button(
                 "Alapbeállítások", type="primary", width="stretch",
                 help="A BevLat általános alapértelmezett beállításainak visszaállítása ehhez a gyakorlathoz.",
