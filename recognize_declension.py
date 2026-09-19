@@ -360,13 +360,21 @@ if st.session_state.current_question:
             }}
             </style>
             """)
-    selected_pos_set = set(selected_pos)
-    if selected_pos_set == {"noun"}:
-        visible_answer_options = ["1", "2", "3", "4", "5"]
-    elif selected_pos_set == {"adjective"}:
-        visible_answer_options = ["1–2", "3"]
-    else:
-        visible_answer_options = ANSWER_OPTIONS
+    selected_declensions = selected_declension_numbers()
+    visible_answer_options = []
+    if "noun" in selected_pos:
+        visible_answer_options.extend(
+            option for option in ["1", "2", "3", "4", "5"]
+            if option in selected_declensions
+        )
+    if "adjective" in selected_pos:
+        if {"1", "2"} & selected_declensions:
+            visible_answer_options.append("1–2")
+        if "3" in selected_declensions and "3" not in visible_answer_options:
+            visible_answer_options.append("3")
+    visible_answer_options = [
+        option for option in ANSWER_OPTIONS if option in visible_answer_options
+    ]
     answer_columns = st.columns(len(visible_answer_options), gap="small")
     for answer_index, (answer_column, answer_option) in enumerate(zip(answer_columns, visible_answer_options)):
         with answer_column:
