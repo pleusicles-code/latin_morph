@@ -65,6 +65,7 @@ def feedback_box(content, state):
 exercise_schema = {
     "selected_pos": list_setting(PARTS_OF_SPEECH, PARTS_OF_SPEECH),
     "full_regular_first_entry": bool_setting(False),
+    "abbreviate_adjective_dictionary": bool_setting(True),
 }
 exercise_settings = resolve_exercise_settings(page_id, exercise_schema, defaults)
 initialize_widget_state(page_id, exercise_settings)
@@ -115,13 +116,16 @@ def adjective_dictionary_entry(adjective):
     if noms and len(noms) == 3 and str(noms[0]).endswith("er"):
         return ", ".join(noms)
     if decl == (1, 2):
-        return f"{adjective} 3"
+        if abbreviate_adjective_dictionary:
+            return f"{adjective} 3"
+        stem = data.get("stem", "")
+        return f"{adjective}, {stem}a, {stem}um"
     if decl == 3:
         if noms:
             if len(noms) == 3:
                 return ", ".join(noms)
             if len(noms) == 2:
-                return f"{adjective} 2"
+                return f"{adjective} 2" if abbreviate_adjective_dictionary else ", ".join(noms)
             if len(noms) == 1:
                 return f"{adjective} 1"
         return f"{adjective} 1"
@@ -251,11 +255,15 @@ with option_expander:
             key=widget_key(page_id, "selected_pos"),
         )
     with settings_options_col:
+        abbreviate_adjective_dictionary = st.checkbox(
+            "Rövidített melléknévi szótári alakok",
+            key=widget_key(page_id, "abbreviate_adjective_dictionary"),
+        )
         full_regular_first_entry = st.checkbox(
             "Szabályos 1. coniugatiós igék teljes szótári alakjának megjelenítése",
             key=widget_key(page_id, "full_regular_first_entry"),
         )
-    current_settings = {"selected_pos": selected_pos, "full_regular_first_entry": full_regular_first_entry}
+    current_settings = {"selected_pos": selected_pos, "full_regular_first_entry": full_regular_first_entry, "abbreviate_adjective_dictionary": abbreviate_adjective_dictionary}
     if st.user.is_logged_in:
         set_defaults_col, clear_defaults_col, link_col = st.columns(3)
         with set_defaults_col:
@@ -266,12 +274,13 @@ with option_expander:
                 disabled=preset_active,
             )
         with clear_defaults_col:
-            generic_settings = {"selected_pos": PARTS_OF_SPEECH, "full_regular_first_entry": False}
+            generic_settings = {"selected_pos": PARTS_OF_SPEECH, "full_regular_first_entry": False, "abbreviate_adjective_dictionary": True}
             settings_changed = current_settings != generic_settings
             def reset_recognition_defaults():
                 clear_defaults(page_id)
                 st.session_state.recognize_pos_selected_pos = list(PARTS_OF_SPEECH)
                 st.session_state.recognize_pos_full_regular_first_entry = False
+                st.session_state.recognize_pos_abbreviate_adjective_dictionary = True
             st.button(
                 "Alapbeállítások", type="primary", width="stretch",
                 help="A BevLat általános alapértelmezett beállításainak visszaállítása ehhez a feladathoz.",
