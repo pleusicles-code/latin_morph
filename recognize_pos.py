@@ -385,8 +385,9 @@ if st.session_state.current_question:
             }}
             </style>
             """)
-    answer_columns = st.columns(len(PARTS_OF_SPEECH), gap="small")
-    for answer_index, (answer_column, answer_option) in enumerate(zip(answer_columns, PARTS_OF_SPEECH)):
+    answer_options = list(selected_pos)
+    answer_columns = st.columns(len(answer_options), gap="small")
+    for answer_index, (answer_column, answer_option) in enumerate(zip(answer_columns, answer_options)):
         with answer_column:
             st.button(
                 POS_LABELS[answer_option], key=f"{answer_key}_option_{answer_index}",
