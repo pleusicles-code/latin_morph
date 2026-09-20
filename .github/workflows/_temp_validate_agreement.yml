@@ -1,0 +1,35 @@
+name: Temporary validate agreement transform
+
+on:
+  push:
+    branches:
+      - exercise-url-presets
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Compile source files
+        run: |
+          python -m py_compile agreement_middle_patch.py agreement_impl.py agreement_stage.py agreement_loader.py agreement_base.py
+      - name: Compile transformed recognition source
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import textwrap
+          from agreement_middle_patch import apply_recognition_base
+
+          source = Path("agreement_base.py").read_text(encoding="utf-8")
+          marker = 'if len(declension) == 0 and not st.session_state.current_question:'
+          idx = source.find(marker)
+          if idx < 0:
+              raise RuntimeError("quiz marker not found")
+          synthetic = source[:idx] + textwrap.indent(source[idx:], "    ")
+          transformed = apply_recognition_base(synthetic)
+          compile(transformed, "agreement_base_transformed.py", "exec")
+          print("agreement recognition/number-switch transform compiles")
+          PY
