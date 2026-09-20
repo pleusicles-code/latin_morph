@@ -26,7 +26,7 @@ if '"agreement_enforce_macrons"' in source:
 
 source = source.replace(
     '"exercise_type": choice_setting("inflect", ["inflect", "recognize"]),',
-    '"exercise_type": choice_setting("inflect", ["inflect", "agreement", "recognize"]),'
+    '"exercise_type": choice_setting("inflect", ["inflect", "agreement", "number_switch", "recognize"]),'
 )
 source = source.replace(
     '"show_dictionary_entry": bool_setting(True),',
@@ -34,7 +34,7 @@ source = source.replace(
 )
 source = source.replace(
     'options=["inflect", "recognize"],\n            format_func=lambda value: {\n                "inflect": "Ragozás",\n                "recognize": "Alakfelismerés",\n            }[value],',
-    'options=["inflect", "agreement", "recognize"],\n            format_func=lambda value: {\n                "inflect": "Ragozás",\n                "agreement": "Egyeztetés",\n                "recognize": "Alakfelismerés",\n            }[value],'
+    'options=["inflect", "agreement", "number_switch", "recognize"],\n            format_func=lambda value: {\n                "inflect": "Ragozás",\n                "agreement": "Egyeztetés",\n                "number_switch": "Sg./pl. váltás",\n                "recognize": "Alakfelismerés",\n            }[value],'
 )
 source = source.replace('if exercise_type == "inflect":', 'if exercise_type in ("inflect", "agreement"):')
 source = source.replace(
