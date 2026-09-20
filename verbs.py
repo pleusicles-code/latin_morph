@@ -58,6 +58,7 @@ def feedback_box(content, state):
     colors = {
         "correct": ("#e3f3e7", "#7aa682"),
         "incorrect": ("#f7dddd", "#c48282"),
+        "partial": ("#fff4d6", "#e2c66d"),
     }
     background, border = colors[state]
     return (
@@ -850,7 +851,7 @@ if isinstance(defaults.get("voice_selector"), list):
     defaults["voice_selector"] = migrated_voices or master_voice_list
 defaults.pop("fut_impv", None)
 exercise_schema = {
-    "exercise_type": choice_setting("inflect", ["inflect", "recognize"]),
+    "exercise_type": choice_setting("inflect", ["inflect", "transform", "recognize"]),
     "print_macrons": bool_setting(False),
     "indicate_multiple_answers": bool_setting(False),
     "award_partial_credit": bool_setting(False),
@@ -891,9 +892,10 @@ with verb_options_col:
     with exercise_type_radio_col:
         exercise_type = st.radio(
             "Feladattípus:",
-            options=["inflect", "recognize"],
+            options=["inflect", "transform", "recognize"],
             format_func=lambda value: {
                 "inflect": "Ragozás",
+                "transform": "Átalakítás",
                 "recognize": "Alakfelismerés",
             }[value],
             horizontal=True,
@@ -928,6 +930,19 @@ with options_col:
             help="Ha be van kapcsolva, a kérdésben szereplő igealak jelöli a magánhangzók hosszúságát. Ez ritkán két, egyébként azonos írásképű alakot is megkülönböztethet.",
             key=widget_key(page_id, "print_macrons"),
         )
+        if exercise_type == "transform":
+            enforce_answer_macrons_key = widget_key(page_id, "enforce_answer_macrons")
+            if not print_macrons:
+                st.session_state[enforce_answer_macrons_key] = False
+            enforce_answer_macrons = st.checkbox(
+                "Hosszú magánhangzók ellenőrzése a válaszban",
+                help="Ha be van kapcsolva, a válaszban is pontosan jelölni kell a hosszú magánhangzókat.",
+                key=enforce_answer_macrons_key,
+                disabled=not print_macrons,
+            )
+            if enforce_answer_macrons:
+                st.markdown("A hosszú magánhangzók innen másolhatók:")
+                st.code("āēīōū", language=None)
         indicate_multiple_answers = st.checkbox(
             "Több helyes válaszlehetőség jelzése?",
             help="Ha be van kapcsolva, a kérdés külön jelzi, ha az adott alaknak több helyes elemzése van.",
