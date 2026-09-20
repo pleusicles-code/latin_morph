@@ -1025,168 +1025,168 @@ def apply_recognition_base(source):
 
 
 def apply_number_switch_base(source):
-    marker = '        else:\n            print_macrons = st.session_state[widget_key(page_id, "print_macrons")]\n            question_html = ('
+    marker = '            else:\n                print_macrons = st.session_state[widget_key(page_id, "print_macrons")]\n                question_html = ('
     start = source.find(marker)
     if start == -1:
         raise RuntimeError("Could not locate agreement recognition display branch for number switch")
-    end_marker = '        prompt_height = 112 if supplementary else 82\n'
+    end_marker = '            prompt_height = 112 if supplementary else 82\n'
     end = source.find(end_marker, start)
     if end == -1:
         raise RuntimeError("Could not locate recognition prompt boundary for number switch")
 
     old = source[start:end]
-    new = r'''        else:
-            print_macrons = st.session_state[widget_key(page_id, "print_macrons")]
-
-            if exercise_type == "number_switch":
-                question_html = (
-                    f'Változtasd meg a <strong><em>{html.escape(displayed_phrase)}</em></strong> '
-                    f'jelzős kifejezés számát, az esetet változatlanul hagyva!'
-                )
-                if show_dictionary_entry:
-                    question_html += (
-                        f' <em>({html.escape(build_dictionary_entry(noun))} · '
-                        f'{html.escape(_ar_adjective_dictionary_entry(adjective))})</em>'
+    new = r'''            else:
+                print_macrons = st.session_state[widget_key(page_id, "print_macrons")]
+    
+                if exercise_type == "number_switch":
+                    question_html = (
+                        f'Változtasd meg a <strong><em>{html.escape(displayed_phrase)}</em></strong> '
+                        f'jelzős kifejezés számát, az esetet változatlanul hagyva!'
                     )
-
-                matching_analyses = set()
-                for possible_number in _ar_allowed_numbers(noun, adjective):
-                    for possible_case in _ar_cases(noun, adjective, possible_number, gender):
-                        noun_forms = _ar_forms(build_noun([noun, possible_case, possible_number]))
-                        adjective_forms = _ar_forms(
-                            _ar_adjective_form(adjective, possible_case, gender, possible_number)
+                    if show_dictionary_entry:
+                        question_html += (
+                            f' <em>({html.escape(build_dictionary_entry(noun))} · '
+                            f'{html.escape(_ar_adjective_dictionary_entry(adjective))})</em>'
                         )
-                        for noun_form in noun_forms:
-                            for adjective_form in adjective_forms:
-                                possible_phrase = (
-                                    f"{_ar_surface(noun_form, print_macrons)} "
-                                    f"{_ar_surface(adjective_form, print_macrons)}"
-                                )
-                                if possible_phrase == displayed_phrase:
-                                    matching_analyses.add((possible_number, possible_case))
-
-                target_phrases = []
-                seen_targets = set()
-                for possible_number, possible_case in sorted(matching_analyses):
-                    target_number = "pl" if possible_number == "sg" else "sg"
-                    if target_number not in _ar_allowed_numbers(noun, adjective):
-                        continue
-                    noun_targets = _ar_forms(build_noun([noun, possible_case, target_number]))
-                    adjective_targets = _ar_forms(
-                        _ar_adjective_form(adjective, possible_case, gender, target_number)
+    
+                    matching_analyses = set()
+                    for possible_number in _ar_allowed_numbers(noun, adjective):
+                        for possible_case in _ar_cases(noun, adjective, possible_number, gender):
+                            noun_forms = _ar_forms(build_noun([noun, possible_case, possible_number]))
+                            adjective_forms = _ar_forms(
+                                _ar_adjective_form(adjective, possible_case, gender, possible_number)
+                            )
+                            for noun_form in noun_forms:
+                                for adjective_form in adjective_forms:
+                                    possible_phrase = (
+                                        f"{_ar_surface(noun_form, print_macrons)} "
+                                        f"{_ar_surface(adjective_form, print_macrons)}"
+                                    )
+                                    if possible_phrase == displayed_phrase:
+                                        matching_analyses.add((possible_number, possible_case))
+    
+                    target_phrases = []
+                    seen_targets = set()
+                    for possible_number, possible_case in sorted(matching_analyses):
+                        target_number = "pl" if possible_number == "sg" else "sg"
+                        if target_number not in _ar_allowed_numbers(noun, adjective):
+                            continue
+                        noun_targets = _ar_forms(build_noun([noun, possible_case, target_number]))
+                        adjective_targets = _ar_forms(
+                            _ar_adjective_form(adjective, possible_case, gender, target_number)
+                        )
+                        for noun_target in noun_targets:
+                            for adjective_target in adjective_targets:
+                                if noun_target is None or adjective_target is None:
+                                    continue
+                                n = _ar_surface(noun_target, print_macrons)
+                                a = _ar_surface(adjective_target, print_macrons)
+                                for phrase in (f"{n} {a}", f"{a} {n}"):
+                                    key = phrase.casefold()
+                                    if key not in seen_targets:
+                                        seen_targets.add(key)
+                                        target_phrases.append(phrase)
+    
+                    st.session_state.correct_answer = target_phrases
+                    supplementary.append(
+                        "A magánhangzók hosszúsága jelölve van."
+                        if print_macrons
+                        else "A magánhangzók hosszúsága nincs jelölve."
                     )
-                    for noun_target in noun_targets:
-                        for adjective_target in adjective_targets:
-                            if noun_target is None or adjective_target is None:
-                                continue
-                            n = _ar_surface(noun_target, print_macrons)
-                            a = _ar_surface(adjective_target, print_macrons)
-                            for phrase in (f"{n} {a}", f"{a} {n}"):
-                                key = phrase.casefold()
-                                if key not in seen_targets:
-                                    seen_targets.add(key)
-                                    target_phrases.append(phrase)
-
-                st.session_state.correct_answer = target_phrases
-                supplementary.append(
-                    "A magánhangzók hosszúsága jelölve van."
-                    if print_macrons
-                    else "A magánhangzók hosszúsága nincs jelölve."
-                )
-                if st.session_state[widget_key(page_id, "indicate_multiple_answers")]:
-                    if len({p.casefold() for p in target_phrases[::2]}) > 1:
-                        supplementary.append(
-                            '<span style="color:#7c3aed;">Több helyes válaszlehetőség is van.</span>'
-                        )
+                    if st.session_state[widget_key(page_id, "indicate_multiple_answers")]:
+                        if len({p.casefold() for p in target_phrases[::2]}) > 1:
+                            supplementary.append(
+                                '<span style="color:#7c3aed;">Több helyes válaszlehetőség is van.</span>'
+                            )
+                    else:
+                        supplementary.append("Több helyes válaszlehetőség is lehet.")
                 else:
-                    supplementary.append("Több helyes válaszlehetőség is lehet.")
-            else:
-                question_html = (
-                    f'Milyen alakban állhat a <strong><em>{html.escape(displayed_phrase)}</em></strong> '
-                    f'jelzős kifejezés?'
-                )
-                if show_dictionary_entry:
-                    question_html += (
-                        f' <em>({html.escape(build_dictionary_entry(noun))} · '
-                        f'{html.escape(_ar_adjective_dictionary_entry(adjective))})</em>'
+                    question_html = (
+                        f'Milyen alakban állhat a <strong><em>{html.escape(displayed_phrase)}</em></strong> '
+                        f'jelzős kifejezés?'
                     )
-
-                matching_analyses = set()
-                for possible_number in _ar_allowed_numbers(noun, adjective):
-                    for possible_case in _ar_cases(noun, adjective, possible_number, gender):
-                        noun_forms = _ar_forms(build_noun([noun, possible_case, possible_number]))
-                        adjective_forms = _ar_forms(
-                            _ar_adjective_form(adjective, possible_case, gender, possible_number)
+                    if show_dictionary_entry:
+                        question_html += (
+                            f' <em>({html.escape(build_dictionary_entry(noun))} · '
+                            f'{html.escape(_ar_adjective_dictionary_entry(adjective))})</em>'
                         )
-                        for noun_form in noun_forms:
-                            for adjective_form in adjective_forms:
-                                possible_phrase = (
-                                    f"{_ar_surface(noun_form, print_macrons)} "
-                                    f"{_ar_surface(adjective_form, print_macrons)}"
-                                )
-                                if possible_phrase == displayed_phrase:
-                                    matching_analyses.add((possible_number, possible_case))
-
-                optional_analyses = set()
-                required_analyses = matching_analyses
-
-                supplementary.append(
-                    "A magánhangzók hosszúsága jelölve van."
-                    if print_macrons
-                    else "A magánhangzók hosszúsága nincs jelölve."
-                )
-                multiple_answer_message = None
-                if st.session_state[widget_key(page_id, "indicate_multiple_answers")]:
-                    if len(required_analyses) > 1:
-                        multiple_answer_message = '<span style="color:#7c3aed;">Több helyes válaszlehetőség van.</span>'
-                else:
-                    multiple_answer_message = "Több helyes válaszlehetőség is lehet."
-                if multiple_answer_message:
-                    supplementary.append(multiple_answer_message)
+    
+                    matching_analyses = set()
+                    for possible_number in _ar_allowed_numbers(noun, adjective):
+                        for possible_case in _ar_cases(noun, adjective, possible_number, gender):
+                            noun_forms = _ar_forms(build_noun([noun, possible_case, possible_number]))
+                            adjective_forms = _ar_forms(
+                                _ar_adjective_form(adjective, possible_case, gender, possible_number)
+                            )
+                            for noun_form in noun_forms:
+                                for adjective_form in adjective_forms:
+                                    possible_phrase = (
+                                        f"{_ar_surface(noun_form, print_macrons)} "
+                                        f"{_ar_surface(adjective_form, print_macrons)}"
+                                    )
+                                    if possible_phrase == displayed_phrase:
+                                        matching_analyses.add((possible_number, possible_case))
+    
+                    optional_analyses = set()
+                    required_analyses = matching_analyses
+    
+                    supplementary.append(
+                        "A magánhangzók hosszúsága jelölve van."
+                        if print_macrons
+                        else "A magánhangzók hosszúsága nincs jelölve."
+                    )
+                    multiple_answer_message = None
+                    if st.session_state[widget_key(page_id, "indicate_multiple_answers")]:
+                        if len(required_analyses) > 1:
+                            multiple_answer_message = '<span style="color:#7c3aed;">Több helyes válaszlehetőség van.</span>'
+                    else:
+                        multiple_answer_message = "Több helyes válaszlehetőség is lehet."
+                    if multiple_answer_message:
+                        supplementary.append(multiple_answer_message)
 '''
     source = source[:start] + new + source[end:]
 
-    old_form = '        with st.form(key="noun_answer_form", clear_on_submit=True):'
-    new_form = '        with st.form(key="number_switch_form" if exercise_type == "number_switch" else "noun_answer_form", clear_on_submit=True):'
+    old_form = '            with st.form(key="noun_answer_form", clear_on_submit=True):'
+    new_form = '            with st.form(key="number_switch_form" if exercise_type == "number_switch" else "noun_answer_form", clear_on_submit=True):'
     source = source.replace(old_form, new_form, 1)
 
-    answer_marker = '            def submit_answer():\n'
+    answer_marker = '                def submit_answer():\n'
     pos = source.find(answer_marker, source.find(new_form))
     if pos == -1:
         raise RuntimeError("Could not locate recognition submit handler")
     body_start = pos + len(answer_marker)
-    switch_handler = r'''                if exercise_type == "number_switch":
-                    raw_answer = " ".join((st.session_state.get("answer_input") or "").split())
-                    answer_macrons = bool(
-                        print_macrons
-                        and st.session_state.get(widget_key(page_id, "enforce_answer_macrons"), False)
-                    )
-                    def _ns_norm(value):
-                        return _ar_surface(value, answer_macrons).casefold()
-                    accepted = {_ns_norm(item) for item in target_phrases}
-                    supplied = _ns_norm(raw_answer) if raw_answer else ""
-                    if raw_answer:
-                        st.session_state.answer_input = raw_answer
-                    old_macron_setting = st.session_state.enforce_macrons.get("agreement_enforce_macrons", False)
-                    st.session_state.enforce_macrons["agreement_enforce_macrons"] = answer_macrons
-                    submit_and_check_answer()
-                    st.session_state.enforce_macrons["agreement_enforce_macrons"] = old_macron_setting
-                    if not raw_answer:
-                        st.session_state.answer_display_message = (
-                            "A válaszmező üres. Írd be a jelzős kifejezés másik számú alakját vagy alakjait."
+    switch_handler = r'''                    if exercise_type == "number_switch":
+                        raw_answer = " ".join((st.session_state.get("answer_input") or "").split())
+                        answer_macrons = bool(
+                            print_macrons
+                            and st.session_state.get(widget_key(page_id, "enforce_answer_macrons"), False)
                         )
-                    elif st.session_state.answer_checked:
-                        if supplied in accepted:
-                            st.session_state.answer_display_message = feedback_box(
-                                "<strong>Helyes válasz!</strong>", "correct"
+                        def _ns_norm(value):
+                            return _ar_surface(value, answer_macrons).casefold()
+                        accepted = {_ns_norm(item) for item in target_phrases}
+                        supplied = _ns_norm(raw_answer) if raw_answer else ""
+                        if raw_answer:
+                            st.session_state.answer_input = raw_answer
+                        old_macron_setting = st.session_state.enforce_macrons.get("agreement_enforce_macrons", False)
+                        st.session_state.enforce_macrons["agreement_enforce_macrons"] = answer_macrons
+                        submit_and_check_answer()
+                        st.session_state.enforce_macrons["agreement_enforce_macrons"] = old_macron_setting
+                        if not raw_answer:
+                            st.session_state.answer_display_message = (
+                                "A válaszmező üres. Írd be a jelzős kifejezés másik számú alakját vagy alakjait."
                             )
-                        else:
-                            canonical = target_phrases[0] if target_phrases else "—"
-                            st.session_state.answer_display_message = feedback_box(
-                                f"<strong>Helytelen válasz. Egy helyes megoldás:</strong> {heavy(canonical, italic=True)}.",
-                                "incorrect",
-                            )
-                    return
+                        elif st.session_state.answer_checked:
+                            if supplied in accepted:
+                                st.session_state.answer_display_message = feedback_box(
+                                    "<strong>Helyes válasz!</strong>", "correct"
+                                )
+                            else:
+                                canonical = target_phrases[0] if target_phrases else "—"
+                                st.session_state.answer_display_message = feedback_box(
+                                    f"<strong>Helytelen válasz. Egy helyes megoldás:</strong> {heavy(canonical, italic=True)}.",
+                                    "incorrect",
+                                )
+                        return
 '''
     source = source[:body_start] + switch_handler + source[body_start:]
 
