@@ -53,7 +53,6 @@ replacement = (
     'source = apply_middle_mode(source)\n'
     'source = apply_pair_weighting(source)\n'
     'source = apply_recognition_mode(source)\n'
-    'source = apply_number_switch_base(source)\n'
     'source = apply_multiple_answer_hint(source)\n'
     'source = apply_weak_istem_is_ambiguity(source)\n'
     'source = apply_colored_partial_feedback(source)\n'
