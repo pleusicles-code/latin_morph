@@ -950,6 +950,21 @@ else:
                 if possible_form is None:
                     continue
                 possible_forms = possible_form if isinstance(possible_form, list) else [possible_form]
+                if (
+                    exercise_type == "number_switch"
+                    and possible_number == "pl"
+                    and possible_case == "acc"
+                    and noun_vocab[noun].get("decl") == "3_istem"
+                    and len(possible_forms) > 1
+                ):
+                    # Never ask the alternative i-stem acc. pl. -īs form as the
+                    # source of a number-switch question. Use the ordinary -ēs
+                    # form; -īs remains a valid morphological alternative when
+                    # evaluating forms generated elsewhere.
+                    possible_forms = [
+                        form for form in possible_forms
+                        if remove_macrons(str(form)).casefold().endswith("es")
+                    ] or possible_forms
                 for form in possible_forms:
                     displayed = normalize_noun_surface(form, print_macrons)
                     form_analyses.setdefault(displayed, set()).add((possible_case, possible_number))
