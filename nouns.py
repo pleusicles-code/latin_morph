@@ -928,6 +928,10 @@ else:
 
 
     def recognition_gen_question():
+        if exercise_type == "number_switch":
+            st.session_state.pop("answer_input", None)
+            st.session_state.pop("_bevlat_last_incorrect_answer", None)
+
         generated = adap_gen_question()
         if not generated:
             return None
