@@ -1076,6 +1076,9 @@ def apply_recognition_base(source):
                 evaluation = None
                 number_switch_accepted = False
                 number_switch_partial = False
+                number_switch_correct_supplied = []
+                number_switch_incorrect_supplied = []
+                number_switch_missing = []
 
                 if exercise_type == "number_switch":
                     raw_answer = " ".join((st.session_state.get("answer_input") or "").split())
@@ -1092,23 +1095,51 @@ def apply_recognition_base(source):
                         for option in number_switch_answer_options
                     }
                     number_switch_accepted = bool(raw_answer) and normalized_answer in normalized_options
-                    if (
-                        raw_answer
-                        and not number_switch_accepted
-                        and len(number_switch_target_groups) > 1
-                    ):
-                        normalized_single_groups = {
-                            _ar_surface(option, answer_macrons).casefold()
+
+                    if raw_answer and not number_switch_accepted:
+                        normalized_target_groups = [
+                            {
+                                _ar_surface(option, answer_macrons).casefold()
+                                for option in variants
+                            }
                             for variants in number_switch_target_groups
-                            for option in variants
-                        }
-                        number_switch_partial = normalized_answer in normalized_single_groups
+                        ]
+                        answer_tokens = raw_answer.split()
+                        supplied_chunks = [
+                            " ".join(answer_tokens[index:index + 2])
+                            for index in range(0, len(answer_tokens), 2)
+                        ]
+                        matched_groups = set()
+                        for chunk in supplied_chunks:
+                            normalized_chunk = _ar_surface(chunk, answer_macrons).casefold()
+                            matched_index = next(
+                                (
+                                    index
+                                    for index, variants in enumerate(normalized_target_groups)
+                                    if index not in matched_groups and normalized_chunk in variants
+                                ),
+                                None,
+                            )
+                            if matched_index is None:
+                                number_switch_incorrect_supplied.append(chunk)
+                            else:
+                                matched_groups.add(matched_index)
+                                number_switch_correct_supplied.append(chunk)
+
+                        for index, variants in enumerate(number_switch_target_groups):
+                            if index not in matched_groups and variants:
+                                number_switch_missing.append(variants[0])
+
+                        number_switch_partial = bool(number_switch_correct_supplied) and (
+                            bool(number_switch_missing) or bool(number_switch_incorrect_supplied)
+                        )
                         if number_switch_partial:
                             st.session_state.answer_credit_override = (
                                 0.5
                                 if st.session_state[widget_key(page_id, "award_partial_credit")]
                                 else 0
                             )
+
                     st.session_state.answer_input = raw_answer
                     st.session_state.correct_answer = (
                         raw_answer
@@ -1136,9 +1167,29 @@ def apply_recognition_base(source):
                                 "<strong>Helyes válasz!</strong>", "correct"
                             )
                         elif number_switch_partial:
-                            canonical = number_switch_answer_options[0] if number_switch_answer_options else "—"
+                            def _number_switch_form_chip(form, background, border):
+                                return (
+                                    f'<span style="display:inline-block;background:{background};'
+                                    f'border:1px solid {border};border-radius:0.35rem;'
+                                    f'padding:0.08rem 0.35rem;margin:0 0.12rem 0.12rem 0;">'
+                                    f'{html.escape(str(form))}</span>'
+                                )
+
+                            form_parts = []
+                            for form in number_switch_correct_supplied:
+                                form_parts.append(
+                                    _number_switch_form_chip(form, "#e3f3e7", "#7aa682")
+                                )
+                            for form in number_switch_incorrect_supplied:
+                                form_parts.append(
+                                    _number_switch_form_chip(form, "#f7dddd", "#c48282")
+                                )
+                            for form in number_switch_missing:
+                                form_parts.append(
+                                    _number_switch_form_chip(form, "#e4efff", "#7f9fc9")
+                                )
                             st.session_state.answer_display_message = feedback_box(
-                                f"<strong>Részben helyes. A teljes válasz:</strong> {heavy(canonical, italic=True)}.",
+                                "<strong>Részben helyes válasz.</strong> " + " ".join(form_parts),
                                 "partial",
                             )
                         else:
