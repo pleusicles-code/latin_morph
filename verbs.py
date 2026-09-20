@@ -6,6 +6,7 @@ import ast
 import html
 import re
 import unicodedata
+from itertools import permutations
 from utils import radio_change, reset, new_question, remove_macrons, submit_and_check_answer, clear_page, send_setting, save_defaults, clear_defaults, auto_advance_delay, tokenize_morphology_answer
 from exercise_presets import (bool_setting, choice_setting, list_setting, resolve_exercise_settings, initialize_widget_state,
                               widget_key, url_preset_active, exercise_link_popover)
@@ -1090,6 +1091,35 @@ with option_expander:
 ## DEFINE AVAILABLE VERBS AND VERB ENDINGS ##
 
 tense_list = list(tense_selector)
+
+ASPECT_TENSE_PARTNER = {
+    "pres": "perf",
+    "perf": "pres",
+    "impf": "plupf",
+    "plupf": "impf",
+    "fut": "fut_pf",
+    "fut_pf": "fut",
+}
+transform_eligible_tenses = [
+    tense for tense in tense_list
+    if ASPECT_TENSE_PARTNER.get(tense) in tense_list
+]
+
+
+def transform_selected_moods_for_tense(tense):
+    moods = []
+    if "ind" in mood_selector:
+        moods.append("ind")
+    if "subj" in mood_selector and tense not in {"fut", "fut_pf"}:
+        moods.append("subj")
+    return moods
+
+
+transform_has_eligible_pattern = any(
+    transform_selected_moods_for_tense(tense)
+    for tense in transform_eligible_tenses
+)
+
 # Visible voice settings describe the morphology the learner wants to practise.
 # Deponent forms are internally represented as ``dep`` but belong to visible ``pass.``.
 internal_voice_selector = list(voice_selector)
@@ -1367,6 +1397,12 @@ elif len(voice_selector) == 0:
     st.write("Legalább egy igenemet vagy igetípust ki kell választanod.")
 elif len(mood_selector) == 0:
     st.write("Legalább egy módot ki kell választanod.")
+elif exercise_type == "transform" and not transform_has_eligible_pattern:
+    st.write(
+        "Az Átalakítás feladattípushoz legalább egy olyan igeidőpárt kell kiválasztanod, "
+        "amelynek mindkét aspektusa szerepel a beállítások között, és indicativust vagy "
+        "coniunctivust is gyakorolnod kell."
+    )
 #    st.session_state.question_generation_error_message = ""
 elif len(verb_vocab) == 0:
     st.write("A kiválasztott beállításokkal nincs olyan ige, amelyből kérdést lehetne generálni.")
@@ -2174,6 +2210,194 @@ else:
 #            st.write("Now it's", st.session_state.append_answer)
 
         return [verb_form, verb_id, verb_principal_parts]
+
+    def _verb_form_list(form):
+        if form is None:
+            return []
+        return list(form) if isinstance(form, list) else [form]
+
+
+    def _probe_build_verb(verb_id):
+        saved_append_answer = st.session_state.append_answer
+        saved_error_message = st.session_state.question_generation_error_message
+        st.session_state.append_answer = False
+        try:
+            return build_verb(dict(verb_id))
+        except Exception:
+            return None
+        finally:
+            st.session_state.append_answer = saved_append_answer
+            st.session_state.question_generation_error_message = saved_error_message
+
+
+    def _transform_voice_choices(verb, tense):
+        data = verb_vocab[verb]
+        lexical_voice = data["voice"]
+
+        if lexical_voice == "dep":
+            return ["dep"] if "pass" in voice_selector else []
+
+        if lexical_voice == "semidep":
+            # A semideponent transformation crosses from active present-system
+            # morphology to deponent perfect-system morphology (or vice versa),
+            # so both visible voice categories must be enabled.
+            if not {"act", "pass"}.issubset(set(voice_selector)):
+                return []
+            return ["act"] if tense in pres_sys else ["dep"]
+
+        choices = []
+        if "act" in voice_selector:
+            choices.append("act")
+        if "pass" in voice_selector and not data.get("no_pass"):
+            choices.append("pass")
+        return choices
+
+
+    def _transform_candidate_ids_for_verb(verb):
+        candidates = []
+        data = verb_vocab[verb]
+        for possible_tense in transform_eligible_tenses:
+            possible_moods = transform_selected_moods_for_tense(possible_tense)
+            for possible_mood in possible_moods:
+                for possible_voice in _transform_voice_choices(verb, possible_tense):
+                    for possible_number in ["sg", "pl"]:
+                        for possible_person in [1, 2, 3]:
+                            if (
+                                possible_voice == "pass"
+                                and data.get("impers_pass_only")
+                                and (possible_number != "sg" or possible_person != 3)
+                            ):
+                                continue
+                            candidates.append(
+                                {
+                                    "verb": verb,
+                                    "pers": possible_person,
+                                    "num": possible_number,
+                                    "tense": possible_tense,
+                                    "voice": possible_voice,
+                                    "mood": possible_mood,
+                                }
+                            )
+        return candidates
+
+
+    def transformed_verb_id(source_id):
+        target = dict(source_id)
+        target_tense = ASPECT_TENSE_PARTNER[source_id["tense"]]
+        target["tense"] = target_tense
+
+        if verb_vocab[source_id["verb"]]["voice"] == "semidep":
+            target["voice"] = "act" if target_tense in pres_sys else "dep"
+
+        return target
+
+
+    def transform_answer_variants(target_form, preserve_macrons):
+        forms = _verb_form_list(target_form)
+        variants = list(forms)
+
+        compact = compact_participial_answer(forms)
+        if compact:
+            variants.append(compact)
+            compact_parts = compact.split(maxsplit=1)
+            if len(compact_parts) == 2:
+                variants.append(f"{compact_parts[0]}3 {compact_parts[1]}")
+
+        rendered = []
+        for form in variants:
+            if form is None:
+                continue
+            surface = str(form) if preserve_macrons else remove_macrons(str(form))
+            surface = " ".join(surface.split())
+            if surface not in rendered:
+                rendered.append(surface)
+        return rendered
+
+
+    def transformation_gen_question():
+        st.session_state.question_generation_error_message = ""
+        verbs = list(verb_vocab)
+        random.shuffle(verbs)
+
+        for candidate_verb in verbs:
+            candidate_ids = _transform_candidate_ids_for_verb(candidate_verb)
+            random.shuffle(candidate_ids)
+
+            for source_id in candidate_ids:
+                target_id = transformed_verb_id(source_id)
+                source_built = _probe_build_verb(source_id)
+                target_built = _probe_build_verb(target_id)
+                if not source_built or not target_built:
+                    continue
+
+                source_forms = [
+                    form for form in _verb_form_list(source_built[0])
+                    if isinstance(form, str) and form.strip()
+                ]
+                target_forms = [
+                    form for form in _verb_form_list(target_built[0])
+                    if isinstance(form, str) and form.strip()
+                ]
+                if not source_forms or not target_forms:
+                    continue
+
+                displayed_form = random.choice(source_forms)
+                if not st.session_state[widget_key(page_id, "print_macrons")]:
+                    displayed_form = remove_macrons(displayed_form)
+                st.session_state.verbs_transform_displayed_form = displayed_form
+
+                # Rebuild once with normal append_answer state so the final
+                # source question is logged exactly like other verb questions.
+                final_source = build_verb(source_id)
+                if final_source:
+                    return final_source
+
+        st.session_state.question_generation_error_message = (
+            ":warning: A kiválasztott beállításokkal nem található olyan igealak, "
+            "amelynek a másik aspektusú megfelelője is létezik."
+        )
+        return None
+
+
+    def matching_verb_transform_ids(verb, displayed_form, preserve_macrons):
+        target_surface = str(displayed_form)
+        if not preserve_macrons:
+            target_surface = remove_macrons(target_surface)
+        target_surface = " ".join(target_surface.split()).casefold()
+
+        matches = []
+        seen = set()
+        for candidate_id in _transform_candidate_ids_for_verb(verb):
+            source_built = _probe_build_verb(candidate_id)
+            if not source_built:
+                continue
+            target_built = _probe_build_verb(transformed_verb_id(candidate_id))
+            if not target_built:
+                continue
+
+            for candidate_form in _verb_form_list(source_built[0]):
+                if not isinstance(candidate_form, str):
+                    continue
+                surface = candidate_form if preserve_macrons else remove_macrons(candidate_form)
+                surface = " ".join(surface.split()).casefold()
+                if surface != target_surface:
+                    continue
+
+                key = (
+                    candidate_id["verb"],
+                    candidate_id["pers"],
+                    candidate_id["num"],
+                    candidate_id["tense"],
+                    candidate_id["voice"],
+                    candidate_id["mood"],
+                )
+                if key not in seen:
+                    seen.add(key)
+                    matches.append(dict(candidate_id))
+                break
+
+        return matches
+
 
     def matching_verb_recognition_analyses(verb, displayed_form, preserve_macrons):
         """Enumerate all enabled finite analyses producing the displayed form."""
