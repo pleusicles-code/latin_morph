@@ -2341,7 +2341,11 @@ else:
                 if not source_forms or not target_forms:
                     continue
 
-                displayed_form = random.choice(source_forms)
+                # Keep the stored perfect stem as the canonical displayed form.
+                # Contracted alternatives (e.g. nescierō beside nescīverō) remain
+                # accepted as answers when build_verb() generates them, but are not
+                # chosen for the question prompt.
+                displayed_form = source_forms[0]
                 if not st.session_state[widget_key(page_id, "print_macrons")]:
                     displayed_form = remove_macrons(displayed_form)
                 st.session_state.verbs_transform_displayed_form = displayed_form
