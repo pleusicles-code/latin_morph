@@ -507,7 +507,7 @@ else:
 
 source = prefix + pair_quiz + textwrap.indent(original_quiz, "    ")
 
-# Initial implementation: Sg./pl. váltás is an exact clone of Alakfelismerés behavior.
-source = source.replace('exercise_type == "recognize"', 'exercise_type in ("recognize", "number_switch")')
-
+# Execute the transformed Agreement page. Recognition remains handled by the
+# established recognition transform; number switching gets its own normal
+# runtime branch below, without further source-to-source rewriting.
 exec(compile(source, str(Path(__file__).with_name("agreement_base.py")), "exec"))
