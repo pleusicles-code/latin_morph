@@ -507,4 +507,7 @@ else:
 
 source = prefix + pair_quiz + textwrap.indent(original_quiz, "    ")
 
-# Initial implementation: Sg./pl. váltás is an exact clone of Alakfelismerés behavior.\nsource = source.replace('exercise_type == "recognize"', 'exercise_type in ("recognize", "number_switch")')\n\nexec(compile(source, str(Path(__file__).with_name("agreement_base.py")), "exec"))
+# Initial implementation: Sg./pl. váltás is an exact clone of Alakfelismerés behavior.
+source = source.replace('exercise_type == "recognize"', 'exercise_type in ("recognize", "number_switch")')
+
+exec(compile(source, str(Path(__file__).with_name("agreement_base.py")), "exec"))
