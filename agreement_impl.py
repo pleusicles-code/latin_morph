@@ -507,7 +507,212 @@ else:
 
 source = prefix + pair_quiz + textwrap.indent(original_quiz, "    ")
 
-# Execute the transformed Agreement page. Recognition remains handled by the
-# established recognition transform; number switching gets its own normal
-# runtime branch below, without further source-to-source rewriting.
-exec(compile(source, str(Path(__file__).with_name("agreement_base.py")), "exec"))
+if exercise_type != "number_switch":
+    # Execute the transformed Agreement page. Recognition remains handled by the
+    # established recognition transform; number switching gets its own normal
+    # runtime branch below, without further source-to-source rewriting.
+    exec(compile(source, str(Path(__file__).with_name("agreement_base.py")), "exec"))
+else:
+    
+    # Number switching is implemented as an ordinary runtime branch, using the
+    # already-defined Agreement morphology helpers rather than rewriting the
+    # recognition source.
+    if exercise_type == "number_switch":
+        def _ns_forms(value):
+            if value is None:
+                return []
+            return value if isinstance(value, list) else [value]
+    
+        def _ns_surface(value, preserve_macrons):
+            value = unicodedata.normalize("NFC", str(value))
+            return value if preserve_macrons else remove_macrons(value)
+    
+        def _ns_allowed_numbers(noun, adjective):
+            restriction = noun_vocab[noun].get("number")
+            numbers = ["sg"] if restriction == "singular" else ["pl"] if restriction == "plural" else ["sg", "pl"]
+            if adj_vocab[adjective].get("no_pl"):
+                numbers = [number for number in numbers if number != "pl"]
+            return numbers
+    
+        def _ns_cases(noun, adjective, number, gender):
+            cases = [case for case in noun_options["case"] if case != "voc"]
+            if include_vocative:
+                noun_voc = build_noun([noun, "voc", number])
+                noun_nom = build_noun([noun, "nom", number])
+                adj_voc = _adjective_form(adjective, "voc", gender, number)
+                adj_nom = _adjective_form(adjective, "nom", gender, number)
+                if noun_voc != noun_nom or adj_voc != adj_nom:
+                    cases.append("voc")
+            return cases
+    
+        def _ns_question():
+            switchable_nouns = [
+                noun for noun in active_vocab
+                if set(_ns_allowed_numbers(noun, next(iter(active_adj_vocab), ""))) == {"sg", "pl"}
+            ] if active_adj_vocab else []
+            pairs = [
+                (noun, adjective)
+                for noun in switchable_nouns
+                for adjective in active_adj_vocab
+                if set(_ns_allowed_numbers(noun, adjective)) == {"sg", "pl"}
+            ]
+            if not pairs:
+                return None
+            noun, adjective = random.choice(pairs)
+            raw_gender = noun_vocab[noun]["gender"]
+            gender = random.choice(["m", "f"]) if raw_gender == "m/f" else raw_gender
+            print_macrons = st.session_state[widget_key(page_id, "print_macrons")]
+            candidates = []
+            for number in ("sg", "pl"):
+                for case in _ns_cases(noun, adjective, number, gender):
+                    for noun_form in _ns_forms(build_noun([noun, case, number])):
+                        for adjective_form in _ns_forms(_adjective_form(adjective, case, gender, number)):
+                            if noun_form is None or adjective_form is None:
+                                continue
+                            phrase = f"{_ns_surface(noun_form, print_macrons)} {_ns_surface(adjective_form, print_macrons)}"
+                            candidates.append((phrase, number, case))
+            if not candidates:
+                return None
+            phrase, number, case = random.choice(candidates)
+            return {
+                "noun": noun, "adjective": adjective, "gender": gender,
+                "displayed_phrase": phrase, "number": number, "case": case,
+            }
+    
+        st.session_state.gen_func = _ns_question
+    
+        if st.session_state.current_question:
+            q = st.session_state.current_question
+            noun = q["noun"]
+            adjective = q["adjective"]
+            gender = q["gender"]
+            displayed_phrase = q["displayed_phrase"]
+            print_macrons = st.session_state[widget_key(page_id, "print_macrons")]
+    
+            matching_analyses = set()
+            for possible_number in ("sg", "pl"):
+                for possible_case in _ns_cases(noun, adjective, possible_number, gender):
+                    for noun_form in _ns_forms(build_noun([noun, possible_case, possible_number])):
+                        for adjective_form in _ns_forms(_adjective_form(adjective, possible_case, gender, possible_number)):
+                            phrase = f"{_ns_surface(noun_form, print_macrons)} {_ns_surface(adjective_form, print_macrons)}"
+                            if phrase == displayed_phrase:
+                                matching_analyses.add((possible_number, possible_case))
+    
+            target_groups = []
+            for source_number, source_case in sorted(matching_analyses):
+                target_number = "pl" if source_number == "sg" else "sg"
+                variants = []
+                for noun_form in _ns_forms(build_noun([noun, source_case, target_number])):
+                    for adjective_form in _ns_forms(_adjective_form(adjective, source_case, gender, target_number)):
+                        n = _ns_surface(noun_form, print_macrons)
+                        a = _ns_surface(adjective_form, print_macrons)
+                        variants.extend((f"{n} {a}", f"{a} {n}"))
+                variants = list(dict.fromkeys(variants))
+                if variants and variants not in target_groups:
+                    target_groups.append(variants)
+    
+            # Require one phrase for every distinct analysis, but accept either
+            # noun-adjective or adjective-noun order and any order of analyses.
+            answer_options = []
+            if target_groups:
+                for chosen in __import__("itertools").product(*target_groups):
+                    for ordered in permutations(chosen):
+                        answer_options.append(" ".join(ordered))
+            answer_options = list(dict.fromkeys(answer_options))
+            st.session_state.correct_answer = answer_options
+    
+            question_html = (
+                f'Változtasd meg a <strong><em>{html.escape(displayed_phrase)}</em></strong> '
+                f'jelzős kifejezés számát, az esetet változatlanul hagyva!'
+            )
+            if show_dictionary_entry:
+                question_html += (
+                    f' <em>({_noun_dictionary_entry(noun)} · {_adjective_dictionary_entry(adjective)})</em>'
+                )
+            supplementary = [
+                "A magánhangzók hosszúsága jelölve van."
+                if print_macrons else "A magánhangzók hosszúsága nincs jelölve."
+            ]
+            if st.session_state[widget_key(page_id, "indicate_multiple_answers")]:
+                if len(target_groups) > 1:
+                    supplementary.append('<span style="color:#7c3aed;">Több alakot is meg kell adni.</span>')
+    
+            prompt_space = st.container(height=112 if supplementary else 82, border=False)
+            with prompt_space:
+                st.markdown(
+                    f'<div style="margin-top:0.75rem;font-size:1.75rem;line-height:1.25;">{question_html}</div>',
+                    unsafe_allow_html=True,
+                )
+                st.markdown(
+                    '<div style="font-size:1.15rem;line-height:1.35;margin-top:0.35rem;">'
+                    + " &nbsp;·&nbsp; ".join(supplementary) + "</div>",
+                    unsafe_allow_html=True,
+                )
+    
+            with st.form(key="agreement_number_switch_form", clear_on_submit=True):
+                st.text_input("Válaszod:", key="answer_input")
+    
+                def submit_number_switch_answer():
+                    if st.session_state.get("answer_input"):
+                        st.session_state.answer_input = " ".join(st.session_state.answer_input.split())
+                    submit_and_check_answer()
+                    if not st.session_state.get("answer_input"):
+                        st.session_state.answer_display_message = (
+                            "A válaszmező üres. Írd be a jelzős kifejezés másik számú alakját vagy alakjait."
+                        )
+                    elif st.session_state.answer_checked:
+                        if "Good job!" in st.session_state.result_message:
+                            st.session_state.answer_display_message = feedback_box(
+                                "<strong>Helyes válasz!</strong>", "correct"
+                            )
+                        else:
+                            canonical = answer_options[0] if answer_options else "—"
+                            st.session_state.answer_display_message = feedback_box(
+                                f"<strong>Helytelen válasz. A helyes válasz:</strong> {heavy(canonical, italic=True)}.",
+                                "incorrect",
+                            )
+    
+                st.form_submit_button(
+                    "Válasz ellenőrzése", key="form_submission_button",
+                    on_click=submit_number_switch_answer,
+                    disabled=st.session_state.button_disable, width="stretch",
+                )
+    
+            feedback_space = st.container(height=90, border=False)
+            with feedback_space:
+                if st.session_state.answer_display_message.lstrip().startswith("<div"):
+                    st.markdown(st.session_state.answer_display_message, unsafe_allow_html=True)
+                else:
+                    st.markdown(st.session_state.answer_display_message)
+    
+            if st.session_state.append_answer is True:
+                questions_asked.append({
+                    "pos": "agreement_number_switch", "word": [noun, adjective],
+                    "id": {"case": q["case"], "num": q["number"], "gender": gender},
+                })
+                st.session_state.append_answer = False
+    
+        control_row = st.container(height=110, border=False)
+        with control_row:
+            new_question_col, _, score_col = st.columns([1, 1, 1], gap="medium", vertical_alignment="top")
+            with new_question_col:
+                st.button(
+                    "Új kérdés" if st.session_state.question_list else "Kattints ide az első kérdéshez!",
+                    on_click=new_question, args=(st.session_state.gen_func,),
+                    key="question_button", width="stretch",
+                    disabled=not declension or not adjective_declension,
+                    type="secondary" if st.session_state.question_list else "primary",
+                )
+            with score_col:
+                st.button("Pontszám nullázása", "reset", on_click=reset, width="stretch")
+                st.markdown(
+                    f'<div style="text-align:right;">Jelenlegi pontszám: <strong>{st.session_state.current_score}</strong> / '
+                    f'<strong>{st.session_state.total_questions}</strong></div>', unsafe_allow_html=True,
+                )
+    
+        if st.session_state.auto_advance_trigger and st.session_state.answer_checked:
+            time.sleep(auto_advance_delay())
+            new_question(st.session_state.gen_func)
+            st.rerun()
+    
+    
