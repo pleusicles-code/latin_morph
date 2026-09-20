@@ -5,6 +5,7 @@ import pandas as pd
 import ast
 import unicodedata
 import html
+from itertools import permutations
 from utils import radio_change, reset, new_question, submit_and_check_answer, clear_page, send_setting, save_defaults, clear_defaults, auto_advance_delay, remove_macrons, tokenize_morphology_answer
 from exercise_presets import (bool_setting, choice_setting, list_setting, resolve_exercise_settings,
                               initialize_widget_state, widget_key, url_preset_active, exercise_link_popover)
@@ -113,7 +114,7 @@ master_irregular_nouns_list = [
     noun for noun, data in noun_vocab.items() if data.get("irreg", {}).get("irreg")
 ]
 exercise_schema = {
-    "exercise_type": choice_setting("inflect", ["inflect", "recognize"]),
+    "exercise_type": choice_setting("inflect", ["inflect", "number_switch", "recognize"]),
     "print_macrons": bool_setting(False),
     "indicate_multiple_answers": bool_setting(False),
     "award_partial_credit": bool_setting(False),
@@ -151,9 +152,10 @@ with col_declension:
     with exercise_type_radio_col:
         exercise_type = st.radio(
             "Feladattípus:",
-            options=["inflect", "recognize"],
+            options=["inflect", "number_switch", "recognize"],
             format_func=lambda value: {
                 "inflect": "Ragozás",
+                "number_switch": "Sg./pl. váltás",
                 "recognize": "Alakfelismerés",
             }[value],
             horizontal=True,
@@ -188,6 +190,19 @@ with col_options:
             help="Ha be van kapcsolva, a kérdésben szereplő alakok jelölik a magánhangzók hosszúságát, és a választ ennek figyelembevételével kell megadni. Ha ki van kapcsolva, ugyanaz az írott alak rövid és hosszú magánhangzóval képzett alakokat is jelölhet, ezért több helyes elemzés is lehetséges.",
             key=widget_key(page_id, "print_macrons"),
         )
+        if exercise_type == "number_switch":
+            enforce_answer_macrons_key = widget_key(page_id, "enforce_answer_macrons")
+            if not print_macrons:
+                st.session_state[enforce_answer_macrons_key] = False
+            enforce_answer_macrons = st.checkbox(
+                "Hosszú magánhangzók ellenőrzése a válaszban",
+                help="Ha be van kapcsolva, a válaszban is pontosan jelölni kell a hosszú magánhangzókat.",
+                key=enforce_answer_macrons_key,
+                disabled=not print_macrons,
+            )
+            if enforce_answer_macrons:
+                st.markdown("A hosszú magánhangzók innen másolhatók:")
+                st.code("āēīōū", language=None)
         indicate_multiple_answers = st.checkbox(
             "Több helyes válaszlehetőség jelzése?",
             help="Ha be van kapcsolva, a kérdés külön jelzi, ha az adott alaknak több helyes elemzése van.",
@@ -593,6 +608,14 @@ else:
         return list(noun_options["number"].keys())
 
 
+    switchable_nouns = [
+        noun for noun in active_vocab
+        if set(allowed_numbers_for_noun(noun)) == {"sg", "pl"}
+    ]
+    if exercise_type == "number_switch" and not switchable_nouns and not st.session_state.current_question:
+        st.write("A kiválasztott beállítások között nincs singularis és pluralis alakban is használható főnév.")
+
+
     def inflection_cases_for_noun(noun, number):
         cases = [case for case in noun_options["case"] if case != "voc"]
         if include_vocative and number == "sg" and noun_has_distinct_sg_vocative(noun):
@@ -905,7 +928,15 @@ else:
 
 
     def recognition_gen_question():
-        noun, _, _ = adap_gen_question()
+        generated = adap_gen_question()
+        if not generated:
+            return None
+        noun, _, _ = generated
+        if exercise_type == "number_switch" and noun not in switchable_nouns:
+            if not switchable_nouns:
+                return None
+            noun = random.choice(switchable_nouns)
+
         print_macrons = st.session_state[widget_key(page_id, "print_macrons")]
         form_analyses = {}
 
@@ -938,7 +969,7 @@ else:
         return [noun, case, number]
 
 
-    st.session_state.gen_func = recognition_gen_question if exercise_type == "recognize" else adap_gen_question
+    st.session_state.gen_func = recognition_gen_question if exercise_type in ("recognize", "number_switch") else adap_gen_question
 
     if st.session_state.current_question:
         noun, case, number = st.session_state.current_question
@@ -988,13 +1019,20 @@ else:
                 if not st.session_state[widget_key(page_id, "print_macrons")]:
                     displayed_form = remove_macrons(displayed_form)
 
-            article = hungarian_article(displayed_form)
-            question_html = (
-                f'Milyen alak lehet {article} '
-                f'<strong><em>{html.escape(displayed_form)}</em></strong>?'
-            )
+            if exercise_type == "number_switch":
+                question_html = (
+                    f'Változtasd meg a <strong><em>{html.escape(displayed_form)}</em></strong> '
+                    f'szó számát, az esetet változatlanul hagyva!'
+                )
+            else:
+                article = hungarian_article(displayed_form)
+                question_html = (
+                    f'Milyen alak lehet {article} '
+                    f'<strong><em>{html.escape(displayed_form)}</em></strong>?'
+                )
             if show_dictionary_entry:
                 question_html += f' <em>({html.escape(build_dictionary_entry(noun))})</em>'
+
             if show_declension and show_stem:
                 decl_text = f"Ez egy {DECLENSION_NUMBER_LABELS[decl]} declinatiós"
                 if third_group:
@@ -1025,11 +1063,51 @@ else:
                             matching_analyses.add((possible_number, possible_case))
                             break
 
-            optional_analyses = (
-                optional_noun_recognition_analyses(noun, displayed_form, print_macrons)
-                & matching_analyses
-            )
-            required_analyses = matching_analyses - optional_analyses
+            optional_analyses = set()
+            required_analyses = matching_analyses
+            number_switch_target_groups = []
+            number_switch_answer_options = []
+            number_switch_canonical = ""
+
+            if exercise_type == "number_switch":
+                seen_target_groups = set()
+                for source_number, source_case in sorted(matching_analyses):
+                    target_number = "pl" if source_number == "sg" else "sg"
+                    if target_number not in allowed_numbers_for_noun(noun):
+                        continue
+                    target_form = build_noun([noun, source_case, target_number])
+                    target_forms = target_form if isinstance(target_form, list) else [target_form]
+                    target_variants = []
+                    for form in target_forms:
+                        if form is None:
+                            continue
+                        rendered = normalize_noun_surface(form, print_macrons)
+                        if rendered not in target_variants:
+                            target_variants.append(rendered)
+                    group_key = tuple(sorted(item.casefold() for item in target_variants))
+                    if target_variants and group_key not in seen_target_groups:
+                        seen_target_groups.add(group_key)
+                        number_switch_target_groups.append(target_variants)
+
+                if number_switch_target_groups:
+                    number_switch_canonical = " ".join(group[0] for group in number_switch_target_groups)
+                    for group_order in permutations(number_switch_target_groups):
+                        combinations = [""]
+                        for variants in group_order:
+                            combinations = [
+                                (prefix + " " + variant).strip()
+                                for prefix in combinations
+                                for variant in variants
+                            ]
+                        number_switch_answer_options.extend(combinations)
+                number_switch_answer_options = list(dict.fromkeys(number_switch_answer_options))
+                st.session_state.correct_answer = number_switch_answer_options
+            else:
+                optional_analyses = (
+                    optional_noun_recognition_analyses(noun, displayed_form, print_macrons)
+                    & matching_analyses
+                )
+                required_analyses = matching_analyses - optional_analyses
 
             supplementary.append(
                 "A magánhangzók hosszúsága jelölve van."
@@ -1037,11 +1115,18 @@ else:
                 else "A magánhangzók hosszúsága nincs jelölve."
             )
             multiple_answer_message = None
-            if st.session_state[widget_key(page_id, "indicate_multiple_answers")]:
-                if len(required_analyses) > 1:
-                    multiple_answer_message = '<span style="color:#7c3aed;">Több helyes válaszlehetőség van.</span>'
+            if exercise_type == "number_switch":
+                if st.session_state[widget_key(page_id, "indicate_multiple_answers")]:
+                    if len(number_switch_target_groups) > 1:
+                        multiple_answer_message = '<span style="color:#7c3aed;">Több alakot is meg kell adni.</span>'
+                elif len(number_switch_target_groups) > 1:
+                    multiple_answer_message = "Több alak megadása is szükséges lehet."
             else:
-                multiple_answer_message = "Több helyes válaszlehetőség is lehet."
+                if st.session_state[widget_key(page_id, "indicate_multiple_answers")]:
+                    if len(required_analyses) > 1:
+                        multiple_answer_message = '<span style="color:#7c3aed;">Több helyes válaszlehetőség van.</span>'
+                else:
+                    multiple_answer_message = "Több helyes válaszlehetőség is lehet."
             if multiple_answer_message:
                 if show_dictionary_entry and show_declension and show_stem:
                     supplementary.append(f"<br>{multiple_answer_message}")
@@ -1070,8 +1155,76 @@ else:
                 recognition_answer = None
                 parsed_answer = None
                 evaluation = None
+                number_switch_accepted = False
+                number_switch_partial = False
+                number_switch_correct_supplied = []
+                number_switch_incorrect_supplied = []
+                number_switch_missing = []
 
-                if exercise_type == "recognize" and st.session_state.get("answer_input"):
+                if exercise_type == "number_switch":
+                    raw_answer = " ".join((st.session_state.get("answer_input") or "").split())
+                    answer_macrons = bool(
+                        print_macrons
+                        and st.session_state.get(widget_key(page_id, "enforce_answer_macrons"), False)
+                    )
+                    normalized_answer = (
+                        normalize_noun_surface(raw_answer, answer_macrons).casefold()
+                        if raw_answer else ""
+                    )
+                    normalized_options = {
+                        normalize_noun_surface(option, answer_macrons).casefold()
+                        for option in number_switch_answer_options
+                    }
+                    number_switch_accepted = bool(raw_answer) and normalized_answer in normalized_options
+
+                    if raw_answer and not number_switch_accepted:
+                        normalized_target_groups = [
+                            {
+                                normalize_noun_surface(option, answer_macrons).casefold()
+                                for option in variants
+                            }
+                            for variants in number_switch_target_groups
+                        ]
+                        answer_tokens = tokenize_morphology_answer(raw_answer)
+                        matched_groups = set()
+                        for token in answer_tokens:
+                            normalized_token = normalize_noun_surface(token, answer_macrons).casefold()
+                            matched_index = next(
+                                (
+                                    index
+                                    for index, variants in enumerate(normalized_target_groups)
+                                    if index not in matched_groups and normalized_token in variants
+                                ),
+                                None,
+                            )
+                            if matched_index is None:
+                                number_switch_incorrect_supplied.append(token)
+                            else:
+                                matched_groups.add(matched_index)
+                                number_switch_correct_supplied.append(token)
+
+                        for index, variants in enumerate(number_switch_target_groups):
+                            if index not in matched_groups and variants:
+                                number_switch_missing.append(variants[0])
+
+                        number_switch_partial = bool(number_switch_correct_supplied) and (
+                            bool(number_switch_missing) or bool(number_switch_incorrect_supplied)
+                        )
+                        if number_switch_partial:
+                            st.session_state.answer_credit_override = (
+                                0.5
+                                if st.session_state[widget_key(page_id, "award_partial_credit")]
+                                else 0
+                            )
+
+                    st.session_state.answer_input = raw_answer
+                    st.session_state.correct_answer = (
+                        raw_answer
+                        if number_switch_accepted
+                        else "__noun_number_switch_incorrect__"
+                    )
+
+                elif exercise_type == "recognize" and st.session_state.get("answer_input"):
                     recognition_answer = st.session_state.answer_input
                     parsed_answer = parse_noun_analysis_answer(recognition_answer)
 
@@ -1094,6 +1247,54 @@ else:
                         st.session_state.correct_answer = recognition_answer
 
                 submit_and_check_answer()
+
+                if exercise_type == "number_switch":
+                    if not st.session_state.get("answer_input"):
+                        st.session_state.answer_display_message = (
+                            "A válaszmező üres. Írd be a főnév másik számú alakját vagy alakjait."
+                        )
+                    elif st.session_state.answer_checked:
+                        if number_switch_accepted:
+                            st.session_state.answer_display_message = feedback_box(
+                                "<strong>Helyes válasz!</strong>", "correct"
+                            )
+                        elif number_switch_partial:
+                            st.session_state.result_message = "**Partially correct.**"
+
+                            def _number_switch_form_chip(form, background, border):
+                                return (
+                                    f'<span style="display:inline-block;background:{background};'
+                                    f'border:1px solid {border};border-radius:0.35rem;'
+                                    f'padding:0.08rem 0.35rem;margin:0 0.12rem 0.12rem 0;font-weight:800;">'
+                                    f'{html.escape(str(form))}</span>'
+                                )
+
+                            form_parts = []
+                            for form in number_switch_correct_supplied:
+                                form_parts.append(
+                                    _number_switch_form_chip(form, "#e3f3e7", "#7aa682")
+                                )
+                            for form in number_switch_incorrect_supplied:
+                                form_parts.append(
+                                    _number_switch_form_chip(form, "#f7dddd", "#c48282")
+                                )
+                            for form in number_switch_missing:
+                                form_parts.append(
+                                    _number_switch_form_chip(form, "#e4efff", "#7f9fc9")
+                                )
+                            st.session_state.answer_display_message = feedback_box(
+                                "<strong>Részben helyes válasz.</strong> " + " ".join(form_parts),
+                                "partial",
+                            )
+                        else:
+                            canonical = number_switch_canonical or (
+                                number_switch_answer_options[0] if number_switch_answer_options else "—"
+                            )
+                            st.session_state.answer_display_message = feedback_box(
+                                f"<strong>Helytelen válasz. A helyes válasz:</strong> {heavy(canonical, italic=True)}.",
+                                "incorrect",
+                            )
+                    return
 
                 if exercise_type == "inflect":
                     if not st.session_state.get("answer_input"):
@@ -1199,7 +1400,7 @@ else:
                 st.markdown(st.session_state.answer_display_message)
 
         curr_question = {
-            "pos": "noun",
+            "pos": "noun_number_switch" if exercise_type == "number_switch" else "noun",
             "word": noun,
             "id": {
                 "case": case,
@@ -1233,7 +1434,10 @@ else:
                 args=(st.session_state.gen_func,),
                 key="question_button",
                 width="stretch",
-                disabled=len(declension) == 0,
+                disabled=(
+                    len(declension) == 0
+                    or (exercise_type == "number_switch" and not switchable_nouns)
+                ),
                 type=new_q_button_type,
             )
 
