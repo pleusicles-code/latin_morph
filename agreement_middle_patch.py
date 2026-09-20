@@ -1171,7 +1171,7 @@ def apply_recognition_base(source):
                                 return (
                                     f'<span style="display:inline-block;background:{background};'
                                     f'border:1px solid {border};border-radius:0.35rem;'
-                                    f'padding:0.08rem 0.35rem;margin:0 0.12rem 0.12rem 0;">'
+                                    f'padding:0.08rem 0.35rem;margin:0 0.12rem 0.12rem 0;font-weight:800;">'
                                     f'{html.escape(str(form))}</span>'
                                 )
 
