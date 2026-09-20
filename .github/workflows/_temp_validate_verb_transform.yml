@@ -1,0 +1,36 @@
+name: Temporary validate verb transformation
+
+on:
+  push:
+    branches:
+      - exercise-url-presets
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Compile affected files
+        run: python -m py_compile verbs.py streamlit_app.py utils.py
+      - name: Check transformation anchors
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          source = Path("verbs.py").read_text(encoding="utf-8")
+          required = [
+              '"transform": "Átalakítás"',
+              'ASPECT_TENSE_PARTNER',
+              'def transformation_gen_question():',
+              'def matching_verb_transform_ids',
+              'Változtassa meg a <strong><em>',
+              'compact_participial_answer',
+              'exercise_type == "transform"',
+          ]
+          missing = [item for item in required if item not in source]
+          if missing:
+              raise SystemExit(f"Missing transformation anchors: {missing}")
+          print("verb transformation source validation passed")
+          PY
