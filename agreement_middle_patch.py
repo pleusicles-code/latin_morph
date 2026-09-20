@@ -723,6 +723,11 @@ def apply_recognition_base(source):
         pools = {"different": [], "third_mixed": [], "same": []}
         for noun in active_vocab:
             for adjective in active_adj_vocab:
+                if (
+                    exercise_type == "number_switch"
+                    and set(_ar_allowed_numbers(noun, adjective)) != {"sg", "pl"}
+                ):
+                    continue
                 pools[_ar_pair_category(noun, adjective)].append((noun, adjective))
         available = [category for category, pairs in pools.items() if pairs]
         if not available:
@@ -921,10 +926,16 @@ def apply_recognition_base(source):
     old_recognition = textwrap.indent(old_recognition, "    ")
     new_recognition = r'''        else:
             print_macrons = st.session_state[widget_key(page_id, "print_macrons")]
-            question_html = (
-                f'Milyen alakban állhat a <strong><em>{html.escape(displayed_phrase)}</em></strong> '
-                f'jelzős kifejezés?'
-            )
+            if exercise_type == "number_switch":
+                question_html = (
+                    f'Változtasd meg a <strong><em>{html.escape(displayed_phrase)}</em></strong> '
+                    f'jelzős kifejezés számát, az esetet változatlanul hagyva!'
+                )
+            else:
+                question_html = (
+                    f'Milyen alakban állhat a <strong><em>{html.escape(displayed_phrase)}</em></strong> '
+                    f'jelzős kifejezés?'
+                )
             if show_dictionary_entry:
                 question_html += (
                     f' <em>({html.escape(build_dictionary_entry(noun))} · '
@@ -976,6 +987,46 @@ def apply_recognition_base(source):
 
             optional_analyses = set()
             required_analyses = matching_analyses
+            number_switch_target_groups = []
+            number_switch_answer_options = []
+
+            if exercise_type == "number_switch":
+                seen_target_groups = set()
+                for source_number, source_case in sorted(matching_analyses):
+                    target_number = "pl" if source_number == "sg" else "sg"
+                    target_variants = []
+                    for noun_target in _ar_forms(build_noun([noun, source_case, target_number])):
+                        for adjective_target in _ar_forms(
+                            _ar_adjective_form(adjective, source_case, gender, target_number)
+                        ):
+                            if noun_target is None or adjective_target is None:
+                                continue
+                            noun_surface = _ar_surface(noun_target, print_macrons)
+                            adjective_surface = _ar_surface(adjective_target, print_macrons)
+                            target_variants.extend(
+                                (
+                                    f"{noun_surface} {adjective_surface}",
+                                    f"{adjective_surface} {noun_surface}",
+                                )
+                            )
+                    target_variants = list(dict.fromkeys(target_variants))
+                    group_key = tuple(sorted(item.casefold() for item in target_variants))
+                    if target_variants and group_key not in seen_target_groups:
+                        seen_target_groups.add(group_key)
+                        number_switch_target_groups.append(target_variants)
+
+                if number_switch_target_groups:
+                    for group_order in permutations(number_switch_target_groups):
+                        combinations = [""]
+                        for variants in group_order:
+                            combinations = [
+                                (prefix + " " + variant).strip()
+                                for prefix in combinations
+                                for variant in variants
+                            ]
+                        number_switch_answer_options.extend(combinations)
+                number_switch_answer_options = list(dict.fromkeys(number_switch_answer_options))
+                st.session_state.correct_answer = number_switch_answer_options
 
             supplementary.append(
                 "A magánhangzók hosszúsága jelölve van."
@@ -983,11 +1034,18 @@ def apply_recognition_base(source):
                 else "A magánhangzók hosszúsága nincs jelölve."
             )
             multiple_answer_message = None
-            if st.session_state[widget_key(page_id, "indicate_multiple_answers")]:
-                if len(required_analyses) > 1:
-                    multiple_answer_message = '<span style="color:#7c3aed;">Több helyes válaszlehetőség van.</span>'
+            if exercise_type == "number_switch":
+                if st.session_state[widget_key(page_id, "indicate_multiple_answers")]:
+                    if len(number_switch_target_groups) > 1:
+                        multiple_answer_message = '<span style="color:#7c3aed;">Több alakot is meg kell adni.</span>'
+                elif len(number_switch_target_groups) > 1:
+                    multiple_answer_message = "Több alak megadása is szükséges lehet."
             else:
-                multiple_answer_message = "Több helyes válaszlehetőség is lehet."
+                if st.session_state[widget_key(page_id, "indicate_multiple_answers")]:
+                    if len(required_analyses) > 1:
+                        multiple_answer_message = '<span style="color:#7c3aed;">Több helyes válaszlehetőség van.</span>'
+                else:
+                    multiple_answer_message = "Több helyes válaszlehetőség is lehet."
             if multiple_answer_message:
                 supplementary.append(multiple_answer_message)
 '''
@@ -995,6 +1053,108 @@ def apply_recognition_base(source):
     if old_recognition not in source:
         raise RuntimeError("Could not locate noun recognition display block")
     source = source.replace(old_recognition, new_recognition, 1)
+
+    old_gen_func = '    st.session_state.gen_func = recognition_gen_question if exercise_type == "recognize" else adap_gen_question\n'
+    new_gen_func = '    st.session_state.gen_func = recognition_gen_question if exercise_type in ("recognize", "number_switch") else adap_gen_question\n'
+    old_gen_func = textwrap.indent(old_gen_func, "    ")
+    new_gen_func = textwrap.indent(new_gen_func, "    ")
+    if old_gen_func not in source:
+        raise RuntimeError("Could not locate agreement recognition generator selector")
+    source = source.replace(old_gen_func, new_gen_func, 1)
+
+    old_submit_intro = r'''            def submit_noun_answer():
+                recognition_answer = None
+                parsed_answer = None
+                evaluation = None
+
+                if exercise_type == "recognize" and st.session_state.get("answer_input"):
+'''
+    old_submit_intro = textwrap.indent(old_submit_intro, "    ")
+    new_submit_intro = r'''            def submit_noun_answer():
+                recognition_answer = None
+                parsed_answer = None
+                evaluation = None
+                number_switch_accepted = False
+                number_switch_partial = False
+
+                if exercise_type == "number_switch":
+                    raw_answer = " ".join((st.session_state.get("answer_input") or "").split())
+                    answer_macrons = bool(
+                        print_macrons
+                        and st.session_state.get(widget_key(page_id, "enforce_answer_macrons"), False)
+                    )
+                    normalized_answer = (
+                        _ar_surface(raw_answer, answer_macrons).casefold()
+                        if raw_answer else ""
+                    )
+                    normalized_options = {
+                        _ar_surface(option, answer_macrons).casefold()
+                        for option in number_switch_answer_options
+                    }
+                    number_switch_accepted = bool(raw_answer) and normalized_answer in normalized_options
+                    if (
+                        raw_answer
+                        and not number_switch_accepted
+                        and len(number_switch_target_groups) > 1
+                    ):
+                        normalized_single_groups = {
+                            _ar_surface(option, answer_macrons).casefold()
+                            for variants in number_switch_target_groups
+                            for option in variants
+                        }
+                        number_switch_partial = normalized_answer in normalized_single_groups
+                        if number_switch_partial:
+                            st.session_state.answer_credit_override = (
+                                0.5
+                                if st.session_state[widget_key(page_id, "award_partial_credit")]
+                                else 0
+                            )
+                    st.session_state.answer_input = raw_answer
+                    st.session_state.correct_answer = (
+                        raw_answer
+                        if number_switch_accepted
+                        else "__agreement_number_switch_incorrect__"
+                    )
+
+                elif exercise_type == "recognize" and st.session_state.get("answer_input"):
+'''
+    new_submit_intro = textwrap.indent(new_submit_intro, "    ")
+    if old_submit_intro not in source:
+        raise RuntimeError("Could not locate agreement recognition submit handler")
+    source = source.replace(old_submit_intro, new_submit_intro, 1)
+
+    old_feedback_start = '                if exercise_type == "inflect":\n'
+    old_feedback_start = textwrap.indent(old_feedback_start, "    ")
+    new_feedback_start = r'''                if exercise_type == "number_switch":
+                    if not st.session_state.get("answer_input"):
+                        st.session_state.answer_display_message = (
+                            "A válaszmező üres. Írd be a jelzős kifejezés másik számú alakját vagy alakjait."
+                        )
+                    elif st.session_state.answer_checked:
+                        if number_switch_accepted:
+                            st.session_state.answer_display_message = feedback_box(
+                                "<strong>Helyes válasz!</strong>", "correct"
+                            )
+                        elif number_switch_partial:
+                            canonical = number_switch_answer_options[0] if number_switch_answer_options else "—"
+                            st.session_state.answer_display_message = feedback_box(
+                                f"<strong>Részben helyes. A teljes válasz:</strong> {heavy(canonical, italic=True)}.",
+                                "partial",
+                            )
+                        else:
+                            canonical = number_switch_answer_options[0] if number_switch_answer_options else "—"
+                            st.session_state.answer_display_message = feedback_box(
+                                f"<strong>Helytelen válasz. A helyes válasz:</strong> {heavy(canonical, italic=True)}.",
+                                "incorrect",
+                            )
+                    return
+
+                if exercise_type == "inflect":
+'''
+    new_feedback_start = textwrap.indent(new_feedback_start, "    ")
+    if old_feedback_start not in source:
+        raise RuntimeError("Could not locate agreement recognition feedback branch")
+    source = source.replace(old_feedback_start, new_feedback_start, 1)
 
 
     partial_result_old = '                        st.session_state.result_message = "**Partially correct.**"\n'
@@ -1014,8 +1174,13 @@ def apply_recognition_base(source):
 '''
     old_curr = textwrap.indent(old_curr, "    ")
     new_curr = r'''        curr_question = {
-            "pos": "agreement_recognize" if exercise_type == "recognize" else "noun",
-            "word": [noun, adjective] if exercise_type == "recognize" else noun,
+            "pos": (
+                "agreement_number_switch"
+                if exercise_type == "number_switch"
+                else "agreement_recognize" if exercise_type == "recognize"
+                else "noun"
+            ),
+            "word": [noun, adjective] if exercise_type in ("recognize", "number_switch") else noun,
 '''
     new_curr = textwrap.indent(new_curr, "    ")
     if old_curr not in source:
