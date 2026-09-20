@@ -5,7 +5,7 @@ import pandas as pd
 import ast
 import unicodedata
 import html
-from itertools import permutations
+from itertools import combinations, permutations
 from utils import radio_change, reset, new_question, submit_and_check_answer, clear_page, send_setting, save_defaults, clear_defaults, auto_advance_delay, remove_macrons, tokenize_morphology_answer
 from exercise_presets import (bool_setting, choice_setting, list_setting, resolve_exercise_settings,
                               initialize_widget_state, widget_key, url_preset_active, exercise_link_popover)
@@ -1070,11 +1070,25 @@ else:
             optional_analyses = set()
             required_analyses = matching_analyses
             number_switch_target_groups = []
+            number_switch_optional_target_groups = []
             number_switch_answer_options = []
             number_switch_canonical = ""
 
             if exercise_type == "number_switch":
-                seen_target_groups = set()
+                # With hidden macrons, 3rd-declension i-stem acc. pl. -īs is
+                # indistinguishable from an ordinary -is form. Never require
+                # the learner to interpret such a displayed form as acc. pl.;
+                # nevertheless accept that analysis if they do.
+                optional_number_switch_analyses = set()
+                if (
+                    not print_macrons
+                    and ("pl", "acc") in matching_analyses
+                    and noun_vocab[noun].get("decl") == "3_istem"
+                    and remove_macrons(str(displayed_form)).casefold().endswith("is")
+                ):
+                    optional_number_switch_analyses.add(("pl", "acc"))
+
+                target_groups_by_key = {}
                 for source_number, source_case in sorted(matching_analyses):
                     target_number = "pl" if source_number == "sg" else "sg"
                     if target_number not in allowed_numbers_for_noun(noun):
@@ -1088,22 +1102,53 @@ else:
                         rendered = normalize_noun_surface(form, print_macrons)
                         if rendered not in target_variants:
                             target_variants.append(rendered)
+                    if not target_variants:
+                        continue
+
                     group_key = tuple(sorted(item.casefold() for item in target_variants))
-                    if target_variants and group_key not in seen_target_groups:
-                        seen_target_groups.add(group_key)
-                        number_switch_target_groups.append(target_variants)
+                    is_optional = (source_number, source_case) in optional_number_switch_analyses
+                    previous = target_groups_by_key.get(group_key)
+                    if previous is None or (previous["optional"] and not is_optional):
+                        target_groups_by_key[group_key] = {
+                            "variants": target_variants,
+                            "optional": is_optional,
+                        }
+
+                for group in target_groups_by_key.values():
+                    if group["optional"]:
+                        number_switch_optional_target_groups.append(group["variants"])
+                    else:
+                        number_switch_target_groups.append(group["variants"])
 
                 if number_switch_target_groups:
-                    number_switch_canonical = " ".join(group[0] for group in number_switch_target_groups)
-                    for group_order in permutations(number_switch_target_groups):
-                        combinations = [""]
-                        for variants in group_order:
-                            combinations = [
-                                (prefix + " " + variant).strip()
-                                for prefix in combinations
-                                for variant in variants
+                    number_switch_canonical = " ".join(
+                        group[0] for group in number_switch_target_groups
+                    )
+
+                    # All required groups must be present; any subset of optional
+                    # groups may additionally be supplied, in any order.
+                    optional_indices = range(len(number_switch_optional_target_groups))
+                    optional_subsets = [[]]
+                    for subset_size in range(1, len(number_switch_optional_target_groups) + 1):
+                        optional_subsets.extend(
+                            [
+                                [number_switch_optional_target_groups[index] for index in subset]
+                                for subset in combinations(optional_indices, subset_size)
                             ]
-                        number_switch_answer_options.extend(combinations)
+                        )
+
+                    for optional_subset in optional_subsets:
+                        all_groups = number_switch_target_groups + optional_subset
+                        for group_order in permutations(all_groups):
+                            answer_combinations = [""]
+                            for variants in group_order:
+                                answer_combinations = [
+                                    (prefix + " " + variant).strip()
+                                    for prefix in answer_combinations
+                                    for variant in variants
+                                ]
+                            number_switch_answer_options.extend(answer_combinations)
+
                 number_switch_answer_options = list(dict.fromkeys(number_switch_answer_options))
                 st.session_state.correct_answer = number_switch_answer_options
             else:
@@ -1182,12 +1227,15 @@ else:
                     number_switch_accepted = bool(raw_answer) and normalized_answer in normalized_options
 
                     if raw_answer and not number_switch_accepted:
+                        all_number_switch_groups = (
+                            number_switch_target_groups + number_switch_optional_target_groups
+                        )
                         normalized_target_groups = [
                             {
                                 normalize_noun_surface(option, answer_macrons).casefold()
                                 for option in variants
                             }
-                            for variants in number_switch_target_groups
+                            for variants in all_number_switch_groups
                         ]
                         answer_tokens = tokenize_morphology_answer(raw_answer)
                         matched_groups = set()
@@ -1207,6 +1255,7 @@ else:
                                 matched_groups.add(matched_index)
                                 number_switch_correct_supplied.append(token)
 
+                        # Only genuinely required target groups count as missing.
                         for index, variants in enumerate(number_switch_target_groups):
                             if index not in matched_groups and variants:
                                 number_switch_missing.append(variants[0])
