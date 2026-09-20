@@ -1025,29 +1025,29 @@ def apply_recognition_base(source):
 
 
 def apply_number_switch_base(source):
-    # This patch runs after apply_recognition_base(). Anchor on stable semantic
-    # lines rather than exact indentation/whole-block text.
-    anchor = 'question_html = (\n                    f\'Milyen alakban állhat a <strong><em>{html.escape(displayed_phrase)}</em></strong> \''
-    qpos = source.find(anchor)
-    if qpos == -1:
-        raise RuntimeError("Could not locate transformed agreement recognition question")
-    else_pos = source.rfind('            else:\n', 0, qpos)
-    if else_pos == -1:
-        raise RuntimeError("Could not locate transformed recognition else branch")
-    end_marker = '            prompt_height = 112 if supplementary else 82\n'
-    end = source.find(end_marker, qpos)
-    if end == -1:
-        raise RuntimeError("Could not locate transformed recognition prompt boundary")
+    # apply_recognition_base has already created the pair-recognition branch.
+    # Locate it using the session-state field that is unique to that branch.
+    unique = 'displayed_phrase = st.session_state.get("agreement_recognition_displayed_phrase", "")'
+    intro = source.find(unique)
+    if intro == -1:
+        raise RuntimeError("Could not locate transformed agreement recognition state")
 
-    original = source[else_pos:end]
-    switched = original.replace(
-        "            else:\n                print_macrons",
-        "            else:\n                print_macrons",
-        1,
-    )
-    # Keep the existing recognition branch intact and add a dedicated branch
-    # immediately before it. Reuse the already-generated pair parser/helpers.
-    number_branch = r'''            elif exercise_type == "number_switch":
+    # Change the existing recognition-only branch into a shared recognition/number-switch branch.
+    branch = source.rfind('    if st.session_state.current_question:', 0, intro)
+    if branch == -1:
+        raise RuntimeError("Could not locate agreement recognition question branch")
+
+    # The display block's else follows the inflect block and contains displayed_phrase.
+    phrase_use = source.find("html.escape(displayed_phrase)", intro)
+    if phrase_use == -1:
+        raise RuntimeError("Could not locate displayed agreement phrase")
+    else_pos = source.rfind("        else:\n", branch, phrase_use)
+    if else_pos == -1:
+        raise RuntimeError("Could not locate agreement recognition display branch")
+
+    # Insert a number-switch sub-branch immediately inside the existing recognition else.
+    insert = else_pos + len("        else:\n")
+    number_prefix = r'''            if exercise_type == "number_switch":
                 print_macrons = st.session_state[widget_key(page_id, "print_macrons")]
                 question_html = (
                     f'Változtasd meg a <strong><em>{html.escape(displayed_phrase)}</em></strong> '
@@ -1068,11 +1068,11 @@ def apply_number_switch_base(source):
                         )
                         for noun_form in noun_forms:
                             for adjective_form in adjective_forms:
-                                phrase = (
+                                possible_phrase = (
                                     f"{_ar_surface(noun_form, print_macrons)} "
                                     f"{_ar_surface(adjective_form, print_macrons)}"
                                 )
-                                if phrase == displayed_phrase:
+                                if possible_phrase == displayed_phrase:
                                     matching_analyses.add((possible_number, possible_case))
 
                 target_phrases = []
@@ -1107,62 +1107,57 @@ def apply_number_switch_base(source):
                         )
                 else:
                     supplementary.append("Több helyes válaszlehetőség is lehet.")
+            else:
 '''
-    # Convert the existing final else into an explicit recognize branch.
-    recognition = original.replace(
-        '            else:\n                print_macrons',
-        '            elif exercise_type == "recognize":\n                print_macrons',
-        1,
-    )
-    source = source[:else_pos] + number_branch + recognition + source[end:]
+    # Existing recognition body is currently 12 spaces inside the outer else.
+    # Nest it under the new inner else.
+    prompt_boundary = source.find("        prompt_height =", phrase_use)
+    if prompt_boundary == -1:
+        raise RuntimeError("Could not locate agreement recognition prompt boundary")
+    old_body = source[insert:prompt_boundary]
+    nested_body = "".join(("    " + line if line.strip() else line) for line in old_body.splitlines(True))
+    source = source[:insert] + number_prefix + nested_body + source[prompt_boundary:]
 
-    # The normal recognition form can serve both modes; only checking differs.
-    form_anchor = '            with st.form(key="noun_answer_form", clear_on_submit=True):'
-    source = source.replace(
-        form_anchor,
-        '            with st.form(key="number_switch_form" if exercise_type == "number_switch" else "noun_answer_form", clear_on_submit=True):',
+    # Reuse the recognition form and prepend dedicated checking for number-switch.
+    form_pos = source.find('with st.form(key="noun_answer_form"', prompt_boundary)
+    if form_pos == -1:
+        raise RuntimeError("Could not locate agreement recognition answer form")
+    source = source[:form_pos] + source[form_pos:].replace(
+        'with st.form(key="noun_answer_form", clear_on_submit=True):',
+        'with st.form(key="number_switch_form" if exercise_type == "number_switch" else "noun_answer_form", clear_on_submit=True):',
         1,
     )
-    submit_anchor = '                def submit_answer():\n'
-    pos = source.find(submit_anchor, source.find("number_switch_form"))
-    if pos == -1:
-        raise RuntimeError("Could not locate transformed recognition submit handler")
-    body = pos + len(submit_anchor)
-    handler = r'''                    if exercise_type == "number_switch":
-                        raw_answer = " ".join((st.session_state.get("answer_input") or "").split())
-                        answer_macrons = bool(
-                            print_macrons
-                            and st.session_state.get(widget_key(page_id, "enforce_answer_macrons"), False)
-                        )
-                        normalized_answer = _ar_surface(raw_answer, answer_macrons).casefold() if raw_answer else ""
-                        accepted = {
-                            _ar_surface(item, answer_macrons).casefold()
-                            for item in target_phrases
-                        }
-                        if raw_answer:
-                            st.session_state.answer_input = raw_answer
-                        old_setting = st.session_state.enforce_macrons.get("agreement_enforce_macrons", False)
-                        st.session_state.enforce_macrons["agreement_enforce_macrons"] = answer_macrons
-                        submit_and_check_answer()
-                        st.session_state.enforce_macrons["agreement_enforce_macrons"] = old_setting
-                        if not raw_answer:
-                            st.session_state.answer_display_message = (
-                                "A válaszmező üres. Írd be a jelzős kifejezés másik számú alakját vagy alakjait."
-                            )
-                        elif st.session_state.answer_checked:
-                            if normalized_answer in accepted:
-                                st.session_state.answer_display_message = feedback_box(
-                                    "<strong>Helyes válasz!</strong>", "correct"
-                                )
-                            else:
-                                canonical = target_phrases[0] if target_phrases else "—"
-                                st.session_state.answer_display_message = feedback_box(
-                                    f"<strong>Helytelen válasz. Egy helyes megoldás:</strong> {heavy(canonical, italic=True)}.",
-                                    "incorrect",
-                                )
-                        return
-'''
-    source = source[:body] + handler + source[body:]
+    submit_pos = source.find("def submit_answer():", form_pos)
+    if submit_pos == -1:
+        raise RuntimeError("Could not locate agreement recognition submit handler")
+    newline = source.find("\n", submit_pos) + 1
+    indent = source[submit_pos - (len(source[submit_pos-100:submit_pos]) - len(source[submit_pos-100:submit_pos].lstrip())):submit_pos]
+    # Determine body indentation directly from the def line.
+    line_start = source.rfind("\n", 0, submit_pos) + 1
+    def_indent = source[line_start:submit_pos]
+    body_indent = def_indent + "    "
+    handler_lines = [
+        'if exercise_type == "number_switch":',
+        '    raw_answer = " ".join((st.session_state.get("answer_input") or "").split())',
+        '    answer_macrons = bool(print_macrons and st.session_state.get(widget_key(page_id, "enforce_answer_macrons"), False))',
+        '    supplied = _ar_surface(raw_answer, answer_macrons).casefold() if raw_answer else ""',
+        '    accepted = {_ar_surface(item, answer_macrons).casefold() for item in target_phrases}',
+        '    st.session_state.answer_input = raw_answer',
+        '    old_setting = st.session_state.enforce_macrons.get("agreement_enforce_macrons", False)',
+        '    st.session_state.enforce_macrons["agreement_enforce_macrons"] = answer_macrons',
+        '    submit_and_check_answer()',
+        '    st.session_state.enforce_macrons["agreement_enforce_macrons"] = old_setting',
+        '    if not raw_answer:',
+        '        st.session_state.answer_display_message = "A válaszmező üres. Írd be a jelzős kifejezés másik számú alakját vagy alakjait."',
+        '    elif st.session_state.answer_checked and supplied in accepted:',
+        '        st.session_state.answer_display_message = feedback_box("<strong>Helyes válasz!</strong>", "correct")',
+        '    elif st.session_state.answer_checked:',
+        '        canonical = target_phrases[0] if target_phrases else "—"',
+        '        st.session_state.answer_display_message = feedback_box(f"<strong>Helytelen válasz. Egy helyes megoldás:</strong> {heavy(canonical, italic=True)}.", "incorrect")',
+        '    return',
+    ]
+    handler = "".join(body_indent + line + "\n" for line in handler_lines)
+    source = source[:newline] + handler + source[newline:]
     return source
 
 def apply_recognition_mode(source):
