@@ -89,7 +89,7 @@ source = source.replace(
             help="Ha be van kapcsolva, a kérdésben szereplő alakok jelölik a magánhangzók hosszúságát. Ez az alak lehetséges nyelvtani elemzéseit is pontosíthatja.",
             key=widget_key(page_id, "print_macrons"),
         )
-        if exercise_type == "agreement":
+        if exercise_type in ("agreement", "number_switch"):
             enforce_answer_macrons_key = widget_key(page_id, "enforce_answer_macrons")
             if not print_macrons:
                 st.session_state[enforce_answer_macrons_key] = False
@@ -128,7 +128,7 @@ _agreement_macron_options_new = '''        print_macrons = st.checkbox(
             help="Ha be van kapcsolva, a kérdésben szereplő alakok jelölik a magánhangzók hosszúságát. Ez az alak lehetséges nyelvtani elemzéseit is pontosíthatja.",
             key=widget_key(page_id, "print_macrons"),
         )
-        if exercise_type == "agreement":
+        if exercise_type in ("agreement", "number_switch"):
             enforce_answer_macrons_key = widget_key(page_id, "enforce_answer_macrons")
             if not print_macrons:
                 st.session_state[enforce_answer_macrons_key] = False
@@ -507,8 +507,6 @@ else:
 
 source = prefix + pair_quiz + textwrap.indent(original_quiz, "    ")
 
-# Execute the transformed Agreement page. Recognition remains handled by the
-# established recognition transform; number switching is temporarily left as
-# the stable cloned-recognition mode until its implementation is rebuilt safely.
-source = source.replace('exercise_type == "recognize"', 'exercise_type in ("recognize", "number_switch")')
+# Execute the transformed Agreement page. Pair recognition and singular/plural
+# switching are both implemented by apply_recognition_base().
 exec(compile(source, str(Path(__file__).with_name("agreement_base.py")), "exec"))
