@@ -6,7 +6,7 @@ import ast
 import html
 import re
 import unicodedata
-from itertools import permutations
+from itertools import combinations, permutations
 from utils import radio_change, reset, new_question, remove_macrons, submit_and_check_answer, clear_page, send_setting, save_defaults, clear_defaults, auto_advance_delay, tokenize_morphology_answer
 from exercise_presets import (bool_setting, choice_setting, list_setting, resolve_exercise_settings, initialize_widget_state,
                               widget_key, url_preset_active, exercise_link_popover)
@@ -2191,7 +2191,7 @@ else:
             verb_form = [verb_form] + ["fore"]
 
         curr_question = {
-                "pos": "verb",
+                "pos": "verb_transform" if exercise_type == "transform" else "verb",
                 "word": verb,
                 "id": {k:str(v) if v is not None else v for k,v in verb_id.items() if k != "verb"} | {"conj": str(conj)} | {"irreg": "irreg" if irreg_form is True else None}
             }
@@ -2487,7 +2487,7 @@ else:
             st.session_state.append_answer = saved_append_answer
         return list(analyses.values())
 
-    st.session_state.gen_func = build_verb
+    st.session_state.gen_func = transformation_gen_question if exercise_type == "transform" else build_verb
 
     # CREATE QUIZ
 
@@ -2538,6 +2538,12 @@ else:
 
         verb_label = verb_dictionary_entry(verb) if show_principal_parts else verb
         recognition_correct_analyses = []
+        transform_target_groups = []
+        transform_group_canonicals = []
+        transform_answer_options = []
+        transform_partial_options = set()
+        transform_multiple_notice = None
+
         if exercise_type == "recognize":
             displayed_form = verb_form[0] if isinstance(verb_form, list) else verb_form
             if not print_macrons:
@@ -2556,6 +2562,89 @@ else:
                     '<br><span style="font-size:1rem;color:#7c3aed;">'
                     'Több helyes válaszlehetőség van.</span>'
                 )
+
+        elif exercise_type == "transform":
+            displayed_form = st.session_state.get("verbs_transform_displayed_form")
+            if not displayed_form:
+                source_forms = _verb_form_list(verb_form)
+                displayed_form = source_forms[0] if source_forms else ""
+                if not print_macrons:
+                    displayed_form = remove_macrons(displayed_form)
+
+            matching_source_ids = matching_verb_transform_ids(
+                verb, displayed_form, print_macrons
+            )
+            seen_target_groups = set()
+            for source_id in matching_source_ids:
+                target_built = _probe_build_verb(transformed_verb_id(source_id))
+                if not target_built:
+                    continue
+
+                variants = transform_answer_variants(target_built[0], print_macrons)
+                if not variants:
+                    continue
+                group_key = tuple(sorted(item.casefold() for item in variants))
+                if group_key in seen_target_groups:
+                    continue
+                seen_target_groups.add(group_key)
+                transform_target_groups.append(variants)
+
+                raw_target_forms = _verb_form_list(target_built[0])
+                compact_target = compact_participial_answer(raw_target_forms)
+                if compact_target:
+                    canonical = compact_target if print_macrons else remove_macrons(compact_target)
+                else:
+                    canonical = variants[0]
+                transform_group_canonicals.append(canonical)
+
+            if transform_target_groups:
+                for group_order in permutations(transform_target_groups):
+                    answers = [""]
+                    for variants in group_order:
+                        answers = [
+                            (prefix + " " + variant).strip()
+                            for prefix in answers
+                            for variant in variants
+                        ]
+                    transform_answer_options.extend(answers)
+                transform_answer_options = list(dict.fromkeys(transform_answer_options))
+
+                if len(transform_target_groups) > 1:
+                    group_indices = range(len(transform_target_groups))
+                    for subset_size in range(1, len(transform_target_groups)):
+                        for subset in combinations(group_indices, subset_size):
+                            subset_groups = [transform_target_groups[index] for index in subset]
+                            for group_order in permutations(subset_groups):
+                                answers = [""]
+                                for variants in group_order:
+                                    answers = [
+                                        (prefix + " " + variant).strip()
+                                        for prefix in answers
+                                        for variant in variants
+                                    ]
+                                transform_partial_options.update(answers)
+
+            st.session_state.correct_answer = transform_answer_options
+
+            question_html = (
+                f'Változtassa meg a <strong><em>{html.escape(displayed_form)}</em></strong> '
+                f'alak aspektusát (impf. / perf.)!'
+            )
+            if show_principal_parts:
+                question_html += f' <em>({html.escape(verb_dictionary_entry(verb))})</em>'
+
+            if len(transform_target_groups) > 1:
+                transform_multiple_notice = "Több alakot is meg kell adni."
+            elif any(len(group) > 1 for group in transform_target_groups):
+                transform_multiple_notice = "Több helyes válaszlehetőség van."
+
+            if indicate_multiple_answers and transform_multiple_notice:
+                question_html += (
+                    '<br><span style="font-size:1rem;color:#7c3aed;">'
+                    + transform_multiple_notice
+                    + '</span>'
+                )
+
         else:
             article = hungarian_article(verb_label)
             question_html = (
@@ -2565,9 +2654,16 @@ else:
 
         stems = verb_stem_display(verb) if show_stems else []
         multiple_answer_notice = (
-            exercise_type == "recognize"
-            and indicate_multiple_answers
-            and len(recognition_correct_analyses) > 1
+            (
+                exercise_type == "recognize"
+                and indicate_multiple_answers
+                and len(recognition_correct_analyses) > 1
+            )
+            or (
+                exercise_type == "transform"
+                and indicate_multiple_answers
+                and bool(transform_multiple_notice)
+            )
         )
         prompt_height = (142 if stems else 110) if multiple_answer_notice else (114 if stems else 82)
         prompt_space = st.container(height=prompt_height, border=False)
@@ -2595,6 +2691,86 @@ else:
                 current_answer = st.text_input("Válaszod:", key="answer_input")
 
                 def submit_verb_answer():
+                    if exercise_type == "transform":
+                        raw_answer = " ".join((st.session_state.get("answer_input") or "").split())
+                        if not raw_answer:
+                            st.session_state.button_disable = False
+                            st.session_state.answer_display_message = (
+                                "A válaszmező üres. Írd be az igealak másik aspektusú megfelelőjét."
+                            )
+                            return
+
+                        answer_macrons = bool(
+                            print_macrons
+                            and st.session_state.get(
+                                widget_key(page_id, "enforce_answer_macrons"), False
+                            )
+                        )
+
+                        def normalize_transform_answer(text):
+                            normalized = unicodedata.normalize("NFC", str(text))
+                            normalized = " ".join(normalized.split()).casefold()
+                            if st.session_state.get("cons_u_normalize", False):
+                                normalized = normalized.replace("v", "u")
+                            if not answer_macrons:
+                                normalized = remove_macrons(normalized)
+                            return normalized
+
+                        normalized_answer = normalize_transform_answer(raw_answer)
+                        normalized_options = {
+                            normalize_transform_answer(option)
+                            for option in transform_answer_options
+                        }
+                        normalized_partial_options = {
+                            normalize_transform_answer(option)
+                            for option in transform_partial_options
+                        }
+
+                        transform_accepted = normalized_answer in normalized_options
+                        transform_partial = (
+                            not transform_accepted
+                            and normalized_answer in normalized_partial_options
+                        )
+
+                        original_correct_answer = st.session_state.correct_answer
+                        st.session_state.correct_answer = (
+                            raw_answer
+                            if transform_accepted
+                            else "__verb_transform_incorrect__"
+                        )
+                        if transform_partial:
+                            st.session_state.answer_credit_override = (
+                                0.5 if award_partial_credit else 0
+                            )
+
+                        submit_and_check_answer()
+                        st.session_state.correct_answer = original_correct_answer
+
+                        canonical = " ".join(transform_group_canonicals) or (
+                            transform_answer_options[0] if transform_answer_options else "—"
+                        )
+                        if transform_accepted:
+                            st.session_state.result_message = "**Good job!**"
+                            st.session_state.answer_display_message = feedback_box(
+                                "<strong>Helyes válasz!</strong>", "correct"
+                            )
+                        elif transform_partial:
+                            st.session_state.result_message = "**Partially correct.**"
+                            st.session_state.answer_display_message = feedback_box(
+                                f"<strong>Részben helyes. A teljes válasz:</strong> "
+                                f"{heavy(canonical, italic=True)}.",
+                                "partial",
+                            )
+                        else:
+                            st.session_state.result_message = "**Incorrect. Better luck next time!**"
+                            st.session_state.answer_display_message = feedback_box(
+                                f"<strong>Helytelen válasz. A helyes válasz:</strong> "
+                                f"{heavy(canonical, italic=True)}.",
+                                "incorrect",
+                            )
+                        st.session_state.answer_input = ""
+                        return
+
                     if exercise_type == "recognize":
                         user_answer = st.session_state.get("answer_input", "")
                         if not user_answer:
@@ -2742,7 +2918,14 @@ else:
         new_q_button_text = "Új kérdés" if st.session_state.question_list else "Kattints ide az első kérdéshez!"
         new_q_button_type = "secondary" if st.session_state.question_list else "primary"
         with new_question_col:
-            st.button(new_q_button_text, on_click=new_question, args=(build_verb,), key="question_button", width="stretch", type=new_q_button_type)
+            st.button(
+                new_q_button_text,
+                on_click=new_question,
+                args=(st.session_state.gen_func,),
+                key="question_button",
+                width="stretch",
+                type=new_q_button_type,
+            )
 
         with results_col:
             if st.session_state.current_question and st.session_state.answer_checked and "Incorrect" in st.session_state.result_message:
