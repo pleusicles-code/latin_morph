@@ -155,7 +155,7 @@ with col_declension:
             options=["inflect", "number_switch", "recognize"],
             format_func=lambda value: {
                 "inflect": "Ragozás",
-                "number_switch": "Sg./pl. váltás",
+                "number_switch": "Átalakítás",
                 "recognize": "Alakfelismerés",
             }[value],
             horizontal=True,
