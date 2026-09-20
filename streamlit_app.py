@@ -336,11 +336,11 @@ if not getattr(st, "_bevlat_deferred_answer_input_clear", False):
         key = kwargs.get("key")
         if key == "answer_input":
             if st.session_state.pop("_bevlat_new_question_render_pending", False):
-                st.session_state.pop("answer_input", None)
+                st.session_state["answer_input"] = ""
                 st.session_state.pop("_bevlat_last_incorrect_answer", None)
                 st.session_state.pop("_bevlat_clear_answer_input", None)
             elif st.session_state.pop("_bevlat_clear_answer_input", False):
-                st.session_state.pop("answer_input", None)
+                st.session_state["answer_input"] = ""
                 st.session_state.pop("_bevlat_last_incorrect_answer", None)
             elif (
                 st.session_state.get("answer_checked", False)
