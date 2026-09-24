@@ -62,6 +62,7 @@ def feedback_box(content, state):
 
 exercise_schema = {
     "selected_pos": list_setting(PARTS_OF_SPEECH, PARTS_OF_SPEECH),
+    "include_verb_supine_stem": bool_setting(True),
     "full_regular_first_entry": bool_setting(False),
     "abbreviate_adjective_dictionary": bool_setting(True),
 }
@@ -212,6 +213,10 @@ with option_expander:
             format_func=lambda x: POS_LABELS[x],
             key=widget_key(page_id, "selected_pos"),
         )
+        include_verb_supine_stem = st.checkbox(
+            "Igék supinum-töve is",
+            key=widget_key(page_id, "include_verb_supine_stem"),
+        )
     with settings_options_col:
         abbreviate_adjective_dictionary = st.checkbox(
             "Rövidített melléknévi szótári alakok",
@@ -222,7 +227,7 @@ with option_expander:
             key=widget_key(page_id, "full_regular_first_entry"),
         )
 
-    current_settings = {"selected_pos": selected_pos, "full_regular_first_entry": full_regular_first_entry, "abbreviate_adjective_dictionary": abbreviate_adjective_dictionary}
+    current_settings = {"selected_pos": selected_pos, "include_verb_supine_stem": include_verb_supine_stem, "full_regular_first_entry": full_regular_first_entry, "abbreviate_adjective_dictionary": abbreviate_adjective_dictionary}
 
     if st.user.is_logged_in:
         set_defaults_col, clear_defaults_col, link_col = st.columns(3)
@@ -239,12 +244,13 @@ with option_expander:
             )
 
         with clear_defaults_col:
-            generic_settings = {"selected_pos": PARTS_OF_SPEECH, "full_regular_first_entry": False, "abbreviate_adjective_dictionary": True}
+            generic_settings = {"selected_pos": PARTS_OF_SPEECH, "include_verb_supine_stem": True, "full_regular_first_entry": False, "abbreviate_adjective_dictionary": True}
             settings_changed = current_settings != generic_settings
 
             def reset_stem_defaults():
                 clear_defaults(page_id)
                 st.session_state.identify_stems_selected_pos = list(PARTS_OF_SPEECH)
+                st.session_state.identify_stems_include_verb_supine_stem = True
                 st.session_state.identify_stems_full_regular_first_entry = False
                 st.session_state.identify_stems_abbreviate_adjective_dictionary = True
 
@@ -396,8 +402,21 @@ def check_stem_answer(answer_key):
     for i, correct_part in enumerate(correct_parts):
         part_results.append(i < len(user_parts) and stems_equal(user_parts[i], correct_part))
 
-    fully_correct = len(user_parts) == len(correct_parts) and all(part_results)
-    partially_correct = target_pos == "verb" and not fully_correct and any(part_results)
+    supine_optional = target_pos == "verb" and not include_verb_supine_stem
+    required_part_count = 2 if supine_optional else len(correct_parts)
+    required_results = part_results[:required_part_count]
+    fully_correct = (
+        len(user_parts) >= required_part_count
+        and len(user_parts) <= len(correct_parts)
+        and all(required_results)
+    )
+    optional_supine_wrong = (
+        supine_optional
+        and fully_correct
+        and len(user_parts) >= 3
+        and not part_results[2]
+    )
+    partially_correct = target_pos == "verb" and not fully_correct and any(required_results)
 
     st.session_state.answer_checked = True
     st.session_state.button_disable = True
@@ -415,10 +434,21 @@ def check_stem_answer(answer_key):
     correct_display = canonical_display(correct_parts)
 
     if fully_correct:
-        st.session_state.answer_display_message = feedback_box("<strong>Helyes válasz!</strong>", "correct")
+        if optional_supine_wrong:
+            supine_display = html.escape(correct_parts[2])
+            st.session_state.answer_display_message = feedback_box(
+                '<strong>Helyes válasz, de a supinum-tő helyesen: '
+                f'<span style="font-weight:900;">{supine_display}</span></strong>',
+                "correct",
+            )
+        else:
+            st.session_state.answer_display_message = feedback_box("<strong>Helyes válasz!</strong>", "correct")
     elif partially_correct:
+        feedback_count = required_part_count if supine_optional else len(correct_parts)
         st.session_state.answer_display_message = partial_verb_feedback(
-            user_parts, correct_parts, part_results
+            user_parts[:feedback_count],
+            correct_parts[:feedback_count],
+            part_results[:feedback_count],
         )
     else:
         st.session_state.answer_display_message = feedback_box(
@@ -431,8 +461,9 @@ def check_stem_answer(answer_key):
         answer_id.update({
             "present_stem_correct": part_results[0],
             "perfect_stem_correct": part_results[1],
-            "supine_stem_correct": part_results[2],
         })
+        if include_verb_supine_stem or len(user_parts) >= 3:
+            answer_id["supine_stem_correct"] = part_results[2]
 
     record = {
         "pos": "identify_stems",
