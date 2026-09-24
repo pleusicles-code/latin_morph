@@ -437,7 +437,7 @@ def check_stem_answer(answer_key):
         if optional_supine_wrong:
             supine_display = html.escape(correct_parts[2])
             st.session_state.answer_display_message = feedback_box(
-                '<strong>Helyes válasz, de a supinum-tő helyesen: '
+                '<strong>Az imperfectum és a perfectum helyes, de a supinum-tő helyesen: '
                 f'<span style="font-weight:900;">{supine_display}</span></strong>',
                 "correct",
             )
