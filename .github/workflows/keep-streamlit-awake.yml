@@ -10,4 +10,14 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Ping BevLat
-        run: curl --fail --silent --show-error https://bevlat.streamlit.app/_stcore/health > /dev/null
+        run: |
+          curl --fail --silent --show-error \
+            https://bevlat.streamlit.app/_stcore/health
+
+      - name: Query Supabase
+        env:
+          SUPABASE_KEY: ${{ secrets.SUPABASE_PUBLISHABLE_KEY }}
+        run: |
+          curl --fail --silent --show-error \
+            "https://zzalstamjyosesrofjno.supabase.co/rest/v1/keepalive?select=id" \
+            -H "apikey: $SUPABASE_KEY"
