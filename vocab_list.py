@@ -2,9 +2,9 @@ import streamlit as st
 from utils import remove_macrons
 from vocab import *
 
-st.title("Vocabulary List")
+st.title("Szójegyzék")
 
-st.markdown("These are the words that are currently available in BevLat")
+st.markdown("Az alábbi szavak jelenleg szerepelnek a BevLat szókészletében.")
 
 adj_vocab = import_adjectives()
 adj_vocab = list(adj_vocab)
@@ -26,14 +26,14 @@ vb_vocab.sort(key=lambda x: remove_macrons(x))
 nouns, verbs, adjectives, pronouns = st.columns(4)
 
 with nouns:
-    st.markdown("#### Nouns")
+    st.markdown("#### Főnevek")
     st.markdown("<br>".join(noun_vocab),unsafe_allow_html=True)
 with verbs:
-    st.markdown("#### Verbs")
+    st.markdown("#### Igék")
     st.markdown("<br>".join(vb_vocab),unsafe_allow_html=True)
 with adjectives:
-    st.markdown("#### Adjectives")
+    st.markdown("#### Melléknevek")
     st.markdown("<br>".join(adj_vocab),unsafe_allow_html=True)
 with pronouns:
-    st.markdown("#### Pronouns")
+    st.markdown("#### Névmások")
     st.markdown("<br>".join(pronoun_vocab),unsafe_allow_html=True)
