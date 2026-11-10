@@ -835,7 +835,7 @@ else:
 
         question = (
             f"Képezd a *{verb_label}* ige következő alakját: "
-            f"**{abbrevs[ptc_type]}, {abbrevs[gender]} {abbrevs[number]} {abbrevs[case]}**!"
+            f"**{abbrevs[ptc_type]}, {abbrevs[number]} {abbrevs[case]} {abbrevs[gender]}**!"
         )
 
 
