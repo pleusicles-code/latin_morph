@@ -24,7 +24,6 @@ defaults = st.session_state.default_settings.get(f"{page_id}.py", {})
 complete_verb_vocab = {**filter_vocab_by_repo(import_verbs(), "alap1"), **filter_vocab_by_repo(import_verbs(), "alap2"), **filter_vocab_by_repo(import_verbs(), "alap3")}
 
 st.markdown("# Igenevek")
-st.caption("Participiumok és gerundivumok")
 
 
 ## SET OPTIONS ##
@@ -76,7 +75,7 @@ abbrevs = {
     "gdv": "part. inst. pass.",
 } | adj_abbrevs["gender"] | adj_abbrevs["case"]
 
-adj_options = {"case": list(adj_abbrevs["case"].keys()),
+adj_options = {"case": [case for case in adj_abbrevs["case"] if case != "voc"],
                 "number": list(adj_abbrevs["number"].keys()),
                 "gender": list(adj_abbrevs["gender"].keys()),
                 }
@@ -486,6 +485,8 @@ else:
         if questions_asked and len([item for item in questions_asked if item["pos"] == "verbal adj." and "correct" in item]) > 0:
 
             ptc_df = pd.json_normalize([item for item in questions_asked if item["pos"] == "verbal adj." and "correct" in item]).replace({None: "-", pd.NA: "-", "nan": "-", "None": "-"})
+            # Historical vocative answers must not enter adaptive sampling.
+            ptc_df = ptc_df[ptc_df["id.case"].isin(adj_options["case"])]
 #            st.write(ptc_df)
             dfs["ptc_df"] = ptc_df
 
@@ -602,6 +603,10 @@ else:
                                 case = random.choice(adj_options["case"])
                 else:
                     ptc_type = None
+
+                # Keep any recovered historical case within the current practice options.
+                if case not in adj_options["case"] and case is not None:
+                    case = random.choice(adj_options["case"])
 
                 # st.write("repeat question:", verb, ptc_type, case, number, gender)
                 last_q = [item for item in questions_asked if item["pos"] == "verbal adj." and "correct" in item][-1]
@@ -788,10 +793,7 @@ else:
 
         st.session_state["correct_answer"] = correct_answer
 
-        question = (
-            f"Képezd a *{verb}* ige következő alakját: "
-            f"**{abbrevs[ptc_type]}, {abbrevs[gender]} {abbrevs[number]} {abbrevs[case]}**!"
-        )
+        verb_label = verb
         if show_principal_parts:
             data = complete_verb_vocab[verb]
             regular_first = (
@@ -803,10 +805,14 @@ else:
                 and data.get("irreg", {}).get("irreg") is not True
             )
             if full_regular_first_entry and regular_first:
-                principal_parts_text = f"{verb} 1, -āvī, -ātum"
+                verb_label = f"{verb} 1, -āvī, -ātum"
             else:
-                principal_parts_text = ', '.join([pp for pp in verb_pp.values() if pp is not None])
-            question += f" *Szótári alak:* {principal_parts_text}."
+                verb_label = ", ".join(pp for pp in verb_pp.values() if pp is not None)
+
+        question = (
+            f"Képezd a *{verb_label}* ige következő alakját: "
+            f"**{abbrevs[ptc_type]}, {abbrevs[gender]} {abbrevs[number]} {abbrevs[case]}**!"
+        )
 
 
     ## DISPLAY QUESTION ##
@@ -873,7 +879,7 @@ else:
 
                     vb_adj_table = {}
                     table_index = []
-                    cs_order = list(st.session_state.case_order)
+                    cs_order = [case for case in st.session_state.case_order if case in adj_options["case"]]
 
                     for num in ["sg","pl"]:
                         for gd in ["m","f","n"]:
