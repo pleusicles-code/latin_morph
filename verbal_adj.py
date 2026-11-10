@@ -74,6 +74,7 @@ abbrevs = {
     "ppp": "part. perf. pass.",
     "fap": "part. inst. act.",
     "gdv": "part. inst. pass.",
+    "inf_impf_act": "inf. (impf. act.)",
 } | adj_abbrevs["gender"] | adj_abbrevs["case"]
 
 adj_options = {"case": [case for case in adj_abbrevs["case"] if case != "voc"],
@@ -267,7 +268,39 @@ def verb_dictionary_entry(verb, principal_parts, show_full_regular_first=False):
     parts = [part for part in parts if part]
     return head + (separator + ", ".join(parts) if parts else "")
 
-master_ptc_list = ["pap", "ppp", "fap", "gdv"]
+def present_active_infinitive(verb):
+    """Generate the imperfect active infinitive, including irregular forms."""
+    data = complete_verb_vocab[verb]
+    if data.get("voice") not in ("act", "semidep") or verb == "fīō":
+        # fierī is formally passive; do not generate a fictitious fīere.
+        return None
+    irregular = (data.get("irreg") or {}).get("forms", {}).get("pres", {}).get("act", {}).get("inf")
+    if isinstance(irregular, str) and irregular:
+        return irregular
+    stem = data.get("pres")
+    vowel = verb_vowels["inf"].get(data.get("conj"))
+    if isinstance(stem, str) and vowel is not None:
+        return stem + vowel + "re"
+    return None
+
+
+def supports_verbal_form(verb, form_type):
+    """Check availability when the infinitive is among the selected forms."""
+    data = complete_verb_vocab[verb]
+    if form_type == "inf_impf_act":
+        return present_active_infinitive(verb) is not None
+    if form_type == "pap":
+        return data.get("pap", True) is not None and bool(data.get("pap") or data.get("pres"))
+    if form_type == "ppp":
+        return data.get("ppp") is not None and not data.get("no_pass")
+    if form_type == "fap":
+        return data.get("fap", True) is not None and bool(data.get("fap") or data.get("ppp"))
+    if form_type == "gdv":
+        return data.get("gdv", True) is not None and bool(data.get("gdv") or data.get("pres"))
+    return False
+
+
+master_ptc_list = ["pap", "ppp", "fap", "gdv", "inf_impf_act"]
 master_voice_list = ["act", "dep", "semidep"]
 master_irregular_verbs_list = [key for key in complete_verb_vocab.keys() if complete_verb_vocab[key].get("irreg",{}).get("irreg") is True]
 if "mālō" in master_irregular_verbs_list:
@@ -348,7 +381,7 @@ with ptc_options_col:
         master_ptc_list,
         format_func=lambda x: ptc_dict[x],
         key=widget_key(page_id, "ptc_selector"),
-        help="A part. inst. pass. a gerundivum (más néven participium futuri passivi). A part. inst. act. kizárólag activum vagy deponens alakot jelent."
+        help="A part. inst. pass. a gerundivum (más néven participium futuri passivi). A part. inst. act. kizárólag activum vagy deponens alakot jelent. Egyelőre csak az inf. impf. act. gyakorolható."
     )
 
 # with voice_col:
@@ -404,7 +437,7 @@ with options_col:
     else:
         exercise_link_popover(page_id, exercise_schema, current_exercise_settings)
 
-verb_vocab = {key: val for key, val in complete_verb_vocab.items() if not (all(val.get(ptc) is None for ptc in ["pap","ppp","fap","gdv"]) and all(ptc in val for ptc in ["pap","gdv"]))}
+verb_vocab = {key: val for key, val in complete_verb_vocab.items() if "inf_impf_act" in ptc_selector or not (all(val.get(ptc) is None for ptc in ["pap","ppp","fap","gdv"]) and all(ptc in val for ptc in ["pap","gdv"]))}
 for vb in master_irregular_verbs_list:
     if vb not in irreg_selector:
         verb_vocab.pop(vb)
@@ -414,7 +447,12 @@ selected_conjugations = conjugation_selector + (["3io"] if 3 in conjugation_sele
 verb_vocab = {key: val for key, val in verb_vocab.items() if verb_vocab[key]["conj"] in selected_conjugations + [None] or key in irreg_selector}
 
 
-if ptc_selector == ["pap"]:
+if "inf_impf_act" in ptc_selector:
+    verb_vocab = {
+        verb: data for verb, data in verb_vocab.items()
+        if any(supports_verbal_form(verb, form_type) for form_type in ptc_selector)
+    }
+elif ptc_selector == ["pap"]:
     verb_vocab = {key:val for key, val in verb_vocab.items() if not ("pap" in verb_vocab[key] and verb_vocab[key].get("pap") is None)}
 elif ptc_selector == ["ppp"]:
     verb_vocab = {key: val for key, val in verb_vocab.items() if "ppp" in verb_vocab[key]}
@@ -508,6 +546,8 @@ else:
         else:
             verb = random.choice(list(verb_vocab.keys()))
         avail_ptc = list(ptc_selector)
+        if "inf_impf_act" in avail_ptc and present_active_infinitive(verb) is None:
+            avail_ptc.remove("inf_impf_act")
 
         # does the selected verb not have a PAP?
         if "pap" in verb_vocab[verb] and verb_vocab[verb].get("pap") is None:
@@ -536,7 +576,9 @@ else:
 
         ptc_type = random.choice(avail_ptc)
 
-        if verb_vocab[verb].get("impers_pass_only") and ptc_type in ["ppp","gdv"]:
+        if ptc_type == "inf_impf_act":
+            gender = number = case = None
+        elif verb_vocab[verb].get("impers_pass_only") and ptc_type in ["ppp","gdv"]:
             gender = "n"
             number = "sg"
             case = "nom"
@@ -645,6 +687,8 @@ else:
                             curr_avail_verbs = {v:i for v,i in curr_avail_verbs.items() if "ppp" in i}
                         elif ptc_type == "fap":
                             curr_avail_verbs = {v:i for v,i in curr_avail_verbs.items() if not all(ptc not in i for ptc in ["fap","ppp"]) and not ("fap" in i and i.get("fap") is None)}
+                        elif ptc_type == "inf_impf_act":
+                            curr_avail_verbs = {v:i for v,i in curr_avail_verbs.items() if present_active_infinitive(v) is not None}
                         else: # ptc_type == "gdv"
                             curr_avail_verbs = {v:i for v,i in curr_avail_verbs.items() if not ("gdv" in i and i.get("gdv") is None)}
 
@@ -668,7 +712,9 @@ else:
                             # st.write(ptc_id)
                             if ptc_id is not None:
                                 gender, number, case = ptc_id
-                        if not gender:
+                        if ptc_type == "inf_impf_act":
+                            gender = number = case = None
+                        elif not gender:
                             if verb_vocab[verb].get("impers_pass_only") and ptc_type in ["ppp","gdv"]:
                                 gender = "n"
                                 number = "sg"
@@ -746,13 +792,15 @@ else:
                                 4: None}
 
         if verb_info["voice"] == "act":
-            verb_principal_parts[3] = verb_info["perf"] + "ī"
+            if verb_info.get("perf"):
+                verb_principal_parts[3] = verb_info["perf"] + "ī"
             if verb_info.get("ppp"):
                 verb_principal_parts[4] = verb_info["ppp"] + "um"
             elif verb_info.get("fap"):
                 verb_principal_parts[4] = "[" + verb_info["fap"] + "us]"
         else:
-            verb_principal_parts[3] = verb_info["ppp"] + "us sum"
+            if verb_info.get("ppp"):
+                verb_principal_parts[3] = verb_info["ppp"] + "us sum"
             verb_principal_parts.pop(4)
         pres_inf = ""
 
@@ -780,59 +828,67 @@ else:
             verb_principal_parts[3] += "/iī"
 
 
-        # Assign/create verbal adjective forms
-
-        ptc_stem = ""
-        ptc_nom = ""
-        if ptc_type in ["pap", "gdv"]:
-            if ptc_type == "pap" and "pap" in verb_info:
-                irreg_form = True
-                ptc_nom = verb_info["pap"][0]
-                ptc_stem = verb_info["pap"][1]
-            elif ptc_type == "gdv" and "gdv" in verb_info:
-                irreg_form = True
-                ptc_stem = verb_info["gdv"]
-            ptc_vowel = verb_vowels["pap_gdv"].get(conj)
-            if ptc_type == "pap" and not ptc_nom:
-                ptc_nom = ptc_stem if ptc_stem else verb_info["pres"] + ptc_vowel + "ns"
-            if not ptc_stem:
-                ptc_stem = verb_info["pres"]
-                if ptc_type == "gdv":
-                    ptc_stem += remove_macrons(ptc_vowel) + "nd"
-                else:
-                    ptc_stem += remove_macrons(ptc_vowel) + "nt"
-
+        # Infinitives are indeclinable; participles and gerundives retain case forms.
+        if ptc_type == "inf_impf_act":
+            ptc_form = present_active_infinitive(verb)
+            irreg_form = bool(
+                (verb_info.get("irreg") or {}).get("forms", {})
+                .get("pres", {}).get("act", {}).get("inf")
+            )
         else:
-            if "ppp" in verb_info:
-                ptc_stem = verb_info["ppp"]
-            if ptc_type == "fap":
-                if "fap" in verb_info:
-                    ptc_stem = verb_info["fap"]
-                else:
-                    ptc_stem += "ūr"
-
-        if ptc_type == "pap":
-            if number == "sg" and (case in ["nom","voc"] or (case == "acc" and gender == "n")) :
-                ptc_form = ptc_nom
+            # Assign/create verbal adjective forms
+    
+            ptc_stem = ""
+            ptc_nom = ""
+            if ptc_type in ["pap", "gdv"]:
+                if ptc_type == "pap" and "pap" in verb_info:
+                    irreg_form = True
+                    ptc_nom = verb_info["pap"][0]
+                    ptc_stem = verb_info["pap"][1]
+                elif ptc_type == "gdv" and "gdv" in verb_info:
+                    irreg_form = True
+                    ptc_stem = verb_info["gdv"]
+                ptc_vowel = verb_vowels["pap_gdv"].get(conj)
+                if ptc_type == "pap" and not ptc_nom:
+                    ptc_nom = ptc_stem if ptc_stem else verb_info["pres"] + ptc_vowel + "ns"
+                if not ptc_stem:
+                    ptc_stem = verb_info["pres"]
+                    if ptc_type == "gdv":
+                        ptc_stem += remove_macrons(ptc_vowel) + "nd"
+                    else:
+                        ptc_stem += remove_macrons(ptc_vowel) + "nt"
+    
             else:
-                if gender in ["m","f"]:
-                    ptc_ending = adj_endings[3][number][case]
+                if "ppp" in verb_info:
+                    ptc_stem = verb_info["ppp"]
+                if ptc_type == "fap":
+                    if "fap" in verb_info:
+                        ptc_stem = verb_info["fap"]
+                    else:
+                        ptc_stem += "ūr"
+    
+            if ptc_type == "pap":
+                if number == "sg" and (case in ["nom","voc"] or (case == "acc" and gender == "n")) :
+                    ptc_form = ptc_nom
                 else:
-                    ptc_ending = adj_endings["3_neut"][number][case]
-                if isinstance(ptc_ending, list):
-                    ptc_form = [ptc_stem + ending for ending in ptc_ending]
-                else:
-                    ptc_form = ptc_stem + ptc_ending
-
-        else:
-            if gender == "f":
-                ptc_ending = adj_endings[1][number][case]
-            elif gender == "m":
-                ptc_ending = adj_endings["2_us"][number][case]
+                    if gender in ["m","f"]:
+                        ptc_ending = adj_endings[3][number][case]
+                    else:
+                        ptc_ending = adj_endings["3_neut"][number][case]
+                    if isinstance(ptc_ending, list):
+                        ptc_form = [ptc_stem + ending for ending in ptc_ending]
+                    else:
+                        ptc_form = ptc_stem + ptc_ending
+    
             else:
-                ptc_ending = adj_endings["2_neut"][number][case]
-            ptc_form = ptc_stem + ptc_ending
-
+                if gender == "f":
+                    ptc_ending = adj_endings[1][number][case]
+                elif gender == "m":
+                    ptc_ending = adj_endings["2_us"][number][case]
+                else:
+                    ptc_ending = adj_endings["2_neut"][number][case]
+                ptc_form = ptc_stem + ptc_ending
+    
 
         curr_question = {
                 "pos": "verbal adj.",
@@ -877,8 +933,8 @@ else:
 
         # Match the typography and placement of the question on the Igék page.
         form_label = (
-            f"{abbrevs[ptc_type]}, {abbrevs[number]} "
-            f"{abbrevs[case]} {abbrevs[gender]}"
+            abbrevs[ptc_type] if ptc_type == "inf_impf_act" else
+            f"{abbrevs[ptc_type]}, {abbrevs[number]} {abbrevs[case]} {abbrevs[gender]}"
         )
         question_html = (
             f'Képezd {hungarian_article(verb)} '
@@ -935,7 +991,9 @@ else:
             st.button(new_q_button_text, on_click=new_question, args=(build_ptc,), key="question_button", width="stretch", type=new_q_button_type)
 
         with results_col:
-            if st.session_state.current_question and st.session_state.answer_checked and "Incorrect" in st.session_state.result_message:
+            if (st.session_state.current_question and st.session_state.answer_checked
+                    and "Incorrect" in st.session_state.result_message
+                    and st.session_state.current_question[1][1] != "inf_impf_act"):
                 starting_form = list(st.session_state.current_question[1])
                 next_form = list(starting_form)
                 help_text = "Ehhez az alakhoz nem jeleníthető meg ragozási táblázat." if (starting_form[1] in ["ppp","gdv"] and complete_verb_vocab[starting_form[0]].get("impers_pass_only") is True) else None
