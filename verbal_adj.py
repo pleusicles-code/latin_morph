@@ -849,28 +849,37 @@ else:
                 verb, verb_pp, show_full_regular_first=full_regular_first_entry
             )
 
-        question = (
-            f"Képezd {hungarian_article(verb)} *{verb_label}* ige következő alakját: "
-            f"**{abbrevs[ptc_type]}, {abbrevs[number]} {abbrevs[case]} {abbrevs[gender]}**!"
+        # Match the typography and placement of the question on the Igék page.
+        form_label = (
+            f"{abbrevs[ptc_type]}, {abbrevs[number]} "
+            f"{abbrevs[case]} {abbrevs[gender]}"
+        )
+        question_html = (
+            f'Képezd {hungarian_article(verb)} '
+            f'<strong><em>{html.escape(verb_label)}</em></strong> ige következő alakját: '
+            f'<strong>{html.escape(form_label)}</strong>!'
         )
 
+        stems = verb_stem_display(verb) if show_stems else []
+        prompt_space = st.container(height=114 if stems else 82, border=False)
+        with prompt_space:
+            st.markdown(
+                f'<div style="margin-top:0.75rem;font-size:1.75rem;line-height:1.25;">{question_html}</div>',
+                unsafe_allow_html=True,
+            )
+            if stems:
+                stems_html = ", ".join(f"<em>{html.escape(stem)}-</em>" for stem in stems)
+                irregular = bool(complete_verb_vocab[verb].get("irreg", {}).get("irreg"))
+                stem_label = (
+                    "Szabályos tő:" if len(stems) == 1 else "Szabályos tövek:"
+                ) if irregular else "A tövek:"
+                st.markdown(
+                    f'<div style="font-size:1.05rem;line-height:1.35;margin-top:0.35rem;">{stem_label} {stems_html}.</div>',
+                    unsafe_allow_html=True,
+                )
 
-    ## DISPLAY QUESTION ##
-
-        st.markdown("### Aktuális kérdés")
-        # st.write(st.session_state.correct_answer)
+        ## DISPLAY ANSWER FORM ##
         with st.form(key="ptc_form", clear_on_submit=True):
-            st.markdown(question)
-            if show_stems:
-                stems = verb_stem_display(verb)
-                if stems:
-                    stems_html = ", ".join(f"<em>{html.escape(stem)}-</em>" for stem in stems)
-                    irregular = bool(complete_verb_vocab[verb].get("irreg", {}).get("irreg"))
-                    stem_label = ("Szabályos tő:" if len(stems) == 1 else "Szabályos tövek:") if irregular else "A tövek:"
-                    st.markdown(
-                        f'<div style="font-size:1.05rem;line-height:1.35;margin-top:0.35rem;">{stem_label} {stems_html}.</div>',
-                        unsafe_allow_html=True,
-                    )
             current_answer = st.text_input("Válaszod:", key="answer_input")
 
             submit_button_col, user_answer_col = st.columns([1,2])
