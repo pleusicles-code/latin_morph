@@ -3,6 +3,7 @@ import random
 import time
 import pandas as pd
 import ast
+import html
 from utils import reset, new_question, submit_and_check_answer, clear_page, remove_macrons, send_setting, save_defaults, clear_defaults, auto_advance_delay
 from exercise_presets import (bool_setting, list_setting, resolve_exercise_settings, initialize_widget_state,
                               widget_key, url_preset_active, exercise_link_popover)
@@ -69,10 +70,10 @@ abbrevs = {
     1: "1.",
     2: "2.",
     3: "3.",
-    "pap": "participium praes. act.",
-    "ppp": "participium perf. pass.",
-    "fap": "participium fut. act.",
-    "gdv": "gerundivum",
+    "pap": "part. impf. act.",
+    "ppp": "part. perf. pass.",
+    "fap": "part. inst. act.",
+    "gdv": "part. inst. pass.",
 } | adj_abbrevs["gender"] | adj_abbrevs["case"]
 
 adj_options = {"case": list(adj_abbrevs["case"].keys()),
@@ -193,8 +194,29 @@ adj_endings = {
 conjugation_dict = {1: "1.",
                     2: "2.",
                     3: "3.",
-                    "3io": "3. io",
                     4: "4."}
+
+
+def normalized_conjugations(selected):
+    """Merge the old 3io option into 3 when restoring saved settings."""
+    if not isinstance(selected, (list, tuple)):
+        return selected
+    result = []
+    for conj in selected:
+        visible = 3 if conj == "3io" else conj
+        if visible in conjugation_dict and visible not in result:
+            result.append(visible)
+    return result
+
+
+def verb_stem_display(verb):
+    """Use the same stem convention as the Igék page."""
+    data = complete_verb_vocab[verb]
+    present = data.get("pres")
+    if present:
+        ending = {1: "ā", 2: "ē", "3io": "i", 4: "ī"}.get(data.get("conj"), "")
+        present += ending
+    return [stem for stem in (present, data.get("perf"), data.get("ppp")) if stem]
 
 master_ptc_list = ["pap", "ppp", "fap", "gdv"]
 master_voice_list = ["act", "dep", "semidep"]
@@ -204,12 +226,20 @@ if "mālō" in master_irregular_verbs_list:
 exercise_schema = {
     "show_principal_parts": bool_setting(False),
     "full_regular_first_entry": bool_setting(False),
+    "show_stems": bool_setting(False),
     "conjugation_selector": list_setting(list(conjugation_dict.keys()), list(conjugation_dict.keys())),
     "ptc_selector": list_setting(master_ptc_list, master_ptc_list),
     "voice_selector": list_setting(master_voice_list, master_voice_list),
-    "irreg_selector": list_setting(master_irregular_verbs_list, master_irregular_verbs_list),
+    "irreg_selector": list_setting([], master_irregular_verbs_list),
 }
+defaults = dict(defaults)
+if "conjugation_selector" in defaults:
+    defaults["conjugation_selector"] = normalized_conjugations(defaults["conjugation_selector"])
 exercise_settings = resolve_exercise_settings(page_id, exercise_schema, defaults)
+conjugation_key = widget_key(page_id, "conjugation_selector")
+if conjugation_key in st.session_state:
+    st.session_state[conjugation_key] = normalized_conjugations(st.session_state[conjugation_key])
+exercise_settings["conjugation_selector"] = normalized_conjugations(exercise_settings["conjugation_selector"])
 initialize_widget_state(page_id, exercise_settings)
 preset_active = url_preset_active(page_id)
 
@@ -247,6 +277,11 @@ with options_col:
         key=widget_key(page_id, "full_regular_first_entry"),
         disabled=not show_principal_parts,
     )
+    show_stems = st.checkbox(
+        "Tövek megjelenítése?",
+        help="Az ige töveinek megjelenítése a kérdés alatt.",
+        key=widget_key(page_id, "show_stems"),
+    )
 
 # with conjugation_col:
 with ptc_options_col:
@@ -264,7 +299,7 @@ with ptc_options_col:
         master_ptc_list,
         format_func=lambda x: ptc_dict[x],
         key=widget_key(page_id, "ptc_selector"),
-        help="A gerundivumot egyes nyelvtanok participium futuri passivi néven tárgyalják. A participium fut. act. itt kizárólag activum vagy deponens alakot jelent."
+        help="A part. inst. pass. a gerundivum (más néven participium futuri passivi). A part. inst. act. kizárólag activum vagy deponens alakot jelent."
     )
 
 # with voice_col:
@@ -286,6 +321,7 @@ with ptc_options_col:
 current_exercise_settings = {
     "show_principal_parts": show_principal_parts,
     "full_regular_first_entry": full_regular_first_entry,
+    "show_stems": show_stems,
     "conjugation_selector": conjugation_selector,
     "ptc_selector": ptc_selector,
     "voice_selector": voice_selector,
@@ -325,7 +361,8 @@ for vb in master_irregular_verbs_list:
         verb_vocab.pop(vb)
 
 verb_vocab = {key: val for key,val in verb_vocab.items() if verb_vocab[key]["voice"] in voice_selector}
-verb_vocab = {key: val for key, val in verb_vocab.items() if verb_vocab[key]["conj"] in conjugation_selector + [None] or key in irreg_selector}
+selected_conjugations = conjugation_selector + (["3io"] if 3 in conjugation_selector else [])
+verb_vocab = {key: val for key, val in verb_vocab.items() if verb_vocab[key]["conj"] in selected_conjugations + [None] or key in irreg_selector}
 
 
 if ptc_selector == ["pap"]:
@@ -388,7 +425,7 @@ else:
     def gen_ptc_id():
         conj_random = random.choice(conjugation_selector + (["irreg"] if irreg_selector else []))
         # st.write(conj_random)
-        avail_verbs = [v for v,i in verb_vocab.items() if i["conj"]==conj_random and v not in irreg_selector] if conj_random != "irreg" else [v for v in irreg_selector if v in verb_vocab]
+        avail_verbs = [v for v,i in verb_vocab.items() if (i["conj"] == conj_random or (conj_random == 3 and i["conj"] == "3io")) and v not in irreg_selector] if conj_random != "irreg" else [v for v in irreg_selector if v in verb_vocab]
         # st.write(avail_verbs)
 
         if len(avail_verbs) > 0:
@@ -455,7 +492,7 @@ else:
             if len(ptc_df) > 0:
                 ptc_df_wrong_indiv = ptc_df.copy().query("`id.ptc_type` in @avail_ptc") \
                     .assign(**{"id.conj": lambda df: df["id.conj"].where(~df["id.irreg"].isin(["irreg"]), df["word"])}) \
-                    .query(f"`id.conj` in {[str(conj) for conj in conjugation_selector]} or word in @irreg_selector") \
+                    .query(f"`id.conj` in {[str(conj) for conj in selected_conjugations]} or word in @irreg_selector") \
                     .drop("word", axis=1) \
                     .groupby([col for col in ptc_df.columns if col not in ["pos", "answer", "correct", "word"]]) \
                     .agg(num_correct=("correct","sum"),total_q=("correct","count")) \
@@ -465,7 +502,7 @@ else:
                     # .query("word in @avail_verbs")
                 ptc_df_wrong_agg = ptc_df.copy().query("`id.ptc_type` in @avail_ptc") \
                     .assign(**{"id.conj": lambda df: df["id.conj"].where(~df["id.irreg"].isin(["irreg"]), df["word"])}) \
-                    .query(f"`id.conj` in {[str(conj) for conj in conjugation_selector]} or word in @irreg_selector") \
+                    .query(f"`id.conj` in {[str(conj) for conj in selected_conjugations]} or word in @irreg_selector") \
                     .query(f"`id.conj` in {list(ptc_df_wrong_indiv.index.get_level_values("id.conj"))}") \
                     .groupby(["id.ptc_type","id.conj","id.irreg"]) \
                     .agg(num_correct=("correct","sum"),total_q=("correct","count")) \
@@ -778,6 +815,16 @@ else:
         # st.write(st.session_state.correct_answer)
         with st.form(key="ptc_form", clear_on_submit=True):
             st.markdown(question)
+            if show_stems:
+                stems = verb_stem_display(verb)
+                if stems:
+                    stems_html = ", ".join(f"<em>{html.escape(stem)}-</em>" for stem in stems)
+                    irregular = bool(complete_verb_vocab[verb].get("irreg", {}).get("irreg"))
+                    stem_label = ("Szabályos tő:" if len(stems) == 1 else "Szabályos tövek:") if irregular else "A tövek:"
+                    st.markdown(
+                        f'<div style="font-size:1.05rem;line-height:1.35;margin-top:0.35rem;">{stem_label} {stems_html}.</div>',
+                        unsafe_allow_html=True,
+                    )
             current_answer = st.text_input("Válaszod:", key="answer_input")
 
             submit_button_col, user_answer_col = st.columns([1,2])
