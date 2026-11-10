@@ -8,7 +8,7 @@ from exercise_presets import (bool_setting, list_setting, resolve_exercise_setti
                               widget_key, url_preset_active, exercise_link_popover)
 from vocab import import_verbs, filter_vocab_by_repo
 
-st.set_page_config("BevLat Verbal Adjectives", layout="centered")
+st.set_page_config("BevLat – Igenevek", layout="centered")
 
 st.session_state.verbal_adj_enforce_macrons = st.session_state.enforce_macrons["verbal_adj_enforce_macrons"]
 
@@ -22,57 +22,57 @@ defaults = st.session_state.default_settings.get(f"{page_id}.py", {})
 
 complete_verb_vocab = {**filter_vocab_by_repo(import_verbs(), "alap1"), **filter_vocab_by_repo(import_verbs(), "alap2"), **filter_vocab_by_repo(import_verbs(), "alap3")}
 
-st.title("""Verbal Adjectives""")
-st.html('<h1 style="margin-top: -0.3em; margin-bottom: -0.2em;">Participles and Gerundives</h1>')
+st.markdown("# Igenevek")
+st.caption("Participiumok és gerundivumok")
 
 
 ## SET OPTIONS ##
 
 adj_abbrevs = {
     "decl": {
-        (1,2): "1st and 2nd declension adjectives",
-        3: "3rd declension adjectives"
+        (1, 2): "1–2. declinatiós melléknevek",
+        3: "3. declinatiós melléknevek",
     },
     "case": {
-        "nom": "nominative",
-        "gen": "genitive",
-        "dat": "dative",
-        "acc": "accusative",
-        "abl": "ablative",
-        "voc": "vocative"
+        "nom": "nom.",
+        "gen": "gen.",
+        "dat": "dat.",
+        "acc": "acc.",
+        "abl": "abl.",
+        "voc": "voc.",
     },
     "number": {
-        "sg": "singular",
-        "pl": "plural"
+        "sg": "sg.",
+        "pl": "pl.",
     },
     "gender": {
-        "m": "masculine",
-        "f": "feminine",
-        "n": "neuter"
+        "m": "m.",
+        "f": "f.",
+        "n": "n.",
     },
 }
 
 abbrevs = {
-    "ind": "indicative",
-    "subj": "subjunctive",
-    "impv": "imperative",
-    "inf": "infinitive",
-    "sg": "singular",
-    "pl": "plural",
-    "pres": "present",
-    "fut": "future",
-    "perf": "perfect",
-    "act": "active",
-    "dep": "deponent",
-    "semidep": "semi-deponent",
-    "pass": "passive",
-    1: "1st",
-    2: "2nd",
-    3: "3rd",
-    "pap": "present participle",
-    "ppp": "perfect participle",
-    "fap": "future participle",
-    "gdv": "gerundive",
+    "ind": "indicativus",
+    "subj": "coniunctivus",
+    "impv": "imperativus",
+    "inf": "infinitivus",
+    "sg": "sg.",
+    "pl": "pl.",
+    "pres": "praesens",
+    "fut": "futurum",
+    "perf": "perfectum",
+    "act": "activum",
+    "dep": "deponens",
+    "semidep": "semideponens",
+    "pass": "passivum",
+    1: "1.",
+    2: "2.",
+    3: "3.",
+    "pap": "participium praes. act.",
+    "ppp": "participium perf. pass.",
+    "fap": "participium fut. act.",
+    "gdv": "gerundivum",
 } | adj_abbrevs["gender"] | adj_abbrevs["case"]
 
 adj_options = {"case": list(adj_abbrevs["case"].keys()),
@@ -190,11 +190,11 @@ adj_endings = {
     },
 }
 
-conjugation_dict = {1: "1st (-āre)",
-                    2: "2nd (-ēre)",
-                    3: "3rd (-ere)",
-                    "3io": '3rd "io" (-ere)',
-                    4: "4th (-īre)"}
+conjugation_dict = {1: "1.",
+                    2: "2.",
+                    3: "3.",
+                    "3io": "3. io",
+                    4: "4."}
 
 master_ptc_list = ["pap", "ppp", "fap", "gdv"]
 master_voice_list = ["act", "dep", "semidep"]
@@ -214,7 +214,7 @@ initialize_widget_state(page_id, exercise_settings)
 preset_active = url_preset_active(page_id)
 
 
-option_expander = st.expander("Settings", expanded=True)
+option_expander = st.expander("Beállítások", expanded=True)
 
 with option_expander:
     ptc_options_col,options_col = st.columns([3,2])
@@ -223,9 +223,9 @@ with options_col:
     def switch_verbal_adj_macrons():
         st.session_state.enforce_macrons["verbal_adj_enforce_macrons"] = st.session_state["verbal_adj_enforce_macrons"]
         return
-    st.markdown("Options:", help="You can adjust these options at any point.")
-    st.checkbox("Enforce macrons?",
-                help="If this box is selected, macron mistakes will be considered incorrect. If not selected, macrons can be used but will not be evaluated.",
+    st.markdown("Opciók:", help="Ezeket a beállításokat gyakorlás közben is bármikor módosíthatod.")
+    st.checkbox("Hosszú magánhangzók ellenőrzése?",
+                help="Ha be van jelölve, a hosszú magánhangzók hibás jelölése hibás válasznak számít. Ha nincs bejelölve, a hosszúságjelek használhatók, de a program nem értékeli őket.",
                 key="verbal_adj_enforce_macrons",
                 on_change=send_setting,
                 kwargs={"streamlit_page":"verbal_adj.py","setting_name":"verbal_adj_enforce_macrons"},
@@ -234,14 +234,14 @@ with options_col:
                 )
     macrons = st.session_state.verbal_adj_enforce_macrons
     if macrons:
-        st.markdown("You can copy and paste letters from here:")
+        st.markdown("A hosszú magánhangzók innen másolhatók:")
         st.code("āēīōū", language=None)
 
     st.html('<hr style="border-top: 1px dotted; border-bottom: none;">')
 
-    show_principal_parts = st.checkbox("Show principal parts?",
+    show_principal_parts = st.checkbox("Szótári alak megjelenítése?",
                                        key=widget_key(page_id, "show_principal_parts"),
-                                       help="Select this box to show the verb's principal parts.")
+                                       help="Az ige szótári alakjának megjelenítése.")
     full_regular_first_entry = st.checkbox(
         "Szabályos 1. coniugatiós igék teljes szótári alakjának megjelenítése",
         key=widget_key(page_id, "full_regular_first_entry"),
@@ -251,37 +251,37 @@ with options_col:
 # with conjugation_col:
 with ptc_options_col:
     conjugation_selector = st.multiselect(
-        "Choose which conjugations to practice (they are all selected by default):",
+        "Válaszd ki, mely coniugatiókat szeretnéd gyakorolni (alapértelmezés szerint mindegyik ki van választva):",
         conjugation_dict.keys(),
         format_func = lambda x: conjugation_dict.get(x),
         key=widget_key(page_id, "conjugation_selector"),
-        help = "If no conjugations are chosen, only irregular verbs will be available. If you just want to practice irregular verbs, unselect all the conjugations."
+        help = "Ha egy coniugatiót sem választasz ki, csak a kiválasztott rendhagyó igékből kaphatsz kérdést."
         )
 
     ptc_dict = {abbrev: name for abbrev, name in zip(master_ptc_list, [abbrevs[ptc] for ptc in master_ptc_list])}
     ptc_selector = st.multiselect(
-        "Choose which types of verbal adjective to practice:",
+        "Válaszd ki, mely igenévtípusokat szeretnéd gyakorolni:",
         master_ptc_list,
         format_func=lambda x: ptc_dict[x],
         key=widget_key(page_id, "ptc_selector"),
-        help='The term "gerundive" covers what some books refer to as the "future passive participle," so "future participle" refers only to active/deponent forms.'
+        help="A gerundivumot egyes nyelvtanok participium futuri passivi néven tárgyalják. A participium fut. act. itt kizárólag activum vagy deponens alakot jelent."
     )
 
 # with voice_col:
     voice_dict = {abbrev: name for abbrev, name in zip(master_voice_list,[abbrevs[vc] for vc in master_voice_list])}
 
-    voice_selector = st.multiselect("Choose which types of verb to practice:",
+    voice_selector = st.multiselect("Válaszd ki, mely igetípusokat szeretnéd gyakorolni:",
                                     master_voice_list,
                                     format_func=lambda x: voice_dict[x],
                                     key=widget_key(page_id, "voice_selector"),
-                                    help = '"Active" here refers to all non-deponent verbs; whether an active or passive form is requested will depend on the type of verbal adjective selected.')
+                                    help = "Az act. itt a nem deponens igéket jelenti; az adott igenévtípus határozza meg, hogy activum vagy passivum alakot kell-e képezni.")
 
     # if "dō" in master_irregular_verbs_list:
     #     master_irregular_verbs_list.remove("dō")
-    irreg_selector = st.multiselect("Choose which irregular verbs to practice:",
+    irreg_selector = st.multiselect("Válaszd ki, mely rendhagyó igéket szeretnéd gyakorolni:",
                                     master_irregular_verbs_list,
                                     key=widget_key(page_id, "irreg_selector"),
-                                    help="Selected irregular verbs will be available regardless of which conjugations are selected above. If you just want to practice irregular verbs, unselect all the conjugations.")
+                                    help="A kiválasztott rendhagyó igék a fenti coniugatio-beállításoktól függetlenül előfordulhatnak. Ha csak rendhagyó igéket szeretnél gyakorolni, ne válassz ki egyetlen coniugatiót sem.")
 
 current_exercise_settings = {
     "show_principal_parts": show_principal_parts,
@@ -296,20 +296,20 @@ with options_col:
     if st.user.is_logged_in:
         set_defaults_col, clear_defaults_col, link_col = st.container(vertical_alignment="bottom", height="stretch").columns(3, vertical_alignment="center")
         with set_defaults_col:
-            st.button("Save settings",
+            st.button("Beállítások mentése",
                         type="primary",
                         width="stretch",
-                        help="Save your current verbal adjective settings (except macron enforcement) as your default.",
+                        help="A jelenlegi igenévbeállítások mentése alapértelmezettként (a hosszú magánhangzók ellenőrzésének kivételével).",
                         on_click=save_defaults,
                         args=(page_id, defaults,),
                         kwargs=current_exercise_settings,
                         disabled=preset_active,
                         )
         with clear_defaults_col:
-            st.button("Reset defaults",
+            st.button("Alapbeállítások",
                         type="primary",
                         width="stretch",
-                        help="Restore the generic BevLat default settings for verbal adjectives.",
+                        help="A BevLat általános alapértelmezett igenévbeállításainak visszaállítása.",
                         on_click=clear_defaults,
                         args=(page_id,),
                         disabled=preset_active or not defaults
@@ -347,14 +347,41 @@ else:
 #st.write(verb_vocab.keys())
 
 
+def submit_ptc_answer():
+    """Localize learner feedback while retaining the shared scoring logic."""
+    submit_and_check_answer()
+    submitted = st.session_state.get("answer_input") or ""
+    if not submitted:
+        st.session_state.answer_display_message = (
+            "A válaszmező üres. Írj be egy alakot, majd kattints a "
+            "**Válasz ellenőrzése** gombra, vagy az **Új kérdés** gombbal ugord át a kérdést."
+        )
+        return
+
+    answer_phrase = st.session_state.get("answer_phrase", "")
+    answer_phrase = (
+        answer_phrase.replace("The correct answers are:", "A helyes válaszok:")
+        .replace("The correct answer is:", "A helyes válasz:")
+        .replace(" *or* ", " *vagy* ")
+    )
+    st.session_state.answer_phrase = answer_phrase
+    if "Good job!" in st.session_state.result_message:
+        st.session_state.answer_display_message = f":green-background[{answer_phrase}]"
+    else:
+        st.session_state.answer_display_message = (
+            f":red-background[A válaszod: {submitted}]  \n"
+            f":red-background[{answer_phrase}]"
+        )
+
+
 if len(ptc_selector) == 0:
-    st.write("You need to choose at least one type of verbal adjective.")
+    st.write("Legalább egy igenévtípust ki kell választanod.")
 elif len(voice_selector) == 0:
-    st.write("You need to choose at least one voice.")
+    st.write("Legalább egy igetípust ki kell választanod.")
 elif len(irreg_selector) == 0 and len(conjugation_selector) == 0:
-    st.write("You need to choose at least one conjugation or irregular verb.")
+    st.write("Legalább egy coniugatiót vagy rendhagyó igét ki kell választanod.")
 elif len(verb_vocab) == 0:
-    st.write("Based on your selections, there are no available verbs to generate forms for.")
+    st.write("A kiválasztott beállításokkal nincs olyan ige, amelyből kérdést lehetne generálni.")
 
 else:
 
@@ -584,7 +611,7 @@ else:
                 i += 1
 
         if ptc_id is None:
-            st.session_state.question_generation_error_message = ":warning: I'm having trouble generating a question for you based on your selected options; I suggest you make some changes and hit 'New Question' again."
+            st.session_state.question_generation_error_message = ":warning: A megadott beállításokkal nem sikerült kérdést generálni. Módosítsd a beállításokat, majd kattints ismét az **Új kérdés** gombra."
             return
 
         verb, ptc_type, gender, number, case = ptc_id
@@ -724,7 +751,10 @@ else:
 
         st.session_state["correct_answer"] = correct_answer
 
-        question = f"For *{verb}*, give the {abbrevs[ptc_type]} in the {abbrevs[gender]}, {abbrevs[case]}, {abbrevs[number]}."
+        question = (
+            f"Képezd a *{verb}* ige következő alakját: "
+            f"**{abbrevs[ptc_type]}, {abbrevs[gender]} {abbrevs[number]} {abbrevs[case]}**!"
+        )
         if show_principal_parts:
             data = complete_verb_vocab[verb]
             regular_first = (
@@ -739,24 +769,25 @@ else:
                 principal_parts_text = f"{verb} 1, -āvī, -ātum"
             else:
                 principal_parts_text = ', '.join([pp for pp in verb_pp.values() if pp is not None])
-            question += f" The principal parts are: {principal_parts_text}."
+            question += f" *Szótári alak:* {principal_parts_text}."
 
 
     ## DISPLAY QUESTION ##
 
-        st.markdown("### Current question")
+        st.markdown("### Aktuális kérdés")
         # st.write(st.session_state.correct_answer)
         with st.form(key="ptc_form", clear_on_submit=True):
-            current_answer = st.text_input(question, key="answer_input")
+            st.markdown(question)
+            current_answer = st.text_input("Válaszod:", key="answer_input")
 
             submit_button_col, user_answer_col = st.columns([1,2])
             with submit_button_col:
                 def disable_button():
                         st.session_state.button_disable = True
                 st.form_submit_button(
-                    "Check Answer",
+                    "Válasz ellenőrzése",
                     key="form_submission_button",
-                    on_click=submit_and_check_answer,
+                    on_click=submit_ptc_answer,
                     disabled=st.session_state.button_disable,
                 )
             with user_answer_col:
@@ -767,24 +798,31 @@ else:
 
     new_question_col, results_col, score_col = st.columns(3)
 
-    new_q_button_text = "New Question" if st.session_state.question_list else "Click here for your first question!"
+    new_q_button_text = "Új kérdés" if st.session_state.question_list else "Kattints ide az első kérdéshez!"
     new_q_button_type = "secondary" if st.session_state.question_list else "primary"
     with new_question_col:
         st.button(new_q_button_text, on_click=new_question, args=(build_ptc,), key="question_button", width="stretch", type=new_q_button_type)
 
     with results_col:
-        st.markdown(st.session_state.result_message)    # just write the result message, rather than other things as well.
+        result_message = st.session_state.result_message
+        if "Good job!" in result_message:
+            result_message = "**Helyes válasz!**"
+        elif "Partially correct" in result_message:
+            result_message = "**Részben helyes válasz.**"
+        elif "Incorrect" in result_message:
+            result_message = "**Helytelen válasz.**"
+        st.markdown(result_message)
 
         if st.session_state.current_question and st.session_state.answer_checked and "Incorrect" in st.session_state.result_message:
             starting_form = list(st.session_state.current_question[1])
             next_form = list(starting_form)
-            help_text = "As this form cannot be declined, there is no available chart." if (starting_form[1] in ["ppp","gdv"] and complete_verb_vocab[starting_form[0]].get("impers_pass_only") is True) else None
+            help_text = "Ehhez az alakhoz nem jeleníthető meg ragozási táblázat." if (starting_form[1] in ["ppp","gdv"] and complete_verb_vocab[starting_form[0]].get("impers_pass_only") is True) else None
 
-            chart_popover = st.popover("View chart",type="primary", help=help_text)
+            chart_popover = st.popover("Ragozási táblázat",type="primary", help=help_text)
             with chart_popover:
                 if not (starting_form[1] in ["ppp","gdv"] and complete_verb_vocab[starting_form[0]].get("impers_pass_only") is True):
-                    st.caption("*N.B. This is a beta feature; please let me know if it appears to be buggy or if you would find other information helpful.*")
-                    st.caption("You can change your preferred case order in the navigation menu.")
+                    st.caption("Ez a funkció még fejlesztés alatt áll.")
+                    st.caption("Az esetek sorrendjét a navigációs menüben állíthatod be.")
 
                     vb_adj_table = {}
                     table_index = []
@@ -816,8 +854,11 @@ else:
 
 
     with score_col:
-        st.button("Reset Score", "reset", on_click=reset, width="stretch")
-        st.markdown(f"Current score: **{st.session_state.current_score}** out of **{st.session_state.total_questions}**")
+        st.button("Pontszám nullázása", "reset", on_click=reset, width="stretch")
+        st.markdown(
+            f'<div style="text-align:right;">Jelenlegi pontszám: <strong>{st.session_state.current_score}</strong> / <strong>{st.session_state.total_questions}</strong></div>',
+            unsafe_allow_html=True,
+        )
 
 if st.session_state.auto_advance_trigger and st.session_state.answer_checked:
     time.sleep(auto_advance_delay())
