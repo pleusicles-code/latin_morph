@@ -4,6 +4,7 @@ import time
 import pandas as pd
 import ast
 import html
+import unicodedata
 from utils import reset, new_question, submit_and_check_answer, clear_page, remove_macrons, send_setting, save_defaults, clear_defaults, auto_advance_delay
 from exercise_presets import (bool_setting, list_setting, resolve_exercise_settings, initialize_widget_state,
                               widget_key, url_preset_active, exercise_link_popover)
@@ -216,6 +217,21 @@ def verb_stem_display(verb):
         ending = {1: "ā", 2: "ē", "3io": "i", 4: "ī"}.get(data.get("conj"), "")
         present += ending
     return [stem for stem in (present, data.get("perf"), data.get("ppp")) if stem]
+
+
+def hungarian_article(word):
+    """Select a/az according to the Latin lemma's initial sound."""
+    normalized = "".join(
+        char for char in unicodedata.normalize("NFD", str(word).lower())
+        if unicodedata.category(char) != "Mn"
+    )
+    if not normalized or normalized[0] not in "aeiouy":
+        return "a"
+    # Initial Latin i/u before another vowel may be consonantal (iaciō, uēnor).
+    if len(normalized) > 1 and normalized[0] in "iu" and normalized[1] in "aeiouy":
+        if normalized[:2] not in {"ui"}:
+            return "a"
+    return "az"
 
 
 def verb_dictionary_entry(verb, principal_parts, show_full_regular_first=False):
@@ -834,7 +850,7 @@ else:
             )
 
         question = (
-            f"Képezd a *{verb_label}* ige következő alakját: "
+            f"Képezd {hungarian_article(verb)} *{verb_label}* ige következő alakját: "
             f"**{abbrevs[ptc_type]}, {abbrevs[number]} {abbrevs[case]} {abbrevs[gender]}**!"
         )
 
