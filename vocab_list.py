@@ -4,7 +4,7 @@ from vocab import *
 
 st.title("Szójegyzék")
 
-st.markdown("Az alábbi szavak jelenleg szerepelnek a BevLat szókészletében.")
+st.markdown("Az alábbi szavak szerepelnek jelenleg a BevLat szókészletében.")
 
 adj_vocab = import_adjectives()
 adj_vocab = list(adj_vocab)
