@@ -217,6 +217,40 @@ def verb_stem_display(verb):
         present += ending
     return [stem for stem in (present, data.get("perf"), data.get("ppp")) if stem]
 
+
+def verb_dictionary_entry(verb, principal_parts, show_full_regular_first=False):
+    """Use BevLat's compact verb entries, retaining irregular infinitives."""
+    data = complete_verb_vocab[verb]
+    conj = data.get("conj")
+    regular_first = (
+        conj == 1
+        and data.get("voice") == "act"
+        and data.get("pres")
+        and data.get("perf") == data.get("pres") + "āv"
+        and data.get("ppp") == data.get("pres") + "āt"
+        and data.get("irreg", {}).get("irreg") is not True
+    )
+    if regular_first:
+        return f"{verb} 1, -āvī, -ātum" if show_full_regular_first else f"{verb} 1"
+
+    irregular_forms = data.get("irreg", {}).get("forms", {}).get("pres", {})
+    irregular_infinitive = next(
+        (irregular_forms.get(voice, {}).get("inf") for voice in ("act", "dep")
+         if irregular_forms.get(voice, {}).get("inf")),
+        None,
+    )
+    infinitive = irregular_infinitive or principal_parts.get(2)
+    if irregular_infinitive or conj is None:
+        head = f"{verb}, {infinitive}" if infinitive else verb
+        separator = ", "
+    else:
+        head = f"{verb} {3 if conj == '3io' else conj}"
+        separator = " "
+
+    parts = [principal_parts.get(3), principal_parts.get(4)]
+    parts = [part for part in parts if part]
+    return head + (separator + ", ".join(parts) if parts else "")
+
 master_ptc_list = ["pap", "ppp", "fap", "gdv"]
 master_voice_list = ["act", "dep", "semidep"]
 master_irregular_verbs_list = [key for key in complete_verb_vocab.keys() if complete_verb_vocab[key].get("irreg",{}).get("irreg") is True]
@@ -795,19 +829,9 @@ else:
 
         verb_label = verb
         if show_principal_parts:
-            data = complete_verb_vocab[verb]
-            regular_first = (
-                data.get("conj") == 1
-                and data.get("voice") == "act"
-                and data.get("pres")
-                and data.get("perf") == data.get("pres") + "āv"
-                and data.get("ppp") == data.get("pres") + "āt"
-                and data.get("irreg", {}).get("irreg") is not True
+            verb_label = verb_dictionary_entry(
+                verb, verb_pp, show_full_regular_first=full_regular_first_entry
             )
-            if full_regular_first_entry and regular_first:
-                verb_label = f"{verb} 1, -āvī, -ātum"
-            else:
-                verb_label = ", ".join(pp for pp in verb_pp.values() if pp is not None)
 
         question = (
             f"Képezd a *{verb_label}* ige következő alakját: "
