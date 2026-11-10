@@ -433,10 +433,31 @@ else:
 #st.write(verb_vocab.keys())
 
 
+def feedback_box(content, state):
+    """Match the answer feedback boxes on the Igék page."""
+    colors = {
+        "correct": ("#e3f3e7", "#7aa682"),
+        "incorrect": ("#f7dddd", "#c48282"),
+        "partial": ("#fff4d6", "#e2c66d"),
+    }
+    background, border = colors[state]
+    return (
+        f'<div style="background:{background};border:1px solid {border};border-radius:0.5rem;'
+        f'padding:0.55rem 0.75rem;line-height:1.7;">{content}</div>'
+    )
+
+
+def heavy(text, italic=False):
+    escaped = html.escape(str(text))
+    if italic:
+        escaped = f"<em>{escaped}</em>"
+    return f'<span style="font-weight:900;">{escaped}</span>'
+
+
 def submit_ptc_answer():
-    """Localize learner feedback while retaining the shared scoring logic."""
-    submit_and_check_answer()
+    """Retain shared scoring, with the same feedback format as the verbs page."""
     submitted = st.session_state.get("answer_input") or ""
+    submit_and_check_answer()
     if not submitted:
         st.session_state.answer_display_message = (
             "A válaszmező üres. Írj be egy alakot, majd kattints a "
@@ -444,20 +465,25 @@ def submit_ptc_answer():
         )
         return
 
-    answer_phrase = st.session_state.get("answer_phrase", "")
-    answer_phrase = (
-        answer_phrase.replace("The correct answers are:", "A helyes válaszok:")
-        .replace("The correct answer is:", "A helyes válasz:")
-        .replace(" *or* ", " *vagy* ")
-    )
-    st.session_state.answer_phrase = answer_phrase
-    if "Good job!" in st.session_state.result_message:
-        st.session_state.answer_display_message = f":green-background[{answer_phrase}]"
-    else:
-        st.session_state.answer_display_message = (
-            f":red-background[A válaszod: {submitted}]  \n"
-            f":red-background[{answer_phrase}]"
-        )
+    if st.session_state.answer_checked:
+        if "Good job!" in st.session_state.result_message:
+            st.session_state.answer_display_message = feedback_box(
+                "<strong>Helyes válasz!</strong>", "correct"
+            )
+        else:
+            answers = st.session_state.correct_answer
+            if isinstance(answers, list):
+                answer_list = [heavy(answer, italic=True) for answer in answers]
+                correct_html = " vagy ".join(answer_list)
+                label = "A helyes válasz" if len(answer_list) == 1 else "A helyes válaszok"
+            else:
+                correct_html = heavy(answers, italic=True)
+                label = "A helyes válasz"
+            st.session_state.answer_display_message = feedback_box(
+                f"<strong>Helytelen válasz. {label}:</strong> {correct_html}.",
+                "incorrect",
+            )
+
 
 
 if len(ptc_selector) == 0:
@@ -881,86 +907,80 @@ else:
         ## DISPLAY ANSWER FORM ##
         with st.form(key="ptc_form", clear_on_submit=True):
             current_answer = st.text_input("Válaszod:", key="answer_input")
+            st.form_submit_button(
+                "Válasz ellenőrzése",
+                key="form_submission_button",
+                on_click=submit_ptc_answer,
+                disabled=st.session_state.button_disable,
+                width="stretch",
+            )
 
-            submit_button_col, user_answer_col = st.columns([1,2])
-            with submit_button_col:
-                def disable_button():
-                        st.session_state.button_disable = True
-                st.form_submit_button(
-                    "Válasz ellenőrzése",
-                    key="form_submission_button",
-                    on_click=submit_ptc_answer,
-                    disabled=st.session_state.button_disable,
-                )
-            with user_answer_col:
+        feedback_space = st.container(height=90, border=False)
+        with feedback_space:
+            if st.session_state.answer_display_message.lstrip().startswith("<div"):
+                st.markdown(st.session_state.answer_display_message, unsafe_allow_html=True)
+            else:
                 st.markdown(st.session_state.answer_display_message)
 
 
     ## GENERATE NEW QUESTIONS AND CHECK ANSWERS ##
 
-    new_question_col, results_col, score_col = st.columns(3)
+    control_row = st.container(height=110, border=False)
+    with control_row:
+        new_question_col, results_col, score_col = st.columns([1, 1, 1], gap="medium", vertical_alignment="top")
 
-    new_q_button_text = "Új kérdés" if st.session_state.question_list else "Kattints ide az első kérdéshez!"
-    new_q_button_type = "secondary" if st.session_state.question_list else "primary"
-    with new_question_col:
-        st.button(new_q_button_text, on_click=new_question, args=(build_ptc,), key="question_button", width="stretch", type=new_q_button_type)
+        new_q_button_text = "Új kérdés" if st.session_state.question_list else "Kattints ide az első kérdéshez!"
+        new_q_button_type = "secondary" if st.session_state.question_list else "primary"
+        with new_question_col:
+            st.button(new_q_button_text, on_click=new_question, args=(build_ptc,), key="question_button", width="stretch", type=new_q_button_type)
 
-    with results_col:
-        result_message = st.session_state.result_message
-        if "Good job!" in result_message:
-            result_message = "**Helyes válasz!**"
-        elif "Partially correct" in result_message:
-            result_message = "**Részben helyes válasz.**"
-        elif "Incorrect" in result_message:
-            result_message = "**Helytelen válasz.**"
-        st.markdown(result_message)
+        with results_col:
+            if st.session_state.current_question and st.session_state.answer_checked and "Incorrect" in st.session_state.result_message:
+                starting_form = list(st.session_state.current_question[1])
+                next_form = list(starting_form)
+                help_text = "Ehhez az alakhoz nem jeleníthető meg ragozási táblázat." if (starting_form[1] in ["ppp","gdv"] and complete_verb_vocab[starting_form[0]].get("impers_pass_only") is True) else None
 
-        if st.session_state.current_question and st.session_state.answer_checked and "Incorrect" in st.session_state.result_message:
-            starting_form = list(st.session_state.current_question[1])
-            next_form = list(starting_form)
-            help_text = "Ehhez az alakhoz nem jeleníthető meg ragozási táblázat." if (starting_form[1] in ["ppp","gdv"] and complete_verb_vocab[starting_form[0]].get("impers_pass_only") is True) else None
+                chart_popover = st.popover("Ragozási táblázat", type="primary", help=help_text, width="stretch")
+                with chart_popover:
+                    if not (starting_form[1] in ["ppp","gdv"] and complete_verb_vocab[starting_form[0]].get("impers_pass_only") is True):
+                        st.caption("Ez a funkció még fejlesztés alatt áll.")
+                        st.caption("Az esetek sorrendjét a navigációs menüben állíthatod be.")
 
-            chart_popover = st.popover("Ragozási táblázat",type="primary", help=help_text)
-            with chart_popover:
-                if not (starting_form[1] in ["ppp","gdv"] and complete_verb_vocab[starting_form[0]].get("impers_pass_only") is True):
-                    st.caption("Ez a funkció még fejlesztés alatt áll.")
-                    st.caption("Az esetek sorrendjét a navigációs menüben állíthatod be.")
+                        vb_adj_table = {}
+                        table_index = []
+                        cs_order = [case for case in st.session_state.case_order if case in adj_options["case"]]
 
-                    vb_adj_table = {}
-                    table_index = []
-                    cs_order = [case for case in st.session_state.case_order if case in adj_options["case"]]
+                        for num in ["sg","pl"]:
+                            for gd in ["m","f","n"]:
+                                vb_adj_table[(num, gd)] = []
+                                for cs in cs_order:
+                                    if cs not in table_index:
+                                        table_index.append(cs)
+                                    next_form[-1] = cs
+                                    next_form[-2] = num
+                                    next_form[-3] = gd
 
-                    for num in ["sg","pl"]:
-                        for gd in ["m","f","n"]:
-                            vb_adj_table[(num, gd)] = []
-                            for cs in cs_order:
-                                if cs not in table_index:
-                                    table_index.append(cs)
-                                next_form[-1] = cs
-                                next_form[-2] = num
-                                next_form[-3] = gd
+                                    try:
+                                        form = build_ptc(next_form)[0]
+                                        if isinstance(form, list):
+                                            form = "/".join(form)
+                                        if next_form == starting_form:
+                                            form = f":green-background[{form}]"
+                                    except:
+                                        form = None
+                                    vb_adj_table[(num, gd)].append(form if form is not None else "--")
 
-                                try:
-                                    form = build_ptc(next_form)[0]
-                                    if isinstance(form, list):
-                                        form = "/".join(form)
-                                    if next_form == starting_form:
-                                        form = f":green-background[{form}]"
-                                except:
-                                    form = None
-                                vb_adj_table[(num, gd)].append(form if form is not None else "--")
-
-                    display_table = pd.DataFrame(vb_adj_table, table_index)
-                    st.table(display_table)
+                        display_table = pd.DataFrame(vb_adj_table, table_index)
+                        st.table(display_table)
 
 
 
-    with score_col:
-        st.button("Pontszám nullázása", "reset", on_click=reset, width="stretch")
-        st.markdown(
-            f'<div style="text-align:right;">Jelenlegi pontszám: <strong>{st.session_state.current_score}</strong> / <strong>{st.session_state.total_questions}</strong></div>',
-            unsafe_allow_html=True,
-        )
+        with score_col:
+            st.button("Pontszám nullázása", "reset", on_click=reset, width="stretch")
+            st.markdown(
+                f'<div style="text-align:right;">Jelenlegi pontszám: <strong>{st.session_state.current_score}</strong> / <strong>{st.session_state.total_questions}</strong></div>',
+                unsafe_allow_html=True,
+            )
 
 if st.session_state.auto_advance_trigger and st.session_state.answer_checked:
     time.sleep(auto_advance_delay())
