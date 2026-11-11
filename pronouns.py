@@ -140,7 +140,7 @@ with pronoun_type_col:
                                     options=demonstrative_options,
                                     key=widget_key(page_id, "demonstratives"))
     # personal pronouns
-    personal_pron = st.multiselect("Válaszd ki, mely személyes névmásokat szeretnéd gyakorolni:",
+    personal_pron = st.multiselect("Válaszd ki, mely személyes és visszaható névmásokat szeretnéd gyakorolni:",
                                     options=personal_options,
                                     key=widget_key(page_id, "personal_pron"))
     # relative and interrogative pronouns
