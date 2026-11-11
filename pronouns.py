@@ -3,12 +3,14 @@ import random
 import time
 import pandas as pd
 import ast
+import html
+import unicodedata
 from utils import radio_change, reset, new_question, submit_and_check_answer, clear_page, send_setting, save_defaults, clear_defaults, auto_advance_delay
 from exercise_presets import (bool_setting, list_setting, resolve_exercise_settings, initialize_widget_state,
                               widget_key, url_preset_active, exercise_link_popover)
 from vocab import import_pronouns
 
-st.set_page_config("BevLat Pronouns", layout="centered")
+st.set_page_config("BevLat – Névmások", layout="centered")
 
 # if st.session_state.question_list :
 questions_asked = st.session_state.question_list
@@ -27,6 +29,52 @@ def choose_genitive(pronoun,case,gen_diff=None):
     st.session_state.part_gen = part_gen
 
 
+def hungarian_article(word):
+    """Select a/az according to the Latin lemma's initial sound."""
+    normalized = "".join(
+        char for char in unicodedata.normalize("NFD", str(word).lower())
+        if unicodedata.category(char) != "Mn"
+    )
+    if not normalized or normalized[0] not in "aeiouy":
+        return "a"
+    if len(normalized) > 1 and normalized[0] in "iu" and normalized[1] in "aeiouy":
+        if normalized[:2] != "ui":
+            return "a"
+    return "az"
+
+
+def submit_pronoun_answer():
+    """Preserve the shared correctness check, with Hungarian feedback."""
+    submitted = st.session_state.get("answer_input", "")
+    correct_answer = st.session_state.get("correct_answer")
+    forms = list(correct_answer) if isinstance(correct_answer, list) else [correct_answer]
+    submit_and_check_answer()
+
+    if not st.session_state.get("answer_checked"):
+        st.session_state.answer_display_message = (
+            "Nem adtál meg választ. Írj be egy választ, majd kattints a "
+            "**Válasz ellenőrzése** gombra (vagy nyomd meg az Entert), "
+            "esetleg lépj tovább az **Új kérdés** gombbal."
+        )
+        return
+
+    correct_forms = " *vagy* ".join(f"*{form}*" for form in forms)
+    answer_phrase = (
+        f"A helyes válasz: {correct_forms}"
+        if len(forms) == 1 else f"A helyes válaszok: {correct_forms}"
+    )
+    st.session_state.answer_phrase = answer_phrase
+    if "Good job!" in st.session_state.result_message:
+        st.session_state.result_message = "**Helyes!**"
+        st.session_state.answer_display_message = f":green-background[{answer_phrase}]"
+    else:
+        st.session_state.result_message = "**Helytelen válasz.**"
+        st.session_state.answer_display_message = (
+            f":red-background[Válaszod: {submitted}]  \n"
+            f":red-background[{answer_phrase}]"
+        )
+
+
 page_id = "pronouns"
 clear_page(page_id)
 # print(st.session_state.supabase_connection.table("setting_type").select("*").execute().data)
@@ -36,7 +84,7 @@ defaults = st.session_state.default_settings.get(f"{page_id}.py", {})
 # defaults["demonstratives"] = ["ipse"]
 # defaults["gen_forms_diff"] = True
 
-st.markdown("# Pronouns")
+st.markdown("# Névmások")
 
 
 ## IMPORT PRONOUNS ##
@@ -60,7 +108,7 @@ preset_active = url_preset_active(page_id)
 
 ## SET OPTIONS ##
 
-option_expander = st.expander("Settings", expanded=True)
+option_expander = st.expander("Beállítások", expanded=True)
 
 gen_forms_diff = False
 with option_expander:
@@ -68,36 +116,36 @@ with option_expander:
 
 with pronoun_type_col:
     # demonstratives
-    demonstratives = st.multiselect("Choose which demonstrative pronouns to practice (they are all selected by default):",
+    demonstratives = st.multiselect("Válaszd ki, mely mutató névmásokat szeretnéd gyakorolni (alapértelmezés szerint mindegyik ki van választva):",
                                     options=demonstrative_options,
                                     key=widget_key(page_id, "demonstratives"))
     # personal pronouns
-    personal_pron = st.multiselect("Choose which personal pronouns to practice:",
+    personal_pron = st.multiselect("Válaszd ki, mely személyes névmásokat szeretnéd gyakorolni:",
                                     options=personal_options,
                                     key=widget_key(page_id, "personal_pron"))
     # relative and interrogative pronouns
-    rel_interr = st.multiselect("Choose which relative and interrogative pronouns to practice:",
+    rel_interr = st.multiselect("Válaszd ki, mely vonatkozó és kérdő névmásokat szeretnéd gyakorolni:",
                                     options=rel_interr_options,
                                     key=widget_key(page_id, "rel_interr"))
 
     # indefinite pronouns
-    indefinites = st.multiselect("Choose which indefinite pronouns to practice:",
+    indefinites = st.multiselect("Válaszd ki, mely határozatlan névmásokat szeretnéd gyakorolni:",
                                     options=indefinite_options,
                                     key=widget_key(page_id, "indefinites"))
 
     # if nos or vos selected: option to distinguish between partitive and non-partitive genitive forms of nōs and vōs
     if any(pn in personal_pron for pn in ["nōs","vōs"]):
-        gen_forms_diff = st.checkbox("Distinguish between partitive and non-partitive genitive?",
-                                        help="If this box is selected, you will be asked to provide either the partitive or non-partitive genitive for *nōs* and *vōs*. If not selected, both forms will count as correct.",
+        gen_forms_diff = st.checkbox("A partitivusi és nem partitivusi genitivus megkülönböztetése?",
+                                        help="Ha be van jelölve, a *nōs* és *vōs* névmásnál külön kérjük a partitivusi vagy a nem partitivusi genitivust. Ha nincs bejelölve, mindkét alakot elfogadjuk.",
                                         key=widget_key(page_id, "gen_forms_diff"))
 
 with options_col:
-    st.markdown("Options:", help="You can adjust these options at any point.")
+    st.markdown("Opciók:", help="Ezeket a beállításokat gyakorlás közben is bármikor módosíthatod.")
     def switch_pronoun_macrons():
         st.session_state.enforce_macrons["pronouns_enforce_macrons"] = st.session_state.pronouns_enforce_macrons
         return
-    st.checkbox("Enforce macrons?",
-                help="If this box is selected, macron mistakes will be considered incorrect. If not selected, macrons can be used but will not be evaluated.",
+    st.checkbox("Hosszú magánhangzók ellenőrzése?",
+                help="Ha be van jelölve, a hosszú magánhangzók hibás jelölése hibás válasznak számít. Ha nincs bejelölve, a hosszúságjelek használhatók, de a program nem értékeli őket.",
                 key="pronouns_enforce_macrons",
                 on_change=send_setting,
                 args=(switch_pronoun_macrons,),
@@ -105,7 +153,7 @@ with options_col:
                 )
     macrons = st.session_state.pronouns_enforce_macrons
     if macrons:
-        st.markdown("You can copy and paste letters from here:")
+        st.markdown("A hosszú magánhangzók innen másolhatók:")
         st.code("āēīōū", language=None)
 
     st.html('<hr style="border-top: 1px dotted; border-bottom: none;">')
@@ -120,20 +168,20 @@ with options_col:
     if st.user.is_logged_in:
         set_defaults_col, clear_defaults_col, link_col = st.container(vertical_alignment="bottom", height="stretch").columns(3, vertical_alignment="center")
         with set_defaults_col:
-            st.button("Save settings",
+            st.button("Beállítások mentése",
                         type="primary",
                         width="stretch",
-                        help="Save your current pronoun settings (except macron enforcement) as your default.",
+                        help="A jelenlegi névmási beállítások mentése alapértelmezettként (a hosszú magánhangzók ellenőrzésének kivételével).",
                         on_click=save_defaults,
                         args=(page_id, defaults,),
                         kwargs=current_exercise_settings,
                         disabled=preset_active,
                         )
         with clear_defaults_col:
-            st.button("Reset defaults",
+            st.button("Alapbeállítások",
                         type="primary",
                         width="stretch",
-                        help="Restore the generic BevLat default settings for pronouns.",
+                        help="A BevLat általános alapértelmezett névmási beállításainak visszaállítása.",
                         on_click=clear_defaults,
                         args=(page_id,),
                         disabled=preset_active or not defaults
@@ -155,22 +203,9 @@ selected_pronouns = {k: v for k, v in pronoun_vocab.items() if k in pron_list} #
 #st.write(selected_pronouns.keys())
 
 abbrevs = {
-    "case": {
-        "nom": "nominative",
-        "gen": "genitive",
-        "dat": "dative",
-        "acc": "accusative",
-        "abl": "ablative"
-    },
-    "number": {
-        "sg": "singular",
-        "pl": "plural"
-    },
-    "gender": {
-        "m": "masculine",
-        "f": "feminine",
-        "n": "neuter"
-    }
+    "case": {"nom": "nom.", "gen": "gen.", "dat": "dat.", "acc": "acc.", "abl": "abl."},
+    "number": {"sg": "sg.", "pl": "pl."},
+    "gender": {"m": "m.", "f": "f.", "n": "n."},
 }
 
 pronoun_options = {"case": list(abbrevs["case"].keys()),
@@ -311,10 +346,10 @@ def build_pronoun(pronoun_id=None, temp_gen_diff=None):
         else:
             if st.session_state.part_gen:
                 correct_form = correct_form["partitive"]
-                # st.session_state.gen_string = "genitive (partitive form)"
+                # st.session_state.gen_string = "gen. (partitivus)"
             else:
                 correct_form = correct_form["non_part"]
-                # st.session_state.gen_string = "genitive (non-partitive form)"
+                # st.session_state.gen_string = "gen. (nem partitivus)"
 
 
     return correct_form
@@ -372,10 +407,10 @@ if st.session_state.current_question:
     if st.session_state.part_gen is not None:
         if st.session_state.part_gen:
             # correct_form = correct_form["partitive"]
-            st.session_state.gen_string = "genitive (partitive form)"
+            st.session_state.gen_string = "gen. (partitivus)"
         else:
             # correct_form = correct_form["non_part"]
-            st.session_state.gen_string = "genitive (non-partitive form)"
+            st.session_state.gen_string = "gen. (nem partitivus)"
 
 
     # if isinstance(correct_form,dict):
@@ -384,10 +419,10 @@ if st.session_state.current_question:
     #     else:
     #         if part_gen:
     #             correct_form = correct_form["partitive"]
-    #             st.session_state.gen_string = "genitive (partitive form)"
+    #             st.session_state.gen_string = "gen. (partitivus)"
     #         else:
     #             correct_form = correct_form["non_part"]
-    #             st.session_state.gen_string = "genitive (non-partitive form)"
+    #             st.session_state.gen_string = "gen. (nem partitivus)"
 
 
     gen_string = st.session_state.gen_string
@@ -428,103 +463,121 @@ if st.session_state.current_question:
                 questions_asked[-1]["id"]["case"] = "gen"
 
 ## CREATE QUESTION PHRASE ##
-    question = f"For *{pronoun}*, give the **{", ".join([item for item in [abbrevs["gender"].get(gender), abbrevs["number"].get(number), gen_string if gen_string and gen_forms_diff else abbrevs["case"].get(case)] if item is not None])}**."
+    form_label = ", ".join(
+        item for item in (
+            abbrevs["number"].get(number),
+            gen_string if gen_string and gen_forms_diff else abbrevs["case"].get(case),
+            abbrevs["gender"].get(gender),
+        ) if item is not None
+    )
+    question_html = (
+        f'Képezd {hungarian_article(pronoun)} '
+        f'<strong><em>{html.escape(pronoun)}</em></strong> névmás következő alakját: '
+        f'<strong>{html.escape(form_label)}</strong>!'
+    )
 
 ## DISPLAY QUESTION ##
-
-    st.markdown("### Current question")
+    prompt_space = st.container(height=82, border=False)
+    with prompt_space:
+        st.markdown(
+            f'<div style="margin-top:0.75rem;font-size:1.75rem;line-height:1.25;">{question_html}</div>',
+            unsafe_allow_html=True,
+        )
 
     with st.form(key="pronoun_form", clear_on_submit=True):
-        current_answer = st.text_input(question, key="answer_input")
+        st.text_input("Válaszod:", key="answer_input")
+        st.form_submit_button(
+            "Válasz ellenőrzése",
+            key="form_submission_button",
+            on_click=submit_pronoun_answer,
+            disabled=st.session_state.button_disable,
+            width="stretch",
+        )
 
-        submit_button_col, user_answer_col = st.columns([1,2])
-        with submit_button_col:
-            def disable_button():
-                    st.session_state.button_disable = True
-            st.form_submit_button(
-                "Check Answer",
-                key="form_submission_button",
-                on_click=submit_and_check_answer,
-                disabled=st.session_state.button_disable,
-            )
-        with user_answer_col:
-            st.markdown(st.session_state.answer_display_message)
+    feedback_space = st.container(height=90, border=False)
+    with feedback_space:
+        st.markdown(st.session_state.answer_display_message)
 
 
 ## GENERATE NEW QUESTIONS AND CHECK ANSWERS ##
 
 if not pron_list:
-    st.write("You need to choose at least one pronoun.")
+    st.write("Válassz ki legalább egy névmást a gyakorláshoz.")
 else:
 
-    new_question_col, results_col, score_col = st.columns(3)
+    control_row = st.container(height=110, border=False)
+    with control_row:
+        new_question_col, results_col, score_col = st.columns([1, 1, 1], gap="medium", vertical_alignment="top")
 
-    new_q_button_text = "New Question" if st.session_state.question_list else "Click here for your first question!"
-    new_q_button_type = "secondary" if st.session_state.question_list else "primary"
-    with new_question_col:
-        st.button(new_q_button_text, on_click=new_question, args=(gen_question,), key="question_button", width="stretch", type=new_q_button_type)
+        new_q_button_text = "Új kérdés" if st.session_state.question_list else "Kattints ide az első kérdéshez!"
+        new_q_button_type = "secondary" if st.session_state.question_list else "primary"
+        with new_question_col:
+            st.button(new_q_button_text, on_click=new_question, args=(gen_question,), key="question_button", width="stretch", type=new_q_button_type)
 
-    with results_col:
-        st.markdown(st.session_state.result_message)    # just write the result message, rather than other things as well.
+        with results_col:
+            st.markdown(st.session_state.result_message)    # just write the result message, rather than other things as well.
 
-        if st.session_state.current_question and st.session_state.answer_checked and "Incorrect" in st.session_state.result_message:
-            chart_popover = st.popover("View chart",type="primary")
-            with chart_popover:
-                st.caption("*N.B. This is a beta feature; please let me know if it appears to be buggy or if you would find other information helpful.*")
-                st.caption("You can change your preferred case order in the navigation menu.")
-                starting_form = list(st.session_state.current_question)
-                next_form = list(starting_form)
+            if st.session_state.current_question and st.session_state.answer_checked and "Helytelen" in st.session_state.result_message:
+                chart_popover = st.popover("Ragozási táblázat",type="primary")
+                with chart_popover:
+                    st.caption("Ez a funkció még fejlesztés alatt áll.")
+                    st.caption("Az esetek sorrendjét a navigációs menüben állíthatod be.")
+                    starting_form = list(st.session_state.current_question)
+                    next_form = list(starting_form)
 
-                pronoun_table = {}
-                table_index = []
-                cs_order = list(st.session_state.case_order)
-                cs_order = [cs for cs in cs_order if cs != "voc"]
+                    pronoun_table = {}
+                    table_index = []
+                    cs_order = list(st.session_state.case_order)
+                    cs_order = [cs for cs in cs_order if cs != "voc"]
 
-                if "forms" not in pronoun_vocab[pronoun]:
-                    for num in ["sg","pl"]:
-                        for gd in ["m","f","n"]:
-                            pronoun_table[(num,gd)] = []
-                else:
-                    pronoun_table[pronoun] = []
-                for cs in cs_order:
-                    if cs not in table_index:
-                        table_index.append(cs)
-                    for item in pronoun_table:
-                        if isinstance(item, tuple):
-                            num = item[0]
-                            gd = item[1]
+                    if "forms" not in pronoun_vocab[pronoun]:
+                        for num in ["sg","pl"]:
+                            for gd in ["m","f","n"]:
+                                pronoun_table[(num,gd)] = []
+                    else:
+                        pronoun_table[pronoun] = []
+                    for cs in cs_order:
+                        if cs not in table_index:
+                            table_index.append(cs)
+                        for item in pronoun_table:
+                            if isinstance(item, tuple):
+                                num = item[0]
+                                gd = item[1]
 
-                            next_form[1] = cs
-                            next_form[2] = num
-                            next_form[3] = gd
+                                next_form[1] = cs
+                                next_form[2] = num
+                                next_form[3] = gd
 
-                        else:
-                            num = None
-                            gd = None
+                            else:
+                                num = None
+                                gd = None
 
-                            next_form[1] = cs
+                                next_form[1] = cs
 
-                        try:
-                            form = build_pronoun(next_form, temp_gen_diff)
-                            if isinstance(form, list):
-                                form = "/".join(form)
-                            if next_form == starting_form:
-                                form = f":green-background[{form}]"
-                                if pronoun in ["nōs","vōs"] and starting_form[1] == "gen" and "/" not in form:
-                                    form_append = pronoun_vocab[pronoun]["forms"]["gen"]["partitive"] if st.session_state.part_gen is False else pronoun_vocab[pronoun]["forms"]["gen"]["non_part"]
-                                    form += f"/{form_append}"
-                        except:
-                            form = None
-                        pronoun_table[item if isinstance(item, tuple) else pronoun].append(form if form is not None else "--")
-
-
-                display_table = pd.DataFrame(pronoun_table, table_index)
-                st.table(display_table, hide_header=True if "forms" in pronoun_vocab[pronoun] else False)
+                            try:
+                                form = build_pronoun(next_form, temp_gen_diff)
+                                if isinstance(form, list):
+                                    form = "/".join(form)
+                                if next_form == starting_form:
+                                    form = f":green-background[{form}]"
+                                    if pronoun in ["nōs","vōs"] and starting_form[1] == "gen" and "/" not in form:
+                                        form_append = pronoun_vocab[pronoun]["forms"]["gen"]["partitive"] if st.session_state.part_gen is False else pronoun_vocab[pronoun]["forms"]["gen"]["non_part"]
+                                        form += f"/{form_append}"
+                            except:
+                                form = None
+                            pronoun_table[item if isinstance(item, tuple) else pronoun].append(form if form is not None else "--")
 
 
-    with score_col:
-        st.button("Reset Score", "reset", on_click=reset, width="stretch")
-        st.markdown(f"Current score: **{st.session_state.current_score}** out of **{st.session_state.total_questions}**")
+                    display_table = pd.DataFrame(pronoun_table, table_index)
+                    st.table(display_table, hide_header=True if "forms" in pronoun_vocab[pronoun] else False)
+
+
+        with score_col:
+            st.button("Pontszám nullázása", "reset", on_click=reset, width="stretch")
+            st.markdown(
+                f'<div style="text-align:right;">Jelenlegi pontszám: <strong>{st.session_state.current_score}</strong> / <strong>{st.session_state.total_questions}</strong></div>',
+                unsafe_allow_html=True,
+            )
 
 if st.session_state.auto_advance_trigger and st.session_state.answer_checked:
     time.sleep(auto_advance_delay())
