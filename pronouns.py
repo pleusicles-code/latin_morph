@@ -43,36 +43,56 @@ def hungarian_article(word):
     return "az"
 
 
-def submit_pronoun_answer():
-    """Preserve the shared correctness check, with Hungarian feedback."""
-    submitted = st.session_state.get("answer_input", "")
-    correct_answer = st.session_state.get("correct_answer")
-    forms = list(correct_answer) if isinstance(correct_answer, list) else [correct_answer]
-    submit_and_check_answer()
+def feedback_box(content, state):
+    """Match the answer feedback boxes on the Igenevek and Igék pages."""
+    colors = {
+        "correct": ("#e3f3e7", "#7aa682"),
+        "incorrect": ("#f7dddd", "#c48282"),
+        "partial": ("#fff4d6", "#e2c66d"),
+    }
+    background, border = colors[state]
+    return (
+        f'<div style="background:{background};border:1px solid {border};border-radius:0.5rem;'
+        f'padding:0.55rem 0.75rem;line-height:1.7;">{content}</div>'
+    )
 
-    if not st.session_state.get("answer_checked"):
+
+def heavy(text, italic=False):
+    escaped = html.escape(str(text))
+    if italic:
+        escaped = f"<em>{escaped}</em>"
+    return f'<span style="font-weight:900;">{escaped}</span>'
+
+
+def submit_pronoun_answer():
+    """Use the shared correctness check with the standard BevLat feedback."""
+    submitted = st.session_state.get("answer_input") or ""
+    submit_and_check_answer()
+    if not submitted:
         st.session_state.answer_display_message = (
-            "Nem adtál meg választ. Írj be egy választ, majd kattints a "
-            "**Válasz ellenőrzése** gombra (vagy nyomd meg az Entert), "
-            "esetleg lépj tovább az **Új kérdés** gombbal."
+            "A válaszmező üres. Írj be egy alakot, majd kattints a "
+            "**Válasz ellenőrzése** gombra, vagy az **Új kérdés** gombbal ugord át a kérdést."
         )
         return
 
-    correct_forms = " *vagy* ".join(f"*{form}*" for form in forms)
-    answer_phrase = (
-        f"A helyes válasz: {correct_forms}"
-        if len(forms) == 1 else f"A helyes válaszok: {correct_forms}"
-    )
-    st.session_state.answer_phrase = answer_phrase
-    if "Good job!" in st.session_state.result_message:
-        st.session_state.result_message = "**Helyes!**"
-        st.session_state.answer_display_message = f":green-background[{answer_phrase}]"
-    else:
-        st.session_state.result_message = "**Helytelen válasz.**"
-        st.session_state.answer_display_message = (
-            f":red-background[Válaszod: {submitted}]  \n"
-            f":red-background[{answer_phrase}]"
-        )
+    if st.session_state.answer_checked:
+        if "Good job!" in st.session_state.result_message:
+            st.session_state.answer_display_message = feedback_box(
+                "<strong>Helyes válasz!</strong>", "correct"
+            )
+        else:
+            answers = st.session_state.correct_answer
+            if isinstance(answers, list):
+                answer_list = [heavy(answer, italic=True) for answer in answers]
+                correct_html = " vagy ".join(answer_list)
+                label = "A helyes válasz" if len(answer_list) == 1 else "A helyes válaszok"
+            else:
+                correct_html = heavy(answers, italic=True)
+                label = "A helyes válasz"
+            st.session_state.answer_display_message = feedback_box(
+                f"<strong>Helytelen válasz. {label}:</strong> {correct_html}.",
+                "incorrect",
+            )
 
 
 page_id = "pronouns"
@@ -496,7 +516,10 @@ if st.session_state.current_question:
 
     feedback_space = st.container(height=90, border=False)
     with feedback_space:
-        st.markdown(st.session_state.answer_display_message)
+        if st.session_state.answer_display_message.lstrip().startswith("<div"):
+            st.markdown(st.session_state.answer_display_message, unsafe_allow_html=True)
+        else:
+            st.markdown(st.session_state.answer_display_message)
 
 
 ## GENERATE NEW QUESTIONS AND CHECK ANSWERS ##
@@ -515,9 +538,7 @@ else:
             st.button(new_q_button_text, on_click=new_question, args=(gen_question,), key="question_button", width="stretch", type=new_q_button_type)
 
         with results_col:
-            st.markdown(st.session_state.result_message)    # just write the result message, rather than other things as well.
-
-            if st.session_state.current_question and st.session_state.answer_checked and "Helytelen" in st.session_state.result_message:
+            if st.session_state.current_question and st.session_state.answer_checked and "Incorrect" in st.session_state.result_message:
                 chart_popover = st.popover("Ragozási táblázat",type="primary")
                 with chart_popover:
                     st.caption("Ez a funkció még fejlesztés alatt áll.")
