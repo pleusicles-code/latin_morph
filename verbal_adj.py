@@ -13,7 +13,9 @@ from verbal_principal_forms import (
     participle_dictionary_entry, accepts_participle_dictionary_answer,
     has_real_perfect_passive_stem,
 )
-from verbal_infinitives import ALL_INFINITIVE_TYPES, infinitive_paradigm
+from verbal_infinitives import (
+    ALL_INFINITIVE_TYPES, infinitive_paradigm, expand_selected_form_types,
+)
 
 st.set_page_config("BevLat – Igenevek", layout="centered")
 
@@ -81,11 +83,11 @@ abbrevs = {
     "gdv": "part. inst. pass.",
     "inf_impf_act": "inf. (impf. act.)",
     "inf_all": "inf. (összes)",
-    "inf_impf_pass": "inf. impf. pass.",
-    "inf_perf_act": "inf. perf. act.",
-    "inf_perf_pass": "inf. perf. pass.",
-    "inf_inst_act": "inf. inst. act.",
-    "inf_inst_pass": "inf. inst. pass.",
+    "inf_impf_pass": "inf. (impf. pass.)",
+    "inf_perf_act": "inf. (perf. act.)",
+    "inf_perf_pass": "inf. (perf. pass.)",
+    "inf_inst_act": "inf. (inst. act.)",
+    "inf_inst_pass": "inf. (inst. pass.)",
 } | adj_abbrevs["gender"] | adj_abbrevs["case"]
 
 adj_options = {"case": [case for case in adj_abbrevs["case"] if case != "voc"],
@@ -478,10 +480,7 @@ with options_col:
     else:
         exercise_link_popover(page_id, exercise_schema, current_exercise_settings)
 
-effective_ptc_selector = list(dict.fromkeys(
-    [kind for kind in ptc_selector if kind != "inf_all"]
-    + (list(ALL_INFINITIVE_TYPES) if "inf_all" in ptc_selector else [])
-))
+effective_ptc_selector = expand_selected_form_types(ptc_selector)
 
 verb_vocab = {key: val for key, val in complete_verb_vocab.items() if any(kind in effective_ptc_selector for kind in ALL_INFINITIVE_TYPES) or not (all(val.get(ptc) is None for ptc in ["pap","ppp","fap","gdv"]) and all(ptc in val for ptc in ["pap","gdv"]))}
 for vb in master_irregular_verbs_list:
