@@ -13,6 +13,7 @@ from verbal_principal_forms import (
     participle_dictionary_entry, accepts_participle_dictionary_answer,
     has_real_perfect_passive_stem,
 )
+from verbal_infinitives import ALL_INFINITIVE_TYPES, infinitive_paradigm
 
 st.set_page_config("BevLat – Igenevek", layout="centered")
 
@@ -79,6 +80,12 @@ abbrevs = {
     "fap": "part. inst. act.",
     "gdv": "part. inst. pass.",
     "inf_impf_act": "inf. (impf. act.)",
+    "inf_all": "inf. (összes)",
+    "inf_impf_pass": "inf. impf. pass.",
+    "inf_perf_act": "inf. perf. act.",
+    "inf_perf_pass": "inf. perf. pass.",
+    "inf_inst_act": "inf. inst. act.",
+    "inf_inst_pass": "inf. inst. pass.",
 } | adj_abbrevs["gender"] | adj_abbrevs["case"]
 
 adj_options = {"case": [case for case in adj_abbrevs["case"] if case != "voc"],
@@ -291,8 +298,8 @@ def present_active_infinitive(verb):
 def supports_verbal_form(verb, form_type):
     """Check availability when the infinitive is among the selected forms."""
     data = complete_verb_vocab[verb]
-    if form_type == "inf_impf_act":
-        return present_active_infinitive(verb) is not None
+    if form_type in ALL_INFINITIVE_TYPES:
+        return form_type in infinitive_paradigm(verb, data)
     if form_type == "pap":
         return data.get("pap", True) is not None and bool(data.get("pap") or data.get("pres"))
     if form_type == "ppp":
@@ -304,7 +311,10 @@ def supports_verbal_form(verb, form_type):
     return False
 
 
-master_ptc_list = ["pap", "ppp", "fap", "gdv", "inf_impf_act"]
+master_ptc_list = ["pap", "ppp", "fap", "gdv", "inf_impf_act", "inf_all"]
+# 'inf_all' expands to six independent targets; it is intentionally not
+# selected by default, and never requires selecting 'inf_impf_act'.
+default_ptc_list = [kind for kind in master_ptc_list if kind != "inf_all"]
 master_voice_list = ["act", "dep", "semidep"]
 master_irregular_verbs_list = [key for key in complete_verb_vocab.keys() if complete_verb_vocab[key].get("irreg",{}).get("irreg") is True]
 if "mālō" in master_irregular_verbs_list:
@@ -315,7 +325,7 @@ exercise_schema = {
     "show_stems": bool_setting(False),
     "practice_inflected_participles": bool_setting(True),
     "conjugation_selector": list_setting(list(conjugation_dict.keys()), list(conjugation_dict.keys())),
-    "ptc_selector": list_setting(master_ptc_list, master_ptc_list),
+    "ptc_selector": list_setting(default_ptc_list, master_ptc_list),
     "voice_selector": list_setting(master_voice_list, master_voice_list),
     "irreg_selector": list_setting([], master_irregular_verbs_list),
 }
@@ -398,7 +408,10 @@ with ptc_options_col:
         master_ptc_list,
         format_func=lambda x: ptc_dict[x],
         key=widget_key(page_id, "ptc_selector"),
-        help="A part. inst. pass. a gerundivum (más néven participium futuri passivi). A part. inst. act. kizárólag activum vagy deponens alakot jelent. Egyelőre csak az inf. impf. act. gyakorolható."
+        help=("A part. inst. pass. a gerundivum (más néven participium futuri passivi). "
+              "A part. inst. act. kizárólag activum vagy deponens alakot jelent. "
+              "Az inf. (összes) az imperfectum, perfectum és instans activum/passivum "
+              "infinitivusait gyakoroltatja, az inf. impf. act. külön kiválasztása nélkül is.")
     )
     practice_inflected_participles = st.checkbox(
         "Participiumok ragozott alakjai is?",
@@ -465,7 +478,12 @@ with options_col:
     else:
         exercise_link_popover(page_id, exercise_schema, current_exercise_settings)
 
-verb_vocab = {key: val for key, val in complete_verb_vocab.items() if "inf_impf_act" in ptc_selector or not (all(val.get(ptc) is None for ptc in ["pap","ppp","fap","gdv"]) and all(ptc in val for ptc in ["pap","gdv"]))}
+effective_ptc_selector = list(dict.fromkeys(
+    [kind for kind in ptc_selector if kind != "inf_all"]
+    + (list(ALL_INFINITIVE_TYPES) if "inf_all" in ptc_selector else [])
+))
+
+verb_vocab = {key: val for key, val in complete_verb_vocab.items() if any(kind in effective_ptc_selector for kind in ALL_INFINITIVE_TYPES) or not (all(val.get(ptc) is None for ptc in ["pap","ppp","fap","gdv"]) and all(ptc in val for ptc in ["pap","gdv"]))}
 for vb in master_irregular_verbs_list:
     if vb not in irreg_selector:
         verb_vocab.pop(vb)
@@ -475,10 +493,10 @@ selected_conjugations = conjugation_selector + (["3io"] if 3 in conjugation_sele
 verb_vocab = {key: val for key, val in verb_vocab.items() if verb_vocab[key]["conj"] in selected_conjugations + [None] or key in irreg_selector}
 
 
-if "inf_impf_act" in ptc_selector:
+if any(kind in effective_ptc_selector for kind in ALL_INFINITIVE_TYPES):
     verb_vocab = {
         verb: data for verb, data in verb_vocab.items()
-        if any(supports_verbal_form(verb, form_type) for form_type in ptc_selector)
+        if any(supports_verbal_form(verb, form_type) for form_type in effective_ptc_selector)
     }
 elif ptc_selector == ["pap"]:
     verb_vocab = {key:val for key, val in verb_vocab.items() if not ("pap" in verb_vocab[key] and verb_vocab[key].get("pap") is None)}
@@ -504,8 +522,8 @@ if not practice_inflected_participles:
         verb: data for verb, data in verb_vocab.items()
         if any(
             supports_verbal_form(verb, kind)
-            and (kind == "inf_impf_act" or participle_dictionary_entry(data, kind) is not None)
-            for kind in ptc_selector
+            and (kind in ALL_INFINITIVE_TYPES or participle_dictionary_entry(data, kind) is not None)
+            for kind in effective_ptc_selector
         )
     }
 
@@ -542,7 +560,7 @@ def submit_ptc_answer():
     if (
         not practice_inflected_participles
         and current and len(current) > 1
-        and current[1][1] != "inf_impf_act"
+        and current[1][1] not in ALL_INFINITIVE_TYPES
     ):
         verb, form_type = current[1][:2]
         dictionary_entry = participle_dictionary_entry(complete_verb_vocab[verb], form_type)
@@ -602,21 +620,34 @@ elif len(verb_vocab) == 0:
 
 else:
 
-    def gen_ptc_id():
+    def choose_ptc_id(verb, form_type):
+        """Return a target with grammatical parameters only for participles."""
+        if form_type in ALL_INFINITIVE_TYPES:
+            return [verb, form_type, None, None, None]
+        if verb_vocab[verb].get("impers_pass_only") and form_type in ("ppp", "gdv"):
+            return [verb, form_type, "n", "sg", "nom"]
         if not practice_inflected_participles:
+            return [verb, form_type, None, None, None]
+        return [
+            verb, form_type, random.choice(adj_options["gender"]),
+            random.choice(adj_options["number"]), random.choice(adj_options["case"])
+        ]
+
+    def gen_ptc_id():
+        if "inf_all" in ptc_selector or not practice_inflected_participles:
             choices = [
                 (verb, form_type) for verb in verb_vocab
-                for form_type in ptc_selector
+                for form_type in effective_ptc_selector
                 if supports_verbal_form(verb, form_type)
                 and (
-                    form_type == "inf_impf_act"
+                    form_type in ALL_INFINITIVE_TYPES
+                    or practice_inflected_participles
                     or participle_dictionary_entry(complete_verb_vocab[verb], form_type)
                 )
             ]
             if not choices:
                 return None
-            verb, form_type = random.choice(choices)
-            return [verb, form_type, None, None, None]
+            return choose_ptc_id(*random.choice(choices))
 
         conj_random = random.choice(conjugation_selector + (["irreg"] if irreg_selector else []))
         # st.write(conj_random)
@@ -674,26 +705,33 @@ else:
     ## ADAPTIVE LEARNING ALGORITHM ##
 
     def adap_gen_ptc_id():
-        if not practice_inflected_participles:
+        if "inf_all" in ptc_selector or not practice_inflected_participles:
             mistakes = [
                 entry for entry in questions_asked
                 if entry.get("pos") == "verbal adj."
-                and entry.get("id", {}).get("form_mode") == "dictionary"
                 and entry.get("correct") is False
                 and entry.get("word") in verb_vocab
-                and entry.get("id", {}).get("ptc_type") in ptc_selector
+                and entry.get("id", {}).get("ptc_type") in effective_ptc_selector
+                and (
+                    entry.get("id", {}).get("form_mode") == "infinitive"
+                    if entry.get("id", {}).get("ptc_type") in ALL_INFINITIVE_TYPES
+                    else (
+                        entry.get("id", {}).get("form_mode") ==
+                        ("inflected" if practice_inflected_participles else "dictionary")
+                    )
+                )
                 and supports_verbal_form(entry["word"], entry["id"]["ptc_type"])
                 and (
-                    entry["id"]["ptc_type"] == "inf_impf_act"
+                    entry["id"]["ptc_type"] in ALL_INFINITIVE_TYPES
+                    or practice_inflected_participles
                     or participle_dictionary_entry(
                         complete_verb_vocab[entry["word"]], entry["id"]["ptc_type"]
                     ) is not None
                 )
             ]
-            # Review earlier errors without confusing dictionary and inflected forms.
             if mistakes and random.random() < 1 / (st.session_state.get("adap_learning_frequency", 2) + 1):
                 chosen = random.choice(mistakes)
-                return [chosen["word"], chosen["id"]["ptc_type"], None, None, None]
+                return choose_ptc_id(chosen["word"], chosen["id"]["ptc_type"])
             return gen_ptc_id()
 
         avail_ptc = list(ptc_selector)
@@ -939,12 +977,17 @@ else:
 
         # The infinitive is always uninflected; participles are optionally
         # asked as complete dictionary entries instead of individual case forms.
-        if ptc_type == "inf_impf_act":
-            ptc_form = present_active_infinitive(verb)
-            irreg_form = bool(
-                (verb_info.get("irreg") or {}).get("forms", {})
-                .get("pres", {}).get("act", {}).get("inf")
-            )
+        if ptc_type in ALL_INFINITIVE_TYPES:
+            forms = infinitive_paradigm(verb, verb_info).get(ptc_type, [])
+            if not forms:
+                st.session_state.question_generation_error_message = (
+                    ":warning: Ehhez az igéhez a kiválasztott infinitivus nem képezhető."
+                )
+                return
+            ptc_form = forms[0] if len(forms) == 1 else forms
+            gender = number = case = None
+            ptc_id = [verb, ptc_type, gender, number, case]
+            irreg_form = bool(verb_info.get("irreg", {}).get("irreg"))
         elif not practice_inflected_participles:
             entry = participle_dictionary_entry(verb_info, ptc_type)
             if entry is None:
@@ -1015,8 +1058,8 @@ else:
                 "word": verb,
                 "id": {
                     "ptc_type": ptc_type,
-                    "form_mode": ("dictionary" if not practice_inflected_participles
-                                  and ptc_type != "inf_impf_act" else "inflected"),
+                    "form_mode": ("infinitive" if ptc_type in ALL_INFINITIVE_TYPES
+                                  else "dictionary" if not practice_inflected_participles else "inflected"),
                     "gender": gender,
                     "number": number,
                     "case": case,
@@ -1056,7 +1099,7 @@ else:
         # Match the typography and placement of the question on the Igék page.
         form_label = (
             abbrevs[ptc_type]
-            if ptc_type == "inf_impf_act" or not practice_inflected_participles
+            if ptc_type in ALL_INFINITIVE_TYPES or not practice_inflected_participles
             else f"{abbrevs[ptc_type]}, {abbrevs[number]} {abbrevs[case]} {abbrevs[gender]}"
         )
         question_html = (
@@ -1117,7 +1160,7 @@ else:
             if (practice_inflected_participles
                     and st.session_state.current_question and st.session_state.answer_checked
                     and "Incorrect" in st.session_state.result_message
-                    and st.session_state.current_question[1][1] != "inf_impf_act"):
+                    and st.session_state.current_question[1][1] not in ALL_INFINITIVE_TYPES):
                 starting_form = list(st.session_state.current_question[1])
                 next_form = list(starting_form)
                 help_text = "Ehhez az alakhoz nem jeleníthető meg ragozási táblázat." if (starting_form[1] in ["ppp","gdv"] and complete_verb_vocab[starting_form[0]].get("impers_pass_only") is True) else None
