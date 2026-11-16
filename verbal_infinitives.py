@@ -107,7 +107,8 @@ def infinitive_paradigm(lemma, data):
         add("inf_inst_act", future or (future_stem + "um esse"),
             future_stem + "us esse", future_stem + "a esse")
 
-    if voice == "act" and true_ppp and not no_pass:
+    if (voice == "act" and true_ppp and not no_pass) or (lemma == "fīō" and true_ppp):
+        # fīō uses factum īrī as the future infinitive (as on the Igék page).
         add("inf_inst_pass", irregular_inf("fut", "pass") or (ppp + "um īrī"))
 
     if lemma == "sum" and "inf_inst_act" in results:
