@@ -1,12 +1,31 @@
 """Regression tests for the six-form infinitive selection."""
 import unittest
 
-from verbal_infinitives import ALL_INFINITIVE_TYPES, infinitive_paradigm
+from verbal_infinitives import (
+    ALL_INFINITIVE_TYPES, infinitive_paradigm, expand_selected_form_types,
+)
 
 
 class InfinitiveParadigmTests(unittest.TestCase):
     def setUp(self):
         self.dico = {"conj": 3, "voice": "act", "pres": "dīc", "perf": "dīx", "ppp": "dict"}
+
+    def test_all_option_independent_of_imperfect_active_checkbox(self):
+        self.assertEqual(
+            expand_selected_form_types(["inf_all"]), list(ALL_INFINITIVE_TYPES)
+        )
+        self.assertEqual(
+            expand_selected_form_types(["inf_impf_act", "inf_all"]),
+            list(ALL_INFINITIVE_TYPES)
+        )
+        self.assertEqual(
+            expand_selected_form_types(["pap", "inf_all"]),
+            ["pap", *ALL_INFINITIVE_TYPES]
+        )
+        self.assertEqual(
+            expand_selected_form_types(["pap", "inf_impf_act"]),
+            ["pap", "inf_impf_act"]
+        )
 
     def test_regular_six_types(self):
         forms = infinitive_paradigm("dīcō", self.dico)
