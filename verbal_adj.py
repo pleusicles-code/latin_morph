@@ -1101,6 +1101,18 @@ else:
             if ptc_type in ALL_INFINITIVE_TYPES or not practice_inflected_participles
             else f"{abbrevs[ptc_type]}, {abbrevs[number]} {abbrevs[case]} {abbrevs[gender]}"
         )
+        # Name deponent infinitives by their paradigm, not as passive
+        # verbs, while retaining the conventional six form labels otherwise.
+        verb_voice = complete_verb_vocab[verb].get("voice")
+        if verb_voice == "dep":
+            form_label = {
+                "inf_impf_pass": "inf. (impf. dep.)",
+                "inf_perf_pass": "inf. (perf. dep.)",
+                "inf_inst_act": "inf. (inst. dep.)",
+            }.get(ptc_type, form_label)
+        elif verb_voice == "semidep" and ptc_type == "inf_perf_pass":
+            form_label = "inf. (perf. semidep.)"
+
         question_html = (
             f'Képezd {hungarian_article(verb)} '
             f'<strong><em>{html.escape(verb_label)}</em></strong> ige következő alakját: '
