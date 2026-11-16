@@ -9,6 +9,9 @@ from utils import reset, new_question, submit_and_check_answer, clear_page, remo
 from exercise_presets import (bool_setting, list_setting, resolve_exercise_settings, initialize_widget_state,
                               widget_key, url_preset_active, exercise_link_popover)
 from vocab import import_verbs, filter_vocab_by_repo
+from verbal_principal_forms import (
+    participle_dictionary_entry, accepts_participle_dictionary_answer,
+)
 
 st.set_page_config("BevLat – Igenevek", layout="centered")
 
@@ -309,6 +312,7 @@ exercise_schema = {
     "show_principal_parts": bool_setting(False),
     "full_regular_first_entry": bool_setting(False),
     "show_stems": bool_setting(False),
+    "practice_inflected_participles": bool_setting(True),
     "conjugation_selector": list_setting(list(conjugation_dict.keys()), list(conjugation_dict.keys())),
     "ptc_selector": list_setting(master_ptc_list, master_ptc_list),
     "voice_selector": list_setting(master_voice_list, master_voice_list),
@@ -324,6 +328,18 @@ if conjugation_key in st.session_state:
 exercise_settings["conjugation_selector"] = normalized_conjugations(exercise_settings["conjugation_selector"])
 initialize_widget_state(page_id, exercise_settings)
 preset_active = url_preset_active(page_id)
+
+
+def reset_question_on_participle_mode_change():
+    """Do not show an old question with the new mode's answer checker."""
+    st.session_state.current_question = []
+    st.session_state.correct_answer = None
+    st.session_state.answer_checked = False
+    st.session_state.result_message = ""
+    st.session_state.answer_display_message = ""
+    st.session_state.button_disable = False
+    st.session_state.append_answer = True
+    st.session_state["_bevlat_clear_answer_input"] = True
 
 
 option_expander = st.expander("Beállítások", expanded=True)
@@ -383,6 +399,16 @@ with ptc_options_col:
         key=widget_key(page_id, "ptc_selector"),
         help="A part. inst. pass. a gerundivum (más néven participium futuri passivi). A part. inst. act. kizárólag activum vagy deponens alakot jelent. Egyelőre csak az inf. impf. act. gyakorolható."
     )
+    practice_inflected_participles = st.checkbox(
+        "Participiumok ragozott alakjai is?",
+        key=widget_key(page_id, "practice_inflected_participles"),
+        help=(
+            "Bekapcsolva: a participiumok különböző esetű, számú és nemű alakjait kell képezni. "
+            "Kikapcsolva: csak a szótári alakokat (pl. dictus 3, dicēns (ntis), dictūrus 3, dicendus 3). "
+            "Az infinitivus gyakorlását ez nem befolyásolja."
+        ),
+        on_change=reset_question_on_participle_mode_change,
+    )
 
 # with voice_col:
     voice_dict = {abbrev: name for abbrev, name in zip(master_voice_list,[abbrevs[vc] for vc in master_voice_list])}
@@ -404,6 +430,7 @@ current_exercise_settings = {
     "show_principal_parts": show_principal_parts,
     "full_regular_first_entry": full_regular_first_entry,
     "show_stems": show_stems,
+    "practice_inflected_participles": practice_inflected_participles,
     "conjugation_selector": conjugation_selector,
     "ptc_selector": ptc_selector,
     "voice_selector": voice_selector,
@@ -493,9 +520,35 @@ def heavy(text, italic=False):
 
 
 def submit_ptc_answer():
-    """Retain shared scoring, with the same feedback format as the verbs page."""
+    """Retain shared scoring, accepting dictionary-form variants in compact mode."""
     submitted = st.session_state.get("answer_input") or ""
+    canonical_answer = st.session_state.get("correct_answer")
+    current = st.session_state.get("current_question")
+    dictionary_entry = None
+    if (
+        not practice_inflected_participles
+        and current and len(current) > 1
+        and current[1][1] != "inf_impf_act"
+    ):
+        verb, form_type = current[1][:2]
+        dictionary_entry = participle_dictionary_entry(complete_verb_vocab[verb], form_type)
+        if (
+            dictionary_entry and submitted.strip()
+            and not st.session_state.get("answer_checked", False)
+            and accepts_participle_dictionary_answer(
+                submitted, dictionary_entry,
+                enforce_macrons=bool(st.session_state.enforce_macrons["verbal_adj_enforce_macrons"]),
+                normalize_v=bool(st.session_state.get("cons_u_normalize", False)),
+            )
+        ):
+            # Pass the actual user text as an accepted variant to the shared
+            # scorer, preserving scoring, history, and Supabase persistence.
+            st.session_state.correct_answer = [canonical_answer, submitted.strip().lower()]
+
     submit_and_check_answer()
+    if dictionary_entry is not None:
+        st.session_state.correct_answer = canonical_answer
+        st.session_state.answer_phrase = f"A helyes válasz: {canonical_answer}"
     if not submitted:
         st.session_state.answer_display_message = (
             "A válaszmező üres. Írj be egy alakot, majd kattints a "
@@ -536,6 +589,21 @@ elif len(verb_vocab) == 0:
 else:
 
     def gen_ptc_id():
+        if not practice_inflected_participles:
+            choices = [
+                (verb, form_type) for verb in verb_vocab
+                for form_type in ptc_selector
+                if supports_verbal_form(verb, form_type)
+                and (
+                    form_type == "inf_impf_act"
+                    or participle_dictionary_entry(complete_verb_vocab[verb], form_type)
+                )
+            ]
+            if not choices:
+                return None
+            verb, form_type = random.choice(choices)
+            return [verb, form_type, None, None, None]
+
         conj_random = random.choice(conjugation_selector + (["irreg"] if irreg_selector else []))
         # st.write(conj_random)
         avail_verbs = [v for v,i in verb_vocab.items() if (i["conj"] == conj_random or (conj_random == 3 and i["conj"] == "3io")) and v not in irreg_selector] if conj_random != "irreg" else [v for v in irreg_selector if v in verb_vocab]
@@ -592,6 +660,22 @@ else:
     ## ADAPTIVE LEARNING ALGORITHM ##
 
     def adap_gen_ptc_id():
+        if not practice_inflected_participles:
+            mistakes = [
+                entry for entry in questions_asked
+                if entry.get("pos") == "verbal adj."
+                and entry.get("id", {}).get("form_mode") == "dictionary"
+                and entry.get("correct") is False
+                and entry.get("word") in verb_vocab
+                and entry.get("id", {}).get("ptc_type") in ptc_selector
+                and supports_verbal_form(entry["word"], entry["id"]["ptc_type"])
+            ]
+            # Review earlier errors without confusing dictionary and inflected forms.
+            if mistakes and random.random() < 1 / (st.session_state.get("adap_learning_frequency", 2) + 1):
+                chosen = random.choice(mistakes)
+                return [chosen["word"], chosen["id"]["ptc_type"], None, None, None]
+            return gen_ptc_id()
+
         avail_ptc = list(ptc_selector)
         avail_verbs = list(verb_vocab.keys())
 
@@ -828,13 +912,24 @@ else:
             verb_principal_parts[3] += "/iī"
 
 
-        # Infinitives are indeclinable; participles and gerundives retain case forms.
+        # The infinitive is always uninflected; participles are optionally
+        # asked as complete dictionary entries instead of individual case forms.
         if ptc_type == "inf_impf_act":
             ptc_form = present_active_infinitive(verb)
             irreg_form = bool(
                 (verb_info.get("irreg") or {}).get("forms", {})
                 .get("pres", {}).get("act", {}).get("inf")
             )
+        elif not practice_inflected_participles:
+            entry = participle_dictionary_entry(verb_info, ptc_type)
+            if entry is None:
+                st.session_state.question_generation_error_message = (
+                    ":warning: Ehhez az igéhez nem képezhető a kiválasztott igenévtípus."
+                )
+                return
+            ptc_form = entry["canonical"]
+            gender = number = case = None
+            ptc_id = [verb, ptc_type, gender, number, case]
         else:
             # Assign/create verbal adjective forms
     
@@ -895,6 +990,8 @@ else:
                 "word": verb,
                 "id": {
                     "ptc_type": ptc_type,
+                    "form_mode": ("dictionary" if not practice_inflected_participles
+                                  and ptc_type != "inf_impf_act" else "inflected"),
                     "gender": gender,
                     "number": number,
                     "case": case,
@@ -933,8 +1030,9 @@ else:
 
         # Match the typography and placement of the question on the Igék page.
         form_label = (
-            abbrevs[ptc_type] if ptc_type == "inf_impf_act" else
-            f"{abbrevs[ptc_type]}, {abbrevs[number]} {abbrevs[case]} {abbrevs[gender]}"
+            abbrevs[ptc_type]
+            if ptc_type == "inf_impf_act" or not practice_inflected_participles
+            else f"{abbrevs[ptc_type]}, {abbrevs[number]} {abbrevs[case]} {abbrevs[gender]}"
         )
         question_html = (
             f'Képezd {hungarian_article(verb)} '
@@ -991,7 +1089,8 @@ else:
             st.button(new_q_button_text, on_click=new_question, args=(build_ptc,), key="question_button", width="stretch", type=new_q_button_type)
 
         with results_col:
-            if (st.session_state.current_question and st.session_state.answer_checked
+            if (practice_inflected_participles
+                    and st.session_state.current_question and st.session_state.answer_checked
                     and "Incorrect" in st.session_state.result_message
                     and st.session_state.current_question[1][1] != "inf_impf_act"):
                 starting_form = list(st.session_state.current_question[1])
