@@ -11,6 +11,7 @@ from exercise_presets import (bool_setting, list_setting, resolve_exercise_setti
 from vocab import import_verbs, filter_vocab_by_repo
 from verbal_principal_forms import (
     participle_dictionary_entry, accepts_participle_dictionary_answer,
+    has_real_perfect_passive_stem,
 )
 
 st.set_page_config("BevLat – Igenevek", layout="centered")
@@ -295,7 +296,7 @@ def supports_verbal_form(verb, form_type):
     if form_type == "pap":
         return data.get("pap", True) is not None and bool(data.get("pap") or data.get("pres"))
     if form_type == "ppp":
-        return data.get("ppp") is not None and not data.get("no_pass")
+        return has_real_perfect_passive_stem(data) and not data.get("no_pass")
     if form_type == "fap":
         return data.get("fap", True) is not None and bool(data.get("fap") or data.get("ppp"))
     if form_type == "gdv":
@@ -482,7 +483,8 @@ if "inf_impf_act" in ptc_selector:
 elif ptc_selector == ["pap"]:
     verb_vocab = {key:val for key, val in verb_vocab.items() if not ("pap" in verb_vocab[key] and verb_vocab[key].get("pap") is None)}
 elif ptc_selector == ["ppp"]:
-    verb_vocab = {key: val for key, val in verb_vocab.items() if "ppp" in verb_vocab[key]}
+    verb_vocab = {key: val for key, val in verb_vocab.items()
+                  if has_real_perfect_passive_stem(val) and not val.get("no_pass")}
 elif ptc_selector == ["gdv"]:
     verb_vocab = {key:val for key, val in verb_vocab.items() if not ("gdv" in verb_vocab[key] and verb_vocab[key].get("gdv") is None)}
 # If the selection is limited either to just fut.act.ptc or to those and PPPs, then keep the verbs that have either a PPP stem or special fut.act.ptc stem.
@@ -494,6 +496,18 @@ elif "gdv" not in ptc_selector:
     verb_vocab = {key: val for key, val in verb_vocab.items() if any(verb_vocab[key].get(ptc) for ptc in ["fap","ppp","pap"])}
 else:
     verb_vocab = {key: val for key, val in verb_vocab.items() if not (all(val.get(ptc) is None for ptc in ptc_selector) and all(ptc in val for ptc in ptc_selector if ptc != "ppp"))}
+
+# Dictionary-form practice requires a genuine fourth part; future-only
+# fourth parts are eligible for other types, never for perfect passive.
+if not practice_inflected_participles:
+    verb_vocab = {
+        verb: data for verb, data in verb_vocab.items()
+        if any(
+            supports_verbal_form(verb, kind)
+            and (kind == "inf_impf_act" or participle_dictionary_entry(data, kind) is not None)
+            for kind in ptc_selector
+        )
+    }
 
 #st.write(verb_vocab.keys())
 
@@ -622,7 +636,7 @@ else:
             if "pap" in avail_ptc:
                 avail_ptc.remove("pap")
         # Does the selected verb not have a PPP?
-        if "ppp" not in verb_vocab[verb]:
+        if not has_real_perfect_passive_stem(verb_vocab[verb]):
             if "ppp" in avail_ptc:
                 avail_ptc.remove("ppp")
         # Does the selected verb have neither a PPP nor a FAP form?
@@ -669,6 +683,12 @@ else:
                 and entry.get("word") in verb_vocab
                 and entry.get("id", {}).get("ptc_type") in ptc_selector
                 and supports_verbal_form(entry["word"], entry["id"]["ptc_type"])
+                and (
+                    entry["id"]["ptc_type"] == "inf_impf_act"
+                    or participle_dictionary_entry(
+                        complete_verb_vocab[entry["word"]], entry["id"]["ptc_type"]
+                    ) is not None
+                )
             ]
             # Review earlier errors without confusing dictionary and inflected forms.
             if mistakes and random.random() < 1 / (st.session_state.get("adap_learning_frequency", 2) + 1):
@@ -771,7 +791,9 @@ else:
                         if ptc_type == "pap":
                             curr_avail_verbs = {v:i for v,i in curr_avail_verbs.items() if not ("pap" in i and i.get("pap") is None)}
                         elif ptc_type == "ppp":
-                            curr_avail_verbs = {v:i for v,i in curr_avail_verbs.items() if "ppp" in i}
+                            curr_avail_verbs = {v:i for v,i in curr_avail_verbs.items()
+                                                if has_real_perfect_passive_stem(i)
+                                                and not i.get("no_pass")}
                         elif ptc_type == "fap":
                             curr_avail_verbs = {v:i for v,i in curr_avail_verbs.items() if not all(ptc not in i for ptc in ["fap","ppp"]) and not ("fap" in i and i.get("fap") is None)}
                         elif ptc_type == "inf_impf_act":
