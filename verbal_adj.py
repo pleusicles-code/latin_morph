@@ -687,8 +687,11 @@ else:
         if questions_asked and len([item for item in questions_asked if item["pos"] == "verbal adj." and "correct" in item]) > 0:
 
             ptc_df = pd.json_normalize([item for item in questions_asked if item["pos"] == "verbal adj." and "correct" in item]).replace({None: "-", pd.NA: "-", "nan": "-", "None": "-"})
-            # Historical vocative answers must not enter adaptive sampling.
+            # Historical vocative and dictionary-mode answers must not distort
+            # the existing case/number/gender adaptive statistics. Drop the mode
+            # marker before grouping so the original three-field indices remain.
             ptc_df = ptc_df[ptc_df["id.case"].isin(adj_options["case"])]
+            ptc_df = ptc_df.drop(columns=["id.form_mode"], errors="ignore")
 #            st.write(ptc_df)
             dfs["ptc_df"] = ptc_df
 
