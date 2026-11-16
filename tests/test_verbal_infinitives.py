@@ -64,6 +64,16 @@ class InfinitiveParadigmTests(unittest.TestCase):
         self.assertEqual(forms["inf_impf_act"], ["audēre"])
         self.assertEqual(forms["inf_perf_pass"][0], "ausum esse")
 
+    def test_fio_special_infinitives(self):
+        fio = {
+            "voice": "semidep", "conj": 3, "pres": "fī", "ppp": "fact", "fap": None,
+            "irreg": {"forms": {"pres": {"dep": {"inf": "fierī"}}}},
+        }
+        forms = infinitive_paradigm("fīō", fio)
+        self.assertEqual(forms["inf_impf_pass"], ["fierī"])
+        self.assertEqual(forms["inf_inst_pass"], ["factum īrī"])
+        self.assertNotIn("inf_impf_act", forms)
+
     def test_future_only_part_and_no_perfect(self):
         cado = {"voice": "act", "conj": 3, "pres": "cad", "perf": "cecid", "fap": "cāsūr"}
         forms = infinitive_paradigm("cadō", cado)
