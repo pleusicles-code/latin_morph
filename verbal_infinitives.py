@@ -17,6 +17,14 @@ ALL_INFINITIVE_TYPES = (
     "inf_inst_pass",
 )
 
+def expand_selected_form_types(selected):
+    """Expand 'inf_all' without requiring or duplicating 'inf_impf_act'."""
+    return list(dict.fromkeys(
+        [kind for kind in selected if kind != "inf_all"]
+        + (list(ALL_INFINITIVE_TYPES) if "inf_all" in selected else [])
+    ))
+
+
 PRESENT_ACTIVE_VOWELS = {1: "ā", 2: "ē", 3: "e", "3io": "e", 4: "ī"}
 PRESENT_PASSIVE_ENDINGS = {1: "ārī", 2: "ērī", 3: "ī", "3io": "ī", 4: "īrī"}
 
