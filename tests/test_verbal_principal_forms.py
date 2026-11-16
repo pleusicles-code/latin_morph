@@ -4,6 +4,8 @@ import unittest
 from verbal_principal_forms import (
     participle_dictionary_entry,
     accepts_participle_dictionary_answer,
+    has_real_perfect_passive_stem,
+    has_usable_fourth_part,
 )
 
 
@@ -16,7 +18,7 @@ class ParticipleDictionaryFormsTests(unittest.TestCase):
         entry = participle_dictionary_entry(self.dico, "ppp")
         self.assertEqual(entry["canonical"], "dictus 3")
         for answer in (
-            "dictus 3", "dictus 3.", "dictus, dicta, dictum",
+            "dictus 3", "dictus 3.", "dictus3", "dictus3.", "dictus, dicta, dictum",
             "dictus -a -um", "dictus, -a, -um",
             "dictus/-a/-um", "dictus-a-um", "DICTUS -A -UM",
         ):
@@ -52,6 +54,8 @@ class ParticipleDictionaryFormsTests(unittest.TestCase):
         self.assertEqual(future["canonical"], "dictūrus 3")
         self.assertEqual(gerundive["canonical"], "dicendus 3")
         self.assertTrue(accepts_participle_dictionary_answer("dicturus -a -um", future))
+        self.assertTrue(accepts_participle_dictionary_answer("dictūrus3", future))
+        self.assertTrue(accepts_participle_dictionary_answer("dicendus3", gerundive))
         self.assertTrue(accepts_participle_dictionary_answer("dicendus, dicenda, dicendum", gerundive))
 
     def test_third_io_forms(self):
@@ -60,9 +64,43 @@ class ParticipleDictionaryFormsTests(unittest.TestCase):
         self.assertEqual(entry["genitive"], "facientis")
 
     def test_irregular_present_participle(self):
-        entry = participle_dictionary_entry({"pap": ("iēns", "eunt")}, "pap")
+        entry = participle_dictionary_entry({"pap": ("iēns", "eunt"), "ppp": "it"}, "pap")
         self.assertEqual(entry["canonical"], "iēns (ntis)")
         self.assertTrue(accepts_participle_dictionary_answer("iens, euntis", entry))
+
+    def test_fourth_part_restrictions(self):
+        missing = {"conj": 3, "pres": "parc", "perf": "peperc"}
+        bracketed = {**missing, "fap": "pars"}  # parcō: displayed as [parsus]
+        marked = {**missing, "ppp": "[pars]"}
+        no_fourth = {**missing, "ppp": None}
+        for data in (missing, bracketed, marked, no_fourth):
+            with self.subTest(data=data):
+                self.assertFalse(has_usable_fourth_part(data))
+                for kind in ("pap", "ppp", "fap", "gdv"):
+                    self.assertIsNone(participle_dictionary_entry(data, kind))
+
+    def test_future_only_fourth_part(self):
+        future_only = {"conj": 3, "pres": "ard", "fap": "ārsūr"}
+        self.assertTrue(has_usable_fourth_part(future_only))
+        self.assertFalse(has_real_perfect_passive_stem(future_only))
+        self.assertIsNone(participle_dictionary_entry(future_only, "ppp"))
+        self.assertEqual(
+            participle_dictionary_entry(future_only, "fap")["canonical"],
+            "ārsūrus 3",
+        )
+        self.assertTrue(
+            accepts_participle_dictionary_answer(
+                "ārsūrus3", participle_dictionary_entry(future_only, "fap")
+            )
+        )
+        future_stored_as_ppp = {"conj": 3, "pres": "fut", "ppp": "futūr"}
+        self.assertIsNone(participle_dictionary_entry(future_stored_as_ppp, "ppp"))
+        self.assertEqual(participle_dictionary_entry(future_stored_as_ppp, "fap")["canonical"], "futūrus 3")
+
+    def test_wrong_joined_numerals(self):
+        entry = participle_dictionary_entry(self.dico, "ppp")
+        for answer in ("dictus33", "dictus4", "dicta3", "dictus3um"):
+            self.assertFalse(accepts_participle_dictionary_answer(answer, entry))
 
     def test_missing_forms(self):
         self.assertIsNone(participle_dictionary_entry({"no_pass": True, "ppp": "dict"}, "ppp"))
