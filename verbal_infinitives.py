@@ -84,10 +84,14 @@ def infinitive_paradigm(lemma, data):
         add("inf_perf_act", *variants)
 
     if true_ppp and (voice in ("dep", "semidep") or (voice == "act" and not no_pass)):
+        # Present the participle in compact dictionary form, as in BevLat's
+        # participle exercises. The numeral is optional in answers.
+        masculine = ppp + "us"
         add(
             "inf_perf_pass",
-            irregular_inf("perf", "dep") or irregular_inf("perf", "pass") or (ppp + "um esse"),
-            ppp + "us esse", ppp + "a esse",
+            masculine + " 3 esse",
+            masculine + " esse",
+            masculine + "3 esse",
         )
 
     future_stem = None
@@ -103,9 +107,13 @@ def infinitive_paradigm(lemma, data):
         future_stem = ppp + "ūr"
 
     if future_stem:
-        future = irregular_inf("fut", "act") or irregular_inf("fut", "dep")
-        add("inf_inst_act", future or (future_stem + "um esse"),
-            future_stem + "us esse", future_stem + "a esse")
+        masculine = future_stem + "us"
+        add(
+            "inf_inst_act",
+            masculine + " 3 esse",
+            masculine + " esse",
+            masculine + "3 esse",
+        )
 
     if (voice == "act" and true_ppp and not no_pass) or (lemma == "fīō" and true_ppp):
         # fīō uses factum īrī as the future infinitive (as on the Igék page).
