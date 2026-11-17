@@ -1107,7 +1107,7 @@ else:
         if verb_voice == "dep":
             form_label = {
                 "inf_impf_pass": "inf. (impf. dep.)",
-                "inf_perf_pass": "inf. (perf. dep.)",
+                "inf_perf_pass": "inf. perf. (pass.)",
                 "inf_inst_act": "inf. inst. (act.)",
             }.get(ptc_type, form_label)
         elif verb_voice == "semidep" and ptc_type == "inf_perf_pass":
