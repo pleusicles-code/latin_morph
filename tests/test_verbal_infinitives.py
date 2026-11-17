@@ -33,8 +33,18 @@ class InfinitiveParadigmTests(unittest.TestCase):
         self.assertEqual(forms["inf_impf_act"][0], "dīcere")
         self.assertEqual(forms["inf_impf_pass"][0], "dīcī")
         self.assertEqual(forms["inf_perf_act"][0], "dīxisse")
-        self.assertEqual(forms["inf_perf_pass"][0], "dictum esse")
-        self.assertEqual(forms["inf_inst_act"][0], "dictūrum esse")
+        self.assertEqual(forms["inf_perf_pass"][0], "dictus 3 esse")
+        self.assertEqual(
+            forms["inf_perf_pass"],
+            ["dictus 3 esse", "dictus esse", "dictus3 esse"],
+        )
+        self.assertNotIn("dictum esse", forms["inf_perf_pass"])
+        self.assertEqual(forms["inf_inst_act"][0], "dictūrus 3 esse")
+        self.assertEqual(
+            forms["inf_inst_act"],
+            ["dictūrus 3 esse", "dictūrus esse", "dictūrus3 esse"],
+        )
+        self.assertNotIn("dictūrum esse", forms["inf_inst_act"])
         self.assertEqual(forms["inf_inst_pass"][0], "dictum īrī")
 
     def test_first_and_fourth_conjugations(self):
@@ -42,6 +52,21 @@ class InfinitiveParadigmTests(unittest.TestCase):
         venio = {"voice": "act", "conj": 4, "pres": "ven", "perf": "vēn", "ppp": "vent"}
         self.assertEqual(infinitive_paradigm("amō", amo)["inf_impf_pass"], ["amārī"])
         self.assertEqual(infinitive_paradigm("veniō", venio)["inf_impf_pass"], ["venīrī"])
+
+    def test_compact_infinitive_answers_across_conjugations(self):
+        examples = [
+            ("amō", {"voice": "act", "conj": 1, "pres": "am", "perf": "amāv", "ppp": "amāt"},
+             "amātus 3 esse", "amātūrus 3 esse"),
+            ("veniō", {"voice": "act", "conj": 4, "pres": "ven", "perf": "vēn", "ppp": "vent"},
+             "ventus 3 esse", "ventūrus 3 esse"),
+        ]
+        for lemma, data, perfect, future in examples:
+            with self.subTest(lemma=lemma):
+                forms = infinitive_paradigm(lemma, data)
+                self.assertEqual(forms["inf_perf_pass"][0], perfect)
+                self.assertEqual(forms["inf_inst_act"][0], future)
+                self.assertIn(perfect.replace(" 3 esse", " esse"), forms["inf_perf_pass"])
+                self.assertIn(future.replace(" 3 esse", " esse"), forms["inf_inst_act"])
 
     def test_third_io_and_facio(self):
         facio = {"voice": "act", "conj": "3io", "pres": "fac", "perf": "fēc", "ppp": "fact"}
@@ -54,15 +79,15 @@ class InfinitiveParadigmTests(unittest.TestCase):
         forms = infinitive_paradigm("loquor", loquor)
         self.assertEqual(set(forms), {"inf_impf_pass", "inf_perf_pass", "inf_inst_act"})
         self.assertEqual(forms["inf_impf_pass"], ["loquī"])
-        self.assertEqual(forms["inf_perf_pass"][0], "locūtum esse")
-        self.assertEqual(forms["inf_inst_act"][0], "locūtūrum esse")
+        self.assertEqual(forms["inf_perf_pass"][0], "locūtus 3 esse")
+        self.assertEqual(forms["inf_inst_act"][0], "locūtūrus 3 esse")
 
     def test_semideponent(self):
         audeo = {"voice": "semidep", "conj": 2, "pres": "aud", "ppp": "aus"}
         forms = infinitive_paradigm("audeō", audeo)
         self.assertEqual(set(forms), {"inf_impf_act", "inf_perf_pass", "inf_inst_act"})
         self.assertEqual(forms["inf_impf_act"], ["audēre"])
-        self.assertEqual(forms["inf_perf_pass"][0], "ausum esse")
+        self.assertEqual(forms["inf_perf_pass"][0], "ausus 3 esse")
 
     def test_fio_special_infinitives(self):
         fio = {
@@ -77,7 +102,7 @@ class InfinitiveParadigmTests(unittest.TestCase):
     def test_future_only_part_and_no_perfect(self):
         cado = {"voice": "act", "conj": 3, "pres": "cad", "perf": "cecid", "fap": "cāsūr"}
         forms = infinitive_paradigm("cadō", cado)
-        self.assertEqual(forms["inf_inst_act"], ["cāsūrum esse", "cāsūrus esse", "cāsūra esse"])
+        self.assertEqual(forms["inf_inst_act"], ["cāsūrus 3 esse", "cāsūrus esse", "cāsūrus3 esse"])
         self.assertNotIn("inf_perf_pass", forms)
         self.assertNotIn("inf_inst_pass", forms)
 
