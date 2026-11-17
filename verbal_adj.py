@@ -1113,6 +1113,12 @@ else:
         elif verb_voice == "semidep" and ptc_type == "inf_perf_pass":
             form_label = "inf. (perf. semidep.)"
 
+        # Parentheses distinguish infinitive options in the selector only;
+        # question prompts use the conventional unparenthesized abbreviations.
+        if (ptc_type in ALL_INFINITIVE_TYPES
+                and form_label.startswith("inf. (") and form_label.endswith(")")):
+            form_label = "inf. " + form_label[len("inf. ("):-1]
+
         question_html = (
             f'Képezd {hungarian_article(verb)} '
             f'<strong><em>{html.escape(verb_label)}</em></strong> ige következő alakját: '
